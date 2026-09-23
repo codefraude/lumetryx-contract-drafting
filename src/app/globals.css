@@ -1,0 +1,418 @@
+@import "tailwindcss";
+
+/* Theme selection is data-driven: <html data-theme="light|dark"> is set before paint (see lib/client/theme.ts). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------- Semantic tokens ---------- */
+:root {
+  color-scheme: light;
+  --lx-app: #f4f6f8;
+  --lx-surface: #ffffff;
+  --lx-raised: #ffffff;
+  --lx-subtle: #f8fafc;
+  --lx-canvas: #e6ebef;
+  --lx-hover: #eef2f5;
+  --lx-ink: #14232d;
+  --lx-ink-2: #526574;
+  --lx-ink-3: #5e6f7d;
+  --lx-line: #dde5eb;
+  --lx-control: #82929f;
+  --lx-primary: #0f766e;
+  --lx-primary-hover: #115e59;
+  --lx-on-primary: #ffffff;
+  --lx-accent-surface: #e0f2ef;
+  --lx-accent-ink: #0f766e;
+  --lx-focus: #0f766e;
+  --lx-ok: #047857;
+  --lx-ok-surface: #ecfdf5;
+  --lx-ok-line: #a7f3d0;
+  --lx-warn: #92400e;
+  --lx-warn-surface: #fffbeb;
+  --lx-warn-line: #fde68a;
+  --lx-danger: #be123c;
+  --lx-on-danger: #ffffff;
+  --lx-danger-surface: #fff1f2;
+  --lx-danger-line: #fecdd3;
+  --lx-ins: #065f46;
+  --lx-ins-surface: #d1fae5;
+  --lx-del: #9f1239;
+  --lx-del-surface: #ffe4e6;
+  --lx-tooltip: #14232d;
+  --lx-on-tooltip: #f4f6f8;
+  --lx-scroll: #c3ced6;
+  --lx-backdrop: rgb(11 18 24 / 0.36);
+  --lx-tint: rgb(15 118 110 / 0.07);
+  --lx-shadow-sm: 0 1px 2px rgb(20 35 45 / 0.06);
+  --lx-shadow-md: 0 1px 2px rgb(20 35 45 / 0.05), 0 6px 16px -6px rgb(20 35 45 / 0.12);
+  --lx-shadow-lg: 0 2px 6px rgb(20 35 45 / 0.06), 0 22px 48px -12px rgb(20 35 45 / 0.24);
+  --lx-paper-shadow: 0 1px 2px rgb(20 35 45 / 0.08), 0 10px 30px -10px rgb(20 35 45 / 0.2);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --lx-app: #0b1218;
+  --lx-surface: #121e27;
+  --lx-raised: #1b2b36;
+  --lx-subtle: #16242e;
+  --lx-canvas: #070c11;
+  --lx-hover: #1c2d38;
+  --lx-ink: #e8f0f5;
+  --lx-ink-2: #a5b6c4;
+  --lx-ink-3: #8a9dac;
+  --lx-line: #2c414f;
+  --lx-control: #607687;
+  --lx-primary: #5eead4;
+  --lx-primary-hover: #99f6e4;
+  --lx-on-primary: #082f2b;
+  --lx-accent-surface: #113d3a;
+  --lx-accent-ink: #5eead4;
+  --lx-focus: #5eead4;
+  --lx-ok: #6ee7b7;
+  --lx-ok-surface: #0c2a22;
+  --lx-ok-line: #1d5745;
+  --lx-warn: #fcd34d;
+  --lx-warn-surface: #2b200a;
+  --lx-warn-line: #6b4f14;
+  --lx-danger: #fda4af;
+  --lx-on-danger: #3b0a14;
+  --lx-danger-surface: #33121a;
+  --lx-danger-line: #7a2635;
+  --lx-ins: #a7f3d0;
+  --lx-ins-surface: #0f3b2e;
+  --lx-del: #fecdd3;
+  --lx-del-surface: #47161f;
+  --lx-tooltip: #e8f0f5;
+  --lx-on-tooltip: #0b1218;
+  --lx-scroll: #33495a;
+  --lx-backdrop: rgb(2 6 9 / 0.62);
+  --lx-tint: rgb(94 234 212 / 0.06);
+  --lx-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --lx-shadow-md: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 20px -8px rgb(0 0 0 / 0.5);
+  --lx-shadow-lg: 0 2px 8px rgb(0 0 0 / 0.4), 0 24px 56px -12px rgb(0 0 0 / 0.7);
+  --lx-paper-shadow: 0 1px 3px rgb(0 0 0 / 0.5), 0 16px 40px -12px rgb(0 0 0 / 0.8);
+}
+
+@theme inline {
+  --color-app: var(--lx-app);
+  --color-surface: var(--lx-surface);
+  --color-raised: var(--lx-raised);
+  --color-subtle: var(--lx-subtle);
+  --color-canvas: var(--lx-canvas);
+  --color-hover: var(--lx-hover);
+  --color-ink: var(--lx-ink);
+  --color-ink-2: var(--lx-ink-2);
+  --color-ink-3: var(--lx-ink-3);
+  --color-line: var(--lx-line);
+  --color-control: var(--lx-control);
+  --color-primary: var(--lx-primary);
+  --color-primary-hover: var(--lx-primary-hover);
+  --color-on-primary: var(--lx-on-primary);
+  --color-accent-surface: var(--lx-accent-surface);
+  --color-accent-ink: var(--lx-accent-ink);
+  --color-ok: var(--lx-ok);
+  --color-ok-surface: var(--lx-ok-surface);
+  --color-ok-line: var(--lx-ok-line);
+  --color-warn: var(--lx-warn);
+  --color-warn-surface: var(--lx-warn-surface);
+  --color-warn-line: var(--lx-warn-line);
+  --color-danger: var(--lx-danger);
+  --color-on-danger: var(--lx-on-danger);
+  --color-danger-surface: var(--lx-danger-surface);
+  --color-danger-line: var(--lx-danger-line);
+  --color-ins: var(--lx-ins);
+  --color-ins-surface: var(--lx-ins-surface);
+  --color-del: var(--lx-del);
+  --color-del-surface: var(--lx-del-surface);
+  /* The document is paper in every theme. */
+  --color-paper: #ffffff;
+  --color-paper-ink: #111111;
+  --font-sans: var(--font-ui), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-serif: var(--font-display), "Iowan Old Style", Georgia, serif;
+  --shadow-sm: var(--lx-shadow-sm);
+  --shadow-md: var(--lx-shadow-md);
+  --shadow-lg: var(--lx-shadow-lg);
+  --shadow-paper: var(--lx-paper-shadow);
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------- Base (layered, so utilities such as outline-none can override it) ---------- */
+@layer base {
+  html,
+  body {
+    height: 100%;
+    background: var(--lx-app);
+  }
+  body {
+    color: var(--lx-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  * {
+    scrollbar-color: var(--lx-scroll) transparent;
+  }
+  :focus-visible {
+    outline: 2px solid var(--lx-focus);
+    outline-offset: 2px;
+  }
+  /* The editor keeps the platform's own selection colours on the page. */
+  :not(.lx-doc *)::selection {
+    background: color-mix(in srgb, var(--lx-primary) 28%, transparent);
+  }
+  button:not(:disabled),
+  [role="tab"],
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+}
+
+/* ---------- SuperDoc chrome, through its documented theme variables ---------- */
+:root[data-theme] {
+  --sd-ui-font-family: var(--font-ui), "Segoe UI", Arial, sans-serif;
+  --sd-ui-text: var(--lx-ink);
+  --sd-ui-text-muted: var(--lx-ink-2);
+  --sd-ui-text-disabled: var(--lx-ink-3);
+  --sd-ui-bg: var(--lx-surface);
+  --sd-ui-hover-bg: var(--lx-hover);
+  --sd-ui-active-bg: var(--lx-accent-surface);
+  --sd-ui-disabled-bg: var(--lx-subtle);
+  --sd-ui-border: var(--lx-line);
+  --sd-ui-action: var(--lx-primary);
+  --sd-ui-action-hover: var(--lx-primary-hover);
+  --sd-ui-action-text: var(--lx-on-primary);
+  --sd-ui-shadow: var(--lx-shadow-md);
+  --sd-ui-radius: 8px;
+  --sd-ui-toolbar-bg: var(--lx-surface);
+  --sd-ui-toolbar-button-text: var(--lx-ink);
+  --sd-ui-toolbar-button-hover-bg: var(--lx-hover);
+  --sd-ui-toolbar-button-active-bg: var(--lx-accent-surface);
+  --sd-ui-dropdown-bg: var(--lx-raised);
+  --sd-ui-dropdown-border: var(--lx-line);
+  --sd-ui-dropdown-shadow: var(--lx-shadow-lg);
+  --sd-ui-dropdown-hover-bg: var(--lx-hover);
+  --sd-ui-dropdown-active-bg: var(--lx-accent-surface);
+  --sd-ui-tooltip-bg: var(--lx-tooltip);
+  --sd-ui-tooltip-text: var(--lx-on-tooltip);
+  --sd-ui-menu-bg: var(--lx-raised);
+  --sd-ui-menu-header-bg: var(--lx-subtle);
+  --sd-ui-menu-text-muted: var(--lx-ink-2);
+  --sd-ui-menu-shadow: var(--lx-shadow-lg);
+  --sd-ui-surface-bg: var(--lx-raised);
+  --sd-ui-surface-shadow: var(--lx-shadow-lg);
+  --sd-ui-dialog-backdrop: var(--lx-backdrop);
+  --sd-ui-tools-item-bg: var(--lx-subtle);
+  --sd-ui-loader-bg: var(--lx-raised);
+  --sd-ui-loader-border: var(--lx-line);
+  --sd-ui-loader-shadow: var(--lx-shadow-lg);
+  --sd-ui-loader-radius: 16px;
+  --sd-ui-loader-title-size: 16px;
+  --sd-ui-loader-message-color: var(--lx-ink-2);
+  --sd-ui-loader-meta-color: var(--lx-ink-3);
+  --sd-ui-loader-value-color: var(--lx-ink-2);
+  --sd-ui-loader-progress-track-bg: var(--lx-hover);
+  --sd-ui-loader-progress-bar-bg: var(--lx-primary);
+  /* Page colour cascades from --sd-ui-bg by default; pin it so the document stays paper in dark mode. */
+  --sd-layout-page-bg: #ffffff;
+  --sd-layout-page-shadow: var(--lx-paper-shadow);
+}
+
+/* The editor's right-click menu has fixed colours and no theme variables, so its own classes are
+   themed here (chrome only; nothing inside the document page is touched). */
+:root[data-theme] .v2-context-menu {
+  color: var(--lx-ink);
+  background: var(--lx-raised);
+  border-color: var(--lx-line);
+  box-shadow: var(--lx-shadow-lg);
+}
+:root[data-theme] .v2-context-menu__section + .v2-context-menu__section {
+  border-top-color: var(--lx-line);
+}
+:root[data-theme] .v2-context-menu__item--highlighted:not(.v2-context-menu__item--disabled) {
+  color: var(--lx-ink);
+  background: var(--lx-hover);
+}
+:root[data-theme] .v2-context-menu__item--disabled,
+:root[data-theme] .v2-context-menu__shortcut {
+  color: var(--lx-ink-3);
+}
+
+/* ---------- Motion ---------- */
+@keyframes lx-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes lx-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes lx-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+@keyframes lx-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@keyframes lx-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+@keyframes lx-caret {
+  50% {
+    opacity: 0;
+  }
+}
+/* Filled paragraphs in the streamed preview: a brief highlight on the (always light) paper. */
+@keyframes block-in {
+  from {
+    background: #d9f1ec;
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.lx-rise {
+  animation: lx-rise 260ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.lx-fade {
+  animation: lx-fade 220ms var(--ease-out) both;
+}
+.lx-pop {
+  animation: lx-pop 220ms var(--ease-out) both;
+}
+.block-in {
+  animation: block-in 1.2s ease-out;
+}
+.lx-dot {
+  animation: lx-dot 1.2s ease-in-out infinite;
+}
+.lx-caret {
+  animation: lx-caret 1s steps(2, start) infinite;
+}
+.lx-skeleton {
+  background: linear-gradient(90deg, var(--lx-subtle) 25%, var(--lx-hover) 50%, var(--lx-subtle) 75%) 0 0 / 200% 100%;
+  animation: lx-shimmer 1.4s linear infinite;
+}
+.lx-skeleton-paper {
+  background: linear-gradient(90deg, #eef1f4 25%, #e3e8ec 50%, #eef1f4 75%) 0 0 / 200% 100%;
+  animation: lx-shimmer 1.4s linear infinite;
+}
+
+/* Drawers and dialogs: enter on open, leave on close (progressive enhancement). */
+dialog.lx-dialog {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 240ms var(--ease-out),
+    overlay 240ms allow-discrete,
+    display 240ms allow-discrete;
+}
+dialog.lx-drawer {
+  opacity: 0;
+  transform: translateX(28px);
+  transition:
+    opacity 220ms var(--ease-out),
+    transform 280ms var(--ease-out),
+    overlay 280ms allow-discrete,
+    display 280ms allow-discrete;
+}
+dialog.lx-dialog[open],
+dialog.lx-drawer[open] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  dialog.lx-dialog[open] {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  dialog.lx-drawer[open] {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+dialog.lx-dialog::backdrop,
+dialog.lx-drawer::backdrop {
+  background: rgb(11 18 24 / 0.4);
+  background: var(--lx-backdrop);
+  opacity: 0;
+  transition:
+    opacity 240ms var(--ease-out),
+    overlay 240ms allow-discrete,
+    display 240ms allow-discrete;
+}
+dialog.lx-dialog[open]::backdrop,
+dialog.lx-drawer[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  dialog.lx-dialog[open]::backdrop,
+  dialog.lx-drawer[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* Popovers (menus): a short fade from their anchor. */
+.lx-popover {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity 160ms var(--ease-out),
+    transform 160ms var(--ease-out),
+    overlay 160ms allow-discrete,
+    display 160ms allow-discrete;
+}
+.lx-popover:popover-open {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  .lx-popover:popover-open {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.lx-popover:not([data-placed]) {
+  visibility: hidden;
+}
+
+/* Theme changes cross-fade once, as a whole. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: var(--ease-in-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
