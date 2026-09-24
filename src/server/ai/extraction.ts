@@ -165,7 +165,7 @@ export async function extract(input: TurnInput) {
       result = await run("\n\nReturn valid JSON matching the schema.");
     }
     if (result.finishReason === "length")
-      throw new AiError("truncated", "Gemini's response was cut off, so your answer was not saved. Retry, or send a shorter message.", true);
+      throw new AiError("truncated", "The response was cut off, so your answer was not saved. Retry, or send a shorter message.", true);
     return { extraction: result.output, usage: result.usage };
   } catch (err) {
     if (NoObjectGeneratedError.isInstance(err))

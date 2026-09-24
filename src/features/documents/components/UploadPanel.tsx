@@ -220,7 +220,8 @@ export function UploadPanel({ onFile, busy, error, onShowDrafts, maxMb }: Props)
           <ul className="space-y-2 pb-4 text-ui text-ink-2">
             <li>One unencrypted .docx up to {maxMb} MB. Macros are never run.</li>
             <li>
-              To find the fields and understand your answers, the template text and your messages are sent from the server to the AI model (Google Gemini).
+              To find the fields and understand your answers, the template text and your messages are sent from the server to Google&apos;s Gemini model,
+              directly or, when configured, through Vercel&apos;s AI Gateway.
             </li>
             <li>
               Values are written into the template&apos;s own text, so fonts, numbering, tables, headers and footers carry over. Review the draft before you

@@ -171,7 +171,9 @@ Done the same day, after a review against the assessment rubric found gaps. The 
 - **Narrow screens.** Below 900 px the page is scaled to the width of the screen, with no sideways scrolling.
 - **Firefox and WebKit** run the browser tests. The session cookie is `Secure` only when `APP_URL` is HTTPS, because Safari drops `Secure` cookies on `http://localhost`.
 - **Prettier** 3.9.9 (devDependency, `printWidth` 160) formats the code. `npm run format:check` verifies it.
-- **Tests:** 73 (50 unit, 23 integration).
+- **Interface refinement:** new design tokens and shared primitives (`globals.css`, `shared/ui/`), plain rows instead of cards, one primary action in the header, and the screen-reader markers of the chat and comparison lists contained in their scroll containers (they had made the page scroll).
+- **Vercel AI Gateway** (`server/ai/fallback.ts`, `AI_PROVIDER`): Gemini first and the gateway when a call fails, or either one alone. `ai` 7.0.113 with `@ai-sdk/google` 4.0.79 and `@ai-sdk/gateway` 4.0.91, so there is one copy of the provider packages.
+- **Tests:** 80 (57 unit, 23 integration).
 
 ## Exceptions
 

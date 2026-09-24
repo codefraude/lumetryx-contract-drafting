@@ -7,6 +7,11 @@ const schema = z.object({
   GEMINI_MODEL: z.string().default("gemini-3.1-flash-lite"),
   /** "minimal" is the lowest documented Gemini 3 thinking level. */
   GEMINI_THINKING_LEVEL: z.enum(["minimal", "low", "medium", "high"]).default("minimal"),
+  /** "auto": Gemini, and the Vercel AI Gateway when Gemini fails (overloaded, out of quota, bad key). "gemini" or "gateway": that one only. */
+  AI_PROVIDER: z.enum(["auto", "gemini", "gateway"]).default("auto"),
+  AI_GATEWAY_API_KEY: z.string().min(10).optional(),
+  /** The gateway's free tier serves Gemini 2.5 models only. */
+  AI_GATEWAY_MODEL: z.string().default("google/gemini-2.5-flash-lite"),
   DATABASE_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(10).optional(),
@@ -49,7 +54,7 @@ export class ConfigMissingError extends Error {
   }
 }
 
-export function requireEnv<K extends "GEMINI_API_KEY" | "DATABASE_URL">(key: K, purpose: string): string {
+export function requireEnv<K extends "GEMINI_API_KEY" | "AI_GATEWAY_API_KEY" | "DATABASE_URL">(key: K, purpose: string): string {
   const v = env()[key];
   if (!v) throw new ConfigMissingError(key, purpose);
   return v;

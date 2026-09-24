@@ -39,7 +39,7 @@ Every first-party file, reviewed for the September 2026 refactor (see [ARCHITECT
 | `scripts/fixtures/french.ts` | 128 | Fixtures: French services agreement, bilingual lease and employment contract | Reviewed | Later: split from scripts/make-fixtures.ts |
 | `scripts/fixtures/parts.ts` | 57 | Shared fixture parts: styles, numbering, clauses, header, footer | Reviewed | Later: split from scripts/make-fixtures.ts |
 | `scripts/fixtures/rich.ts` | 100 | Fixture: supply agreement with a picture, contents, a footnote, a comment, tracked changes and a text box | Reviewed | Later: new |
-| `scripts/gemini-smoke.ts` | 40 | One live model check | Reviewed | Kept; thinking level validated |
+| `scripts/gemini-smoke.ts` | 46 | One live model check | Reviewed | Kept; thinking level validated. Later: `--gateway` runs it through the Vercel AI Gateway |
 | `scripts/make-fixtures.ts` | 30 | Writes the synthetic templates (CLI) | Reviewed | Later: split; the templates moved to scripts/fixtures/ |
 | `scripts/word/check.ts` | 134 | Word check: runs Word on every export, writes the report | Reviewed | Later: new |
 | `scripts/word/compare.ts` | 174 | The Word checks: an export against what it came from | Reviewed | Later: new |
@@ -113,8 +113,9 @@ Every first-party file, reviewed for the September 2026 refactor (see [ARCHITECT
 | `src/server/ai/analyze.ts` | 95 | Template analysis: cached, one repair attempt | Reviewed | Moved from lib/ai/ |
 | `src/server/ai/extraction.ts` | 178 | Chat stage 1: validated extraction | Reviewed | Split from lib/ai/interview.ts; assertion removed. Later: a date in figures is validated as the user wrote it |
 | `src/server/ai/interview-messages.ts` | 52 | Opening and language-switch messages (no model call) | Reviewed | Split from lib/ai/interview.ts |
-| `src/server/ai/model.ts` | 105 | Gemini model, budgets, usage, AI errors | Reviewed | Moved from lib/ai/. Later: a lasting 5xx is reported as unavailable |
-| `src/server/ai/reply.ts` | 101 | Chat stage 2: the streamed reply | Reviewed | Split from lib/ai/interview.ts. Later: clause text without block ids; the stream's failure is kept |
+| `src/server/ai/fallback.ts` | 70 | Gemini with the Vercel AI Gateway as fallback, one-minute skip after a failure | Reviewed | New |
+| `src/server/ai/model.ts` | 153 | Model choice (`AI_PROVIDER`), budgets, usage, AI errors | Reviewed | Moved from lib/ai/. Later: a lasting 5xx is reported as unavailable; Gemini or the gateway, and their errors named |
+| `src/server/ai/reply.ts` | 101 | Chat stage 2: the streamed reply | Reviewed | Split from lib/ai/interview.ts. Later: clause text without block ids; the stream's failure is kept; no prompt labels in replies |
 | `src/server/cache/redis.ts` | 155 | Cache, locks, rate limits, fallback policy | Reviewed | Moved from lib/cache/; typed ProtectionUnavailableError |
 | `src/server/clauses/condition-markers.ts` | 185 | [[IF …]] marker grammar | Reviewed | Split from lib/fields/rules.ts |
 | `src/server/clauses/evaluation.ts` | 82 | Deterministic clause evaluation, inactive fields | Reviewed | Split from lib/fields/rules.ts |
@@ -148,8 +149,8 @@ Every first-party file, reviewed for the September 2026 refactor (see [ARCHITECT
 | `src/server/docx/xml.ts` | 54 | Namespaces and DOM helpers | Reviewed | Split from lib/docx/ooxml.ts |
 | `src/server/draft/generate.ts` | 112 | Draft generation | Reviewed | Split from lib/draft.ts |
 | `src/server/draft/update.ts` | 162 | Updating an edited draft for new answers and clauses | Reviewed | Moved from lib/draft.ts |
-| `src/server/env.ts` | 56 | Environment validation | Reviewed | Moved from lib/server/ |
-| `src/server/fields/build-fields.ts` | 229 | Fields from markers and the analysis | Reviewed | Split from lib/fields/build.ts. Later: labels copied from markers are made readable |
+| `src/server/env.ts` | 61 | Environment validation | Reviewed | Moved from lib/server/. Later: `AI_PROVIDER`, `AI_GATEWAY_API_KEY`, `AI_GATEWAY_MODEL` |
+| `src/server/fields/build-fields.ts` | 233 | Fields from markers and the analysis | Reviewed | Split from lib/fields/build.ts. Later: labels copied from markers are made readable; a `{{variable}}` or ALL-CAPS `[PLACEHOLDER]` cannot be dismissed by the model |
 | `src/server/fields/draft-edits.ts` | 98 | Draft anchors and anchored updates | Reviewed | Split from lib/fields/build.ts |
 | `src/server/fields/lang.ts` | 186 | Language detection and per-language rendering | Reviewed | Moved from lib/fields/ |
 | `src/server/fields/normalize.ts` | 219 | Dates, amounts, yes/no validation | Reviewed | Moved from lib/fields/ |
@@ -178,6 +179,7 @@ Every first-party file, reviewed for the September 2026 refactor (see [ARCHITECT
 | `tests/integration/workflow.test.ts` | 417 | Core workflow on PostgreSQL | Reviewed | Kept (imports updated). Later: a failed reply keeps its answers |
 | `tests/server-only-stub.ts` | 1 | Lets tests import server modules | Reviewed | Kept |
 | `tests/smoke/http-smoke.mjs` | 181 | HTTP checks against a running build | Reviewed | Kept |
+| `tests/unit/ai-fallback.test.ts` | 137 | Gemini to gateway fallback and gateway errors | Reviewed | New |
 | `tests/unit/bonuses.test.ts` | 435 | Bonus logic | Reviewed | Kept (imports updated) |
 | `tests/unit/docx-core.test.ts` | 335 | DOCX engine | Reviewed | Kept (imports updated). Later: rich-template preservation, readable labels |
 | `tests/unit/interview.test.ts` | 101 | Interview prompts | Reviewed | Kept (imports updated). Later: messy answers from the live evaluation |
