@@ -237,3 +237,33 @@ describe("placeholder wording without markers", () => {
     expect((await indexBlocks(pkg)).find((b) => b.id === use.id)!.text).toBe("The Premises shall be used only as a holiday home.");
   });
 });
+
+describe("templates with a picture, notes, comments, tracked changes, a text box and a table of contents", () => {
+  it("fills every placeholder, the one in the text box too, and keeps everything else byte for byte", async () => {
+    const original = fixture("synthetic-supply-agreement");
+    const pkg = await loadDocxPackage(original);
+    const blocks = await indexBlocks(pkg);
+    const { fields } = buildFields(blocks, detectMarkers(blocks), null);
+    for (const f of fields) Object.assign(f, { status: "confirmed", displayValue: `Value of ${f.label}` });
+    await applyTextEdits(pkg, draftEdits(fields, "en"));
+    const out = await serializePackage(pkg);
+    const [before, after] = await Promise.all([JSZip.loadAsync(original), JSZip.loadAsync(out)]);
+    for (const part of ["word/comments.xml", "word/footnotes.xml", "word/numbering.xml", "word/styles.xml", "word/settings.xml"]) {
+      expect(await after.file(part)!.async("string"), part).toBe(await before.file(part)!.async("string"));
+    }
+    const media = Object.keys(before.files).filter((n) => n.startsWith("word/media/") && !before.files[n]!.dir);
+    expect(media).toHaveLength(1);
+    for (const m of media) expect(await after.file(m)!.async("base64")).toBe(await before.file(m)!.async("base64"));
+    const doc = await partXml(out, "word/document.xml");
+    expect(doc).not.toMatch(/\{\{|\[BUYER NAME\]/);
+    expect(doc).toContain("Key contact: Value of Supplier contact");
+    expect(doc).toMatch(/<w:ins [^>]*>[\s\S]*?within 14 days of each order/);
+    expect(doc).toMatch(/<w:del [^>]*>[\s\S]*?as soon as practicable/);
+    expect(doc).toContain("TOC \\h \\o");
+    expect(doc).toContain("w:footnoteReference");
+    expect(doc).toContain("w:commentReference");
+    const header = await partXml(out, "word/header1.xml");
+    expect(header).toContain("Value of Reference number");
+    expect(header).toContain("<a:blip r:embed=");
+  });
+});
