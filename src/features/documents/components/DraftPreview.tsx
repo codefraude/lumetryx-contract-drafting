@@ -16,17 +16,27 @@ function Paragraph({ block }: { block: DraftBlock }) {
   const cls = `block-in ${block.filled ? "rounded-sm" : ""}`;
   if (block.kind === "heading") {
     const size = block.headingLevel === 1 ? "text-2xl text-center text-[#1F3A5F]" : "text-lg";
-    return <p className={`${cls} ${size} mb-2 mt-5 font-bold`}><Runs block={block} /></p>;
+    return (
+      <p className={`${cls} ${size} mb-2 mt-5 font-bold`}>
+        <Runs block={block} />
+      </p>
+    );
   }
   if (block.numberLabel) {
     return (
       <p className={`${cls} mb-1.5 flex`} style={{ paddingLeft: `${block.indentLevel * 1.6}rem` }}>
         <span className="w-14 shrink-0 tabular-nums">{block.numberLabel}</span>
-        <span><Runs block={block} /></span>
+        <span>
+          <Runs block={block} />
+        </span>
       </p>
     );
   }
-  return <p className={`${cls} mb-2 min-h-[1em]`}><Runs block={block} /></p>;
+  return (
+    <p className={`${cls} mb-2 min-h-[1em]`}>
+      <Runs block={block} />
+    </p>
+  );
 }
 
 /** The document canvas: a desk around a centred page that scrolls on its own, never the whole app. */
@@ -102,7 +112,9 @@ export function DraftPreview({ blocks, generating }: { blocks: DraftBlock[]; gen
     <Canvas busy={generating}>
       <article className="mx-auto w-full max-w-[816px] rounded-[2px] bg-paper px-6 py-10 font-serif text-[15px] leading-relaxed text-paper-ink shadow-paper sm:px-16">
         {header.map((h) => (
-          <p key={h.id} className="mb-6 text-right text-xs text-[#555]"><Runs block={h} /></p>
+          <p key={h.id} className="mb-6 text-right text-xs text-[#555]">
+            <Runs block={h} />
+          </p>
         ))}
         {out}
         {generating && (

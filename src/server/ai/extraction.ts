@@ -12,20 +12,23 @@ import { AiError, SAFETY_RULES, providerOptions, untrusted } from "./model";
 
 export const Extraction = z.object({
   // Gemini rejects maxItems on arrays of objects (HTTP 400); the 40 cap is applied in applyExtraction.
-  updates: z
-    .array(
-      z.object({
-        fieldId: z.string(),
-        value: z.string().max(400).describe("The value exactly as it should appear in the contract, using the user's wording"),
-        currency: z.string().nullable().describe("ISO 4217 code ONLY if the user explicitly named the currency, else null"),
-        evidence: z.string().max(400).describe("Verbatim substring of the user's latest message that states this value"),
-      }),
-    ),
+  updates: z.array(
+    z.object({
+      fieldId: z.string(),
+      value: z.string().max(400).describe("The value exactly as it should appear in the contract, using the user's wording"),
+      currency: z.string().nullable().describe("ISO 4217 code ONLY if the user explicitly named the currency, else null"),
+      evidence: z.string().max(400).describe("Verbatim substring of the user's latest message that states this value"),
+    }),
+  ),
   clauseBlockIds: z.array(z.string()).max(6).describe("Block ids of clauses the user is asking about, if any"),
 });
 export type Extraction = z.infer<typeof Extraction>;
 
-const squash = (s: string) => s.toLowerCase().replace(/[\s,]+/g, " ").trim();
+const squash = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[\s,]+/g, " ")
+    .trim();
 const DATE_IN_FIGURES = /\b\d{1,2}[/.-]\d{1,2}[/.-]\d{4}\b/g;
 
 const CURRENCY_WORDS: Record<string, RegExp> = {
@@ -53,7 +56,13 @@ export interface ApplyResult {
  * Commits only updates that (1) name a real field, (2) are backed by text the user actually
  * wrote, and (3) pass deterministic validation. Nothing is parsed out of prose.
  */
-export function applyExtraction(fields: Field[], extraction: Extraction, userMessage: string, templateCurrency: string | null, lang: Lang = "unknown"): ApplyResult {
+export function applyExtraction(
+  fields: Field[],
+  extraction: Extraction,
+  userMessage: string,
+  templateCurrency: string | null,
+  lang: Lang = "unknown",
+): ApplyResult {
   const next = fields.map((f) => ({ ...f }));
   const byId = new Map(next.map((f) => [f.id, f]));
   const msg = squash(userMessage);
@@ -104,7 +113,8 @@ const EXTRACT_SYSTEM = `You extract contract field values from a lawyer's chat m
 - If the message only asks a question, return no updates.
 ${SAFETY_RULES}`;
 
-const fieldLine = (f: Field) => `${f.id} | ${f.label} | ${f.valueType} | ${f.status}${f.displayValue ? ` = ${f.displayValue}` : ""} | ${(f.question ?? f.context).replace(/\s+/g, " ").slice(0, 140)}`;
+const fieldLine = (f: Field) =>
+  `${f.id} | ${f.label} | ${f.valueType} | ${f.status}${f.displayValue ? ` = ${f.displayValue}` : ""} | ${(f.question ?? f.context).replace(/\s+/g, " ").slice(0, 140)}`;
 
 export function outline(blocks: Block[]): string {
   return blocks
@@ -136,7 +146,16 @@ export async function extract(input: TurnInput) {
     .map((m) => `${m.role}: ${m.content.slice(0, 600)}`)
     .join("\n")}\n\n${untrusted("user_message", input.userMessage)}`;
   const run = (extra = "") =>
-    generateText({ model: input.model, system: EXTRACT_SYSTEM, prompt: prompt + extra, output: Output.object({ schema: Extraction }), maxOutputTokens: 2000, maxRetries: 2, abortSignal: input.abortSignal, providerOptions: providerOptions() });
+    generateText({
+      model: input.model,
+      system: EXTRACT_SYSTEM,
+      prompt: prompt + extra,
+      output: Output.object({ schema: Extraction }),
+      maxOutputTokens: 2000,
+      maxRetries: 2,
+      abortSignal: input.abortSignal,
+      providerOptions: providerOptions(),
+    });
   try {
     let result;
     try {
@@ -148,7 +167,12 @@ export async function extract(input: TurnInput) {
     if (result.finishReason === "length") throw new AiError("truncated", "The AI response was cut off; your answer was not saved. Please retry.", true);
     return { extraction: result.output, usage: result.usage };
   } catch (err) {
-    if (NoObjectGeneratedError.isInstance(err)) throw new AiError(err.finishReason === "length" ? "truncated" : "invalid_output", "I couldn't process that answer reliably; nothing was saved. Please retry.", true);
+    if (NoObjectGeneratedError.isInstance(err))
+      throw new AiError(
+        err.finishReason === "length" ? "truncated" : "invalid_output",
+        "I couldn't process that answer reliably; nothing was saved. Please retry.",
+        true,
+      );
     throw err;
   }
 }

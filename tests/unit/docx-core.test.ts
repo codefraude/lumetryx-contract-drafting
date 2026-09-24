@@ -89,8 +89,26 @@ describe("filling", () => {
     const { fields, rejected } = buildFields(blocks, detectMarkers(blocks), {
       notFields: [],
       fields: [
-        { id: "reference", label: "Reference", question: "?", valueType: "text", group: "other", required: true, markerKeys: ["k:reference number"], implicit: [] },
-        { id: "bogus", label: "Bogus", question: "?", valueType: "text", group: "other", required: true, markerKeys: [], implicit: [{ blockId: intro.id, quote: "text that does not exist", replace: false }] },
+        {
+          id: "reference",
+          label: "Reference",
+          question: "?",
+          valueType: "text",
+          group: "other",
+          required: true,
+          markerKeys: ["k:reference number"],
+          implicit: [],
+        },
+        {
+          id: "bogus",
+          label: "Bogus",
+          question: "?",
+          valueType: "text",
+          group: "other",
+          required: true,
+          markerKeys: [],
+          implicit: [{ blockId: intro.id, quote: "text that does not exist", replace: false }],
+        },
       ],
     });
     expect(fields.find((f) => f.id === "bogus")).toBeUndefined();
@@ -104,12 +122,31 @@ describe("filling", () => {
 
   it("turns labels that copy the marker into readable names", async () => {
     const blocks = await indexBlocks(await loadDocxPackage(fixture("synthetic-residential-lease")));
-    const ai = (id: string, label: string, key: string) => ({ id, label, question: "?", valueType: "text" as const, group: "parties" as const, required: true, markerKeys: [key], implicit: [] });
+    const ai = (id: string, label: string, key: string) => ({
+      id,
+      label,
+      question: "?",
+      valueType: "text" as const,
+      group: "parties" as const,
+      required: true,
+      markerKeys: [key],
+      implicit: [],
+    });
     const { fields } = buildFields(blocks, detectMarkers(blocks), {
       notFields: [],
-      fields: [ai("tenant_name", "{{tenant_name}}", "k:tenant name"), ai("landlord_name", "LANDLORD NAME", "k:landlord name"), ai("start_date", "start_date", "k:start date"), ai("monthly_rent", "Monthly rent / Loyer mensuel", "k:monthly rent")],
+      fields: [
+        ai("tenant_name", "{{tenant_name}}", "k:tenant name"),
+        ai("landlord_name", "LANDLORD NAME", "k:landlord name"),
+        ai("start_date", "start_date", "k:start date"),
+        ai("monthly_rent", "Monthly rent / Loyer mensuel", "k:monthly rent"),
+      ],
     });
-    expect(Object.fromEntries(fields.map((f) => [f.id, f.label]))).toMatchObject({ tenant_name: "Tenant name", landlord_name: "Landlord name", start_date: "Start date", monthly_rent: "Monthly rent / Loyer mensuel" });
+    expect(Object.fromEntries(fields.map((f) => [f.id, f.label]))).toMatchObject({
+      tenant_name: "Tenant name",
+      landlord_name: "Landlord name",
+      start_date: "Start date",
+      monthly_rent: "Monthly rent / Loyer mensuel",
+    });
   });
 
   it("applies multiple edits in one paragraph in a safe order and reports final anchors", async () => {
@@ -174,14 +211,21 @@ describe("Word content controls (placeholder boxes)", () => {
   it("replaces each placeholder with its answer and turns the box into ordinary content", async () => {
     const { pkg, blocks, markers } = await letter();
     const { fields } = buildFields(blocks, markers, null);
-    const answer = (label: string, value: string) => Object.assign(fields.find((f) => f.label === label)!, { status: "confirmed", rawValue: value, displayValue: value, normalized: { kind: "text", value } });
+    const answer = (label: string, value: string) =>
+      Object.assign(
+        fields.find((f) => f.label === label)!,
+        { status: "confirmed", rawValue: value, displayValue: value, normalized: { kind: "text", value } },
+      );
     answer("Votre nom", "Camille Martin");
     answer("Adresse postale", "12 rue des Lilas");
     answer("Adresse postale (2)", "1 place de la Bourse");
     answer("Nom du destinataire", "Jeanne Dupont");
     answer("Compagnie d’assurance", "Assurances & Fils");
     answer("Numéro de police", "POL-778");
-    Object.assign(fields.find((f) => f.label === "Date")!, { status: "confirmed", rawValue: "24/09/2026", displayValue: "24 September 2026", normalized: { kind: "date", iso: "2026-09-24" } });
+    Object.assign(
+      fields.find((f) => f.label === "Date")!,
+      { status: "confirmed", rawValue: "24/09/2026", displayValue: "24 September 2026", normalized: { kind: "date", iso: "2026-09-24" } },
+    );
     await applyTextEdits(pkg, draftEdits(fields, "fr"));
     const after = await indexBlocks(pkg);
     const text = (id: string) => after.find((b) => b.id === id)!.text;
@@ -228,7 +272,16 @@ describe("placeholder wording without markers", () => {
     const blocks = await indexBlocks(pkg);
     const use = blocks.find((b) => b.text.startsWith("The Premises shall be used"))!;
     const late = blocks.find((b) => b.text.startsWith("Late payments"))!;
-    const f = (id: string, implicit: TemplateAnalysis["fields"][number]["implicit"]) => ({ id, label: id, question: "?", valueType: "text" as const, group: "other" as const, required: true, markerKeys: [], implicit });
+    const f = (id: string, implicit: TemplateAnalysis["fields"][number]["implicit"]) => ({
+      id,
+      label: id,
+      question: "?",
+      valueType: "text" as const,
+      group: "other" as const,
+      required: true,
+      markerKeys: [],
+      implicit,
+    });
     const { fields, rejected } = buildFields(blocks, detectMarkers(blocks), {
       notFields: [],
       fields: [
@@ -242,7 +295,10 @@ describe("placeholder wording without markers", () => {
     expect(ids).not.toContain("overlap"); // its place is already the answer to "use"
     expect(ids).not.toContain("on_marker"); // the marker is the field
     expect(rejected.some((r) => r.startsWith("overlapping place"))).toBe(true);
-    Object.assign(fields.find((x) => x.id === "use")!, { status: "confirmed", displayValue: "a holiday home" });
+    Object.assign(
+      fields.find((x) => x.id === "use")!,
+      { status: "confirmed", displayValue: "a holiday home" },
+    );
     await applyTextEdits(pkg, draftEdits(fields, "en"));
     expect((await indexBlocks(pkg)).find((b) => b.id === use.id)!.text).toBe("The Premises shall be used only as a holiday home.");
   });

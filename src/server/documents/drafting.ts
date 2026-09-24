@@ -11,7 +11,13 @@ import { mustGet, mustGetBytes } from "./access";
 
 /** Generating the draft, and reading or saving the working DOCX the editor works on. */
 
-export async function generateDraft(sessionId: string, documentId: string, input: { fieldsVersion: number }, emit: (e: EventPayload) => void, signal: AbortSignal) {
+export async function generateDraft(
+  sessionId: string,
+  documentId: string,
+  input: { fieldsVersion: number },
+  emit: (e: EventPayload) => void,
+  signal: AbortSignal,
+) {
   await withLock(`lx:lock:draft:${sessionId}:${documentId}`, 60, async () => {
     const doc = await mustGet(sessionId, documentId);
     if (doc.fieldsVersion !== input.fieldsVersion) throw new repo.StaleRevisionError("The answers");
@@ -32,7 +38,11 @@ export async function generateDraft(sessionId: string, documentId: string, input
           emit({ type: "draft_block_ready", block: step.block });
           continue;
         }
-        const saved = await repo.finishDraft(sessionId, documentId, { fieldsVersion: input.fieldsVersion, bytes: Buffer.from(step.bytes), state: { ...step.state, pendingClauses: [] } });
+        const saved = await repo.finishDraft(sessionId, documentId, {
+          fieldsVersion: input.fieldsVersion,
+          bytes: Buffer.from(step.bytes),
+          state: { ...step.state, pendingClauses: [] },
+        });
         emit({ type: "draft_complete", workingRevision: saved.workingRevision, fieldsVersion: saved.fieldsVersion });
       }
     } catch (err) {

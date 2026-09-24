@@ -6,7 +6,17 @@ import { expect, test, type Page } from "@playwright/test";
  */
 const ORIGIN = { Origin: process.env.APP_URL ?? "http://localhost:3000" };
 type Doc = { id: string; fieldsVersion: number; fields: { id: string; label: string }[] };
-const VALUES: Record<string, string> = { "Tenant name": "John Smith", "Landlord name": "Ravi Ramdin", Address: "12 Royal Road, Curepipe", "Property address": "4 Sea View Lane, Flic en Flac", "Start date": "1 October 2026", "Monthly rent": "MUR 25,000", "Deposit amount": "MUR 50,000", "Interest rate": "8%", "Reference number": "LX-7 & Co" };
+const VALUES: Record<string, string> = {
+  "Tenant name": "John Smith",
+  "Landlord name": "Ravi Ramdin",
+  Address: "12 Royal Road, Curepipe",
+  "Property address": "4 Sea View Lane, Flic en Flac",
+  "Start date": "1 October 2026",
+  "Monthly rent": "MUR 25,000",
+  "Deposit amount": "MUR 50,000",
+  "Interest rate": "8%",
+  "Reference number": "LX-7 & Co",
+};
 
 const current = async (page: Page) => (await (await page.request.get("/api/documents/current")).json()).document as Doc;
 const stage = (page: Page) => page.locator(".v2-super-editor__stage");
@@ -26,7 +36,9 @@ async function uploadAnother(page: Page, fixture: string) {
 
 async function openDraft(page: Page, title: string) {
   await page.getByRole("button", { name: "Saved drafts" }).click();
-  await drawer(page).getByRole("button", { name: new RegExp(`^${title}`) }).click();
+  await drawer(page)
+    .getByRole("button", { name: new RegExp(`^${title}`) })
+    .click();
   await expect(drawer(page)).toBeHidden();
   await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
 }
@@ -85,7 +97,13 @@ test("an edit saved in another tab is detected, and the newer version can be loa
   await page.goto("/");
   await upload(page, "synthetic-residential-lease");
   let doc = await current(page);
-  for (const f of doc.fields) doc = await (await page.request.patch(`/api/documents/${doc.id}/fields`, { headers: ORIGIN, data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: VALUES[f.label] ?? "30 September 2027" } })).json();
+  for (const f of doc.fields)
+    doc = await (
+      await page.request.patch(`/api/documents/${doc.id}/fields`, {
+        headers: ORIGIN,
+        data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: VALUES[f.label] ?? "30 September 2027" },
+      })
+    ).json();
   await page.reload();
   await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });

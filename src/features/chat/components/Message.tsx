@@ -9,7 +9,15 @@ import type { ChatMessage } from "../use-chat-turn";
 function Inline({ text }: { text: string }) {
   return (
     <>
-      {boldSpans(text).map((s, i) => (s.bold ? <strong key={i} className="font-semibold">{s.text}</strong> : <Fragment key={i}>{s.text}</Fragment>))}
+      {boldSpans(text).map((s, i) =>
+        s.bold ? (
+          <strong key={i} className="font-semibold">
+            {s.text}
+          </strong>
+        ) : (
+          <Fragment key={i}>{s.text}</Fragment>
+        ),
+      )}
     </>
   );
 }

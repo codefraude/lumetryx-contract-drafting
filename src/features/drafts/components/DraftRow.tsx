@@ -21,7 +21,10 @@ const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyl
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
 
 function remaining(d: DraftListItem) {
-  const parts = [d.detailsLeft && `${d.detailsLeft} ${d.detailsLeft === 1 ? "detail" : "details"}`, d.decisionsLeft && `${d.decisionsLeft} ${d.decisionsLeft === 1 ? "decision" : "decisions"}`].filter(Boolean);
+  const parts = [
+    d.detailsLeft && `${d.detailsLeft} ${d.detailsLeft === 1 ? "detail" : "details"}`,
+    d.decisionsLeft && `${d.decisionsLeft} ${d.decisionsLeft === 1 ? "decision" : "decisions"}`,
+  ].filter(Boolean);
   return parts.length ? `${parts.join(" and ")} still needed` : null;
 }
 
@@ -54,7 +57,9 @@ export function DraftRow({ d, current, busy, rowBusy, onOpen, onRename, onDelete
             void onRename(name).then((saved) => saved && setRenaming(false));
           }}
         >
-          <label htmlFor={`rename-${d.id}`} className="sr-only">Draft name</label>
+          <label htmlFor={`rename-${d.id}`} className="sr-only">
+            Draft name
+          </label>
           <input
             id={`rename-${d.id}`}
             autoFocus
@@ -69,13 +74,23 @@ export function DraftRow({ d, current, busy, rowBusy, onOpen, onRename, onDelete
             className="h-9 min-w-0 flex-1 basis-48 rounded-control border border-control bg-surface px-3 text-sm text-ink outline-none focus:border-primary dark:bg-raised"
           />
           <div className="flex gap-2">
-            <Button type="submit" variant="primary" disabled={!name.trim()} busy={rowBusy}>Save</Button>
-            <Button variant="ghost" onClick={() => setRenaming(false)}>Cancel</Button>
+            <Button type="submit" variant="primary" disabled={!name.trim()} busy={rowBusy}>
+              Save
+            </Button>
+            <Button variant="ghost" onClick={() => setRenaming(false)}>
+              Cancel
+            </Button>
           </div>
         </form>
       ) : (
         <div className="flex items-start gap-1 pr-1.5">
-          <button type="button" disabled={busy} onClick={onOpen} aria-current={current ? "true" : undefined} className="flex min-w-0 flex-1 gap-3 rounded-xl px-3 py-3 text-left disabled:opacity-60">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onOpen}
+            aria-current={current ? "true" : undefined}
+            className="flex min-w-0 flex-1 gap-3 rounded-xl px-3 py-3 text-left disabled:opacity-60"
+          >
             <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${current ? "bg-primary text-on-primary" : "bg-subtle text-ink-2"}`}>
               <FileText aria-hidden className="size-[18px]" />
             </span>

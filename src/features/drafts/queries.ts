@@ -10,7 +10,8 @@ export const draftListQuery = () => queryOptions({ queryKey: draftKeys.list, que
 
 export const useDraftList = (enabled: boolean) => useQuery({ ...draftListQuery(), enabled });
 
-const updateItem = (id: string, change: (d: DraftListItem) => DraftListItem) => (all: DraftListItem[] | undefined) => all?.map((d) => (d.id === id ? change(d) : d));
+const updateItem = (id: string, change: (d: DraftListItem) => DraftListItem) => (all: DraftListItem[] | undefined) =>
+  all?.map((d) => (d.id === id ? change(d) : d));
 
 /** Renames a draft; the list row and, if it is cached, the draft's own view take the server's answer. */
 export function useRenameDraft() {
@@ -19,7 +20,10 @@ export function useRenameDraft() {
     mutationFn: ({ id, title }: { id: string; title: string }) => renameDraft(id, title),
     onSuccess: (view) => {
       storeDocument(queryClient, view);
-      queryClient.setQueryData(draftKeys.list, updateItem(view.id, (d) => ({ ...d, title: view.title, savedAt: view.savedAt, expiresAt: view.expiresAt })));
+      queryClient.setQueryData(
+        draftKeys.list,
+        updateItem(view.id, (d) => ({ ...d, title: view.title, savedAt: view.savedAt, expiresAt: view.expiresAt })),
+      );
     },
   });
 }

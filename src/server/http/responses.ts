@@ -35,7 +35,12 @@ export function errorBody(err: unknown): ErrorBody {
   // Database drivers report connection problems with their own error types; their messages are the common ground.
   if (err instanceof Error && /DATABASE|ECONNREFUSED|connect|terminat/i.test(err.message)) {
     console.error("[db]", err.message);
-    return { status: 503, code: "storage_unavailable", message: "Storage is temporarily unavailable. Your latest unsaved changes are still in this browser tab; retry shortly.", retryable: true };
+    return {
+      status: 503,
+      code: "storage_unavailable",
+      message: "Storage is temporarily unavailable. Your latest unsaved changes are still in this browser tab; retry shortly.",
+      retryable: true,
+    };
   }
   const ai = classifyAiError(err);
   if (ai.code !== "provider") return errorBody(ai);

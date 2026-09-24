@@ -21,7 +21,10 @@ export default defineConfig({
     acceptDownloads: true,
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"], viewport, ...executable(process.env.CHROMIUM_PATH, ["--no-sandbox", "--disable-gpu", "--use-gl=swiftshader"]) } },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"], viewport, ...executable(process.env.CHROMIUM_PATH, ["--no-sandbox", "--disable-gpu", "--use-gl=swiftshader"]) },
+    },
     { name: "firefox", use: { ...devices["Desktop Firefox"], viewport } },
     { name: "webkit", use: { ...devices["Desktop Safari"], viewport, ...executable(process.env.WEBKIT_PATH) } },
   ].filter((p) => browsers.includes(p.name)),

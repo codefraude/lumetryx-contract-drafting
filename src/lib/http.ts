@@ -20,7 +20,8 @@ export class ApiError extends Error {
 }
 
 /** A readable message for anything that was thrown. */
-export const errorMessage = (error: unknown, fallback = "Something went wrong."): string => (error instanceof Error && error.message ? error.message : fallback);
+export const errorMessage = (error: unknown, fallback = "Something went wrong."): string =>
+  error instanceof Error && error.message ? error.message : fallback;
 
 /** Worth retrying: the network failed, or the server said so. Validation, authorization and revision conflicts never are. */
 export const isTransient = (error: unknown): boolean => (error instanceof ApiError ? error.retryable : error instanceof TypeError);
@@ -39,7 +40,8 @@ export async function requestJson<S extends z.ZodType>(url: string, schema: S, i
   const res = await fetch(url, { cache: "no-store", ...init });
   if (!res.ok) throw await apiError(res);
   const parsed = schema.safeParse(await res.json().catch(() => undefined));
-  if (!parsed.success) throw new ApiError("invalid_response", "The server sent a response this page cannot read. Reload the page and try again.", res.status, false);
+  if (!parsed.success)
+    throw new ApiError("invalid_response", "The server sent a response this page cannot read. Reload the page and try again.", res.status, false);
   return parsed.data;
 }
 
@@ -50,7 +52,11 @@ export async function requestBlob(url: string, init: RequestInit = {}): Promise<
   return { blob: await res.blob(), headers: res.headers };
 }
 
-export const jsonBody = (method: "POST" | "PATCH" | "PUT", body: unknown): RequestInit => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+export const jsonBody = (method: "POST" | "PATCH" | "PUT", body: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
 
 /** A failure as the UI shows it: what went wrong, and whether retrying can help. */
 export interface ActionFailure {

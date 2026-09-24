@@ -41,7 +41,13 @@ export class SseDecoder<T> {
  * arrives, in order. Events of another request and repeated sequence numbers are dropped, so a
  * replayed or duplicated frame is never applied twice. Resolves when the stream ends.
  */
-export async function postEventStream<T extends { requestId: string; seq: number }>(url: string, body: object, schema: z.ZodType<T>, onEvent: (event: T) => void, signal: AbortSignal): Promise<void> {
+export async function postEventStream<T extends { requestId: string; seq: number }>(
+  url: string,
+  body: object,
+  schema: z.ZodType<T>,
+  onEvent: (event: T) => void,
+  signal: AbortSignal,
+): Promise<void> {
   const requestId = crypto.randomUUID();
   const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, requestId }), signal });
   if (!res.ok || !res.body) throw await apiError(res);

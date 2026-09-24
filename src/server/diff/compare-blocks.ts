@@ -33,7 +33,8 @@ export function compareBlocks(original: RenderedBlock[], current: RenderedBlock[
   const id = () => `d${seq++}`;
 
   const occurrences = new Map<string, { start: number; end: number; label: string }[]>();
-  for (const f of ctx.fields) for (const o of f.occurrences) occurrences.set(o.blockId, [...(occurrences.get(o.blockId) ?? []), { start: o.start, end: o.end, label: f.label }]);
+  for (const f of ctx.fields)
+    for (const o of f.occurrences) occurrences.set(o.blockId, [...(occurrences.get(o.blockId) ?? []), { start: o.start, end: o.end, label: f.label }]);
 
   // Deleted blocks grouped by the conditional clause (or control markers) they belong to.
   const clauseOf = new Map<string, Rule>();
@@ -58,7 +59,13 @@ export function compareBlocks(original: RenderedBlock[], current: RenderedBlock[
     }
     if (markerIds.has(b.id)) {
       if (!markersItem) {
-        markersItem = { id: id(), type: "markers_removed", location: "Conditional clauses", segments: [], notes: ["Condition markers such as [[IF …]] are control lines; they never appear in a draft."] };
+        markersItem = {
+          id: id(),
+          type: "markers_removed",
+          location: "Conditional clauses",
+          segments: [],
+          notes: ["Condition markers such as [[IF …]] are control lines; they never appear in a draft."],
+        };
         queueDeleted(markersItem);
       }
       markersItem.segments.push({ op: "del", text: `${markersItem.segments.length ? "\n" : ""}${b.text.trim()}` });
@@ -69,7 +76,13 @@ export function compareBlocks(original: RenderedBlock[], current: RenderedBlock[
       let g = grouped.get(rule.id);
       if (!g) {
         const ev = evaluateRule(rule, ctx.fields);
-        g = { id: id(), type: "clause_excluded", location: `Conditional clause “${rule.label}”`, segments: [], notes: [ev.state === "excluded" ? `Excluded: ${ev.reason}` : `Not in the draft (${ev.reason})`] };
+        g = {
+          id: id(),
+          type: "clause_excluded",
+          location: `Conditional clause “${rule.label}”`,
+          segments: [],
+          notes: [ev.state === "excluded" ? `Excluded: ${ev.reason}` : `Not in the draft (${ev.reason})`],
+        };
         grouped.set(rule.id, g);
         queueDeleted(g);
         counts.clauses++;
@@ -82,7 +95,13 @@ export function compareBlocks(original: RenderedBlock[], current: RenderedBlock[
       return;
     }
     counts.deleted++;
-    queueDeleted({ id: id(), type: "deleted", location: location(b, oBody), segments: [{ op: "del", text: b.text }], notes: b.table ? ["Table cell removed"] : [] });
+    queueDeleted({
+      id: id(),
+      type: "deleted",
+      location: location(b, oBody),
+      segments: [{ op: "del", text: b.text }],
+      notes: b.table ? ["Table cell removed"] : [],
+    });
   });
 
   const emit = (list: DiffItem[] | undefined) => list?.forEach((x) => items.push(x));
@@ -99,7 +118,13 @@ export function compareBlocks(original: RenderedBlock[], current: RenderedBlock[
         if (!c.text.trim()) emptyChanges.added++;
         else {
           counts.added++;
-          items.push({ id: id(), type: "added", location: location(c, cBody), segments: [{ op: "ins", text: c.text }], notes: c.table ? ["Table cell added"] : [] });
+          items.push({
+            id: id(),
+            type: "added",
+            location: location(c, cBody),
+            segments: [{ op: "ins", text: c.text }],
+            notes: c.table ? ["Table cell added"] : [],
+          });
         }
       }
       return;
@@ -132,10 +157,22 @@ export function compareBlocks(original: RenderedBlock[], current: RenderedBlock[
   for (const r of ctx.rules) {
     if (r.applied !== "included" || !r.confirmed || r.dismissed) continue;
     const ev = evaluateRule(r, ctx.fields);
-    items.push({ id: id(), type: "clause_included", location: `Conditional clause “${r.label}”`, segments: [], notes: [ev.state === "included" ? `Included: ${ev.reason}` : `In the draft (${ev.reason})`] });
+    items.push({
+      id: id(),
+      type: "clause_included",
+      location: `Conditional clause “${r.label}”`,
+      segments: [],
+      notes: [ev.state === "included" ? `Included: ${ev.reason}` : `In the draft (${ev.reason})`],
+    });
   }
   if (emptyChanges.added || emptyChanges.deleted) {
-    items.push({ id: id(), type: "modified", location: "Spacing", segments: [], notes: [`${emptyChanges.added} empty paragraph(s) added, ${emptyChanges.deleted} removed`] });
+    items.push({
+      id: id(),
+      type: "modified",
+      location: "Spacing",
+      segments: [],
+      notes: [`${emptyChanges.added} empty paragraph(s) added, ${emptyChanges.deleted} removed`],
+    });
     counts.modified++;
   }
   return { version: DIFF_SCHEMA_VERSION, items, counts };

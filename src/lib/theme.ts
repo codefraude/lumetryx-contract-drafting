@@ -24,7 +24,8 @@ export function readPreference(): ThemePreference {
   }
 }
 
-export const resolveTheme = (preference: ThemePreference, systemDark: boolean): Theme => (preference === "system" ? (systemDark ? "dark" : "light") : preference);
+export const resolveTheme = (preference: ThemePreference, systemDark: boolean): Theme =>
+  preference === "system" ? (systemDark ? "dark" : "light") : preference;
 
 const systemDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
 

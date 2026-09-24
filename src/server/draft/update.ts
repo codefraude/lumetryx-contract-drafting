@@ -1,7 +1,15 @@
 import type { ClauseChange } from "@/features/documents/contracts/stream-events";
 import { evaluateRule, keepsContent } from "@/server/clauses/evaluation";
 import { syncReferences } from "@/server/docx/clause-references";
-import { ClauseStructureError, cutClause, documentRelationshipIds, insertClause, locateClause, openBody, relationshipIds } from "@/server/docx/clause-structure";
+import {
+  ClauseStructureError,
+  cutClause,
+  documentRelationshipIds,
+  insertClause,
+  locateClause,
+  openBody,
+  relationshipIds,
+} from "@/server/docx/clause-structure";
 import { loadDocxPackage, serializePackage } from "@/server/docx/package";
 import { ensureParaIds } from "@/server/docx/para-ids";
 import { applyTextEdits, indexBlocks } from "@/server/docx/render";
@@ -45,7 +53,13 @@ export interface DraftUpdate {
  * values are rewritten; a clause the user edited is removed only after explicit confirmation,
  * and its edited version is kept so that re-including it restores those edits.
  */
-export async function updateWorkingDraft(input: { working: Uint8Array; original: Uint8Array; state: FieldState; changedFieldIds: string[]; confirmEdited?: ReadonlySet<string> }): Promise<DraftUpdate> {
+export async function updateWorkingDraft(input: {
+  working: Uint8Array;
+  original: Uint8Array;
+  state: FieldState;
+  changedFieldIds: string[];
+  confirmEdited?: ReadonlySet<string>;
+}): Promise<DraftUpdate> {
   const { original, changedFieldIds } = input;
   const confirmEdited = input.confirmEdited ?? new Set<string>();
   const pkg = await loadDocxPackage(input.working);
@@ -76,7 +90,10 @@ export async function updateWorkingDraft(input: { working: Uint8Array; original:
         continue;
       }
       if (!clean.has(r.id) && !confirmEdited.has(r.id)) {
-        needsConfirmation.push({ ...change, reason: `${ev.reason}. You edited this clause, so it is only removed if you confirm; your edited version is kept and comes back if the clause is included again.` });
+        needsConfirmation.push({
+          ...change,
+          reason: `${ev.reason}. You edited this clause, so it is only removed if you confirm; your edited version is kept and comes back if the clause is included again.`,
+        });
         continue;
       }
       try {
@@ -98,7 +115,8 @@ export async function updateWorkingDraft(input: { working: Uint8Array; original:
         xml = t.xml;
         const inClause = new Set(r.paraIds);
         const anchors = { ...state.draftAnchors };
-        for (const [fid, list] of Object.entries(t.anchors)) anchors[fid] = [...(anchors[fid] ?? []).filter((a) => !a.paraId || !inClause.has(a.paraId)), ...list];
+        for (const [fid, list] of Object.entries(t.anchors))
+          anchors[fid] = [...(anchors[fid] ?? []).filter((a) => !a.paraId || !inClause.has(a.paraId)), ...list];
         state = { ...state, draftAnchors: anchors };
       }
       if (relationshipIds(xml).some((id) => !rels.has(id))) throw new ClauseStructureError("it refers to images or links that are no longer in the document");
@@ -117,7 +135,9 @@ export async function updateWorkingDraft(input: { working: Uint8Array; original:
   // Write changed answers, plus current values into restored clauses.
   let blocks = await indexBlocks(pkg);
   const restoredParas = new Set(state.rules.filter((r) => restored.has(r.id)).flatMap((r) => r.paraIds));
-  const touched = state.fields.filter((f) => changedFieldIds.includes(f.id) || (state.draftAnchors[f.id] ?? []).some((a) => a.paraId && restoredParas.has(a.paraId)));
+  const touched = state.fields.filter(
+    (f) => changedFieldIds.includes(f.id) || (state.draftAnchors[f.id] ?? []).some((a) => a.paraId && restoredParas.has(a.paraId)),
+  );
   const upd = anchoredUpdates(state, touched, blocks);
   const conflicts = upd.conflicts.filter((id) => changedFieldIds.includes(id));
   let anchors = state.draftAnchors;

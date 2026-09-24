@@ -46,7 +46,9 @@ export function applyToParagraph(map: ParagraphMap, edit: TextEdit, placeholderS
   const actual = map.text.slice(edit.start, edit.end);
   if (actual !== edit.expected) throw new AnchorConflictError(edit, actual);
   const value = edit.value.replace(/[\r\n]+/g, " ");
-  const touched = map.segments.filter((s) => (edit.start === edit.end ? s.end === edit.start || (s.start <= edit.start && s.end > edit.start) : s.start < edit.end && s.end > edit.start));
+  const touched = map.segments.filter((s) =>
+    edit.start === edit.end ? s.end === edit.start || (s.start <= edit.start && s.end > edit.start) : s.start < edit.end && s.end > edit.start,
+  );
   if (touched.some((s) => s.node === null && edit.start !== edit.end)) {
     throw new AnchorConflictError(edit, actual);
   }
@@ -60,7 +62,12 @@ export function applyToParagraph(map: ParagraphMap, edit: TextEdit, placeholderS
     const current = node.textContent ?? "";
     const localStart = Math.max(0, edit.start - seg.start);
     const localEnd = Math.min(current.length, edit.end - seg.start);
-    const next = seg === first ? current.slice(0, localStart) + value + current.slice(Math.max(localEnd, localStart)) : edit.start === edit.end ? current : current.slice(0, localStart) + current.slice(localEnd);
+    const next =
+      seg === first
+        ? current.slice(0, localStart) + value + current.slice(Math.max(localEnd, localStart))
+        : edit.start === edit.end
+          ? current
+          : current.slice(0, localStart) + current.slice(localEnd);
     while (node.firstChild) node.removeChild(node.firstChild);
     node.appendChild(doc.createTextNode(next));
     node.setAttributeNS(XML_NS, "xml:space", "preserve");

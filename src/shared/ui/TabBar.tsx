@@ -15,9 +15,26 @@ export interface TabItem<T extends string> {
  * Segmented tabs with a sliding indicator (automatic activation, arrow keys, Home/End).
  * Panels are rendered by the caller with ids `${idBase}-panel-${id}`.
  */
-export function TabBar<T extends string>({ items, value, onChange, label, idBase, className = "" }: { items: TabItem<T>[]; value: T; onChange(id: T): void; label: string; idBase: string; className?: string }) {
+export function TabBar<T extends string>({
+  items,
+  value,
+  onChange,
+  label,
+  idBase,
+  className = "",
+}: {
+  items: TabItem<T>[];
+  value: T;
+  onChange(id: T): void;
+  label: string;
+  idBase: string;
+  className?: string;
+}) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const index = Math.max(0, items.findIndex((t) => t.id === value));
+  const index = Math.max(
+    0,
+    items.findIndex((t) => t.id === value),
+  );
   const move = (from: number, step: number) => {
     for (let k = 1; k <= items.length; k++) {
       const n = (((from + step * k) % items.length) + items.length) % items.length;
@@ -45,7 +62,11 @@ export function TabBar<T extends string>({ items, value, onChange, label, idBase
         }
       }}
     >
-      <span aria-hidden className="pointer-events-none absolute inset-y-0.5 left-0.5 rounded-[8px] bg-surface shadow-sm ring-1 ring-line transition-transform duration-200 ease-(--ease-out) dark:bg-raised" style={{ width: `calc((100% - 4px) / ${items.length})`, transform: `translateX(${index * 100}%)` }} />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0.5 left-0.5 rounded-[8px] bg-surface shadow-sm ring-1 ring-line transition-transform duration-200 ease-(--ease-out) dark:bg-raised"
+        style={{ width: `calc((100% - 4px) / ${items.length})`, transform: `translateX(${index * 100}%)` }}
+      />
       {items.map((t, i) => {
         const on = t.id === value;
         return (

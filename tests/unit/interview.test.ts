@@ -67,13 +67,35 @@ describe("messy answers found by the live evaluation", () => {
   });
 
   it("gives the reply the clause text without internal block ids", () => {
-    const clause = { id: "word/document.xml#8", part: "word/document.xml", partKind: "body" as const, ordinal: 8, kind: "listItem" as const, styleId: null, numbering: { numId: "1", ilvl: 2 }, table: null, text: "Late payments attract interest.", paraId: null };
+    const clause = {
+      id: "word/document.xml#8",
+      part: "word/document.xml",
+      partKind: "body" as const,
+      ordinal: 8,
+      kind: "listItem" as const,
+      styleId: null,
+      numbering: { numId: "1", ilvl: 2 },
+      table: null,
+      text: "Late payments attract interest.",
+      paraId: null,
+    };
     expect(clauseContext([clause], [clause.id])).toBe("Late payments attract interest.");
   });
 
   it("reports an overloaded model as temporarily unavailable, not as an internal error", () => {
-    const overload = new APICallError({ message: "This model is currently experiencing high demand.", url: "https://mock.invalid", requestBodyValues: {}, statusCode: 503, isRetryable: true });
+    const overload = new APICallError({
+      message: "This model is currently experiencing high demand.",
+      url: "https://mock.invalid",
+      requestBodyValues: {},
+      statusCode: 503,
+      isRetryable: true,
+    });
     const afterRetries = new RetryError({ message: "Failed after 3 attempts.", reason: "maxRetriesExceeded", errors: [overload] });
-    expect(errorBody(afterRetries)).toMatchObject({ status: 502, code: "unavailable", retryable: true, message: "The AI service is temporarily unavailable. Please retry." });
+    expect(errorBody(afterRetries)).toMatchObject({
+      status: 502,
+      code: "unavailable",
+      retryable: true,
+      message: "The AI service is temporarily unavailable. Please retry.",
+    });
   });
 });

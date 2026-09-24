@@ -56,7 +56,10 @@ export function documentProgress(doc: DocumentView, inactive: ReadonlySet<string
 }
 
 /** The header's status: generating, the editor's save state once a draft exists, or what is still needed. */
-export function statusLine(p: DocumentProgress, { generating, hasDraft, save, savedAt }: { generating: boolean; hasDraft: boolean; save: SaveStatus; savedAt: string }): StatusLine {
+export function statusLine(
+  p: DocumentProgress,
+  { generating, hasDraft, save, savedAt }: { generating: boolean; hasDraft: boolean; save: SaveStatus; savedAt: string },
+): StatusLine {
   if (generating) return { text: "Generating the draft…", tone: "busy", key: "generating" };
   if (hasDraft) return { text: save === "saved" ? `Saved at ${clockTime(savedAt)}` : SAVE[save].text, tone: SAVE[save].tone, key: `${save}:${savedAt}` };
   const need = [p.detailsLeft && count(p.detailsLeft, "detail"), p.decisions && count(p.decisions, "decision")].filter(Boolean).join(" and ");

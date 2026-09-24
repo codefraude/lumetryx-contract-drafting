@@ -36,7 +36,14 @@ export function mockModel(script: MockScript) {
       };
     },
     doStream: async (opts) => {
-      if (script.failStream) throw new APICallError({ message: "This model is currently experiencing high demand.", url: "https://mock.invalid", requestBodyValues: {}, statusCode: 503, isRetryable: false });
+      if (script.failStream)
+        throw new APICallError({
+          message: "This model is currently experiencing high demand.",
+          url: "https://mock.invalid",
+          requestBodyValues: {},
+          statusCode: 503,
+          isRetryable: false,
+        });
       const text = script.reply?.(promptText(opts)) ?? "Thanks. Who is the landlord, and are they an individual or a company?";
       const chunks = text.match(/.{1,12}/gs) ?? [text];
       return {

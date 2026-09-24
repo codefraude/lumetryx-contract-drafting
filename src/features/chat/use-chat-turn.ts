@@ -32,9 +32,13 @@ const fromServer = (messages: DocumentMessage[]): ChatMessage[] => messages.map(
 /** What an answer changed in a draft that already exists, in the lawyer's words. */
 function patchNotices(e: Extract<StreamEvent, { type: "draft_patch" }>): string[] {
   const notes: string[] = [];
-  if (e.conflicts.length) notes.push(`You edited the text where ${e.conflicts.length === 1 ? "this answer" : "these answers"} appeared (${e.conflicts.join(", ")}), so your edit was kept and the draft was not changed there. Update it in the editor, or regenerate the draft from the template (this discards manual edits).`);
+  if (e.conflicts.length)
+    notes.push(
+      `You edited the text where ${e.conflicts.length === 1 ? "this answer" : "these answers"} appeared (${e.conflicts.join(", ")}), so your edit was kept and the draft was not changed there. Update it in the editor, or regenerate the draft from the template (this discards manual edits).`,
+    );
   for (const c of e.clauseChanges) notes.push(`Clause ${c.action === "exclude" ? "removed" : "restored"}: “${c.label}” (${c.reason}).`);
-  for (const c of e.needsConfirmation) notes.push(`“${c.label}” should now be ${c.action === "exclude" ? "removed" : "included"}, but you edited it. Confirm it under Clauses.`);
+  for (const c of e.needsConfirmation)
+    notes.push(`“${c.label}” should now be ${c.action === "exclude" ? "removed" : "included"}, but you edited it. Confirm it under Clauses.`);
   return notes;
 }
 
@@ -60,11 +64,18 @@ export function useChatTurn(documentId: string, initial: DocumentMessage[], { be
     try {
       await beforeSend();
     } catch {
-      setFailure({ message: "Your latest edit could not be saved, so the message was not sent. It is back in the box below; send it again once saving works.", retryable: false });
+      setFailure({
+        message: "Your latest edit could not be saved, so the message was not sent. It is back in the box below; send it again once saving works.",
+        retryable: false,
+      });
       return false;
     }
     const replyId = `a-${Date.now()}`;
-    setMessages((all) => [...all, ...(retry ? [] : [{ id: `u-${Date.now()}`, role: "user" as const, content: text }]), { id: replyId, role: "assistant", content: "", streaming: true }]);
+    setMessages((all) => [
+      ...all,
+      ...(retry ? [] : [{ id: `u-${Date.now()}`, role: "user" as const, content: text }]),
+      { id: replyId, role: "assistant", content: "", streaming: true },
+    ]);
     setBusy(true);
     const ctrl = new AbortController();
     abort.current = ctrl;
@@ -102,7 +113,13 @@ export function useChatTurn(documentId: string, initial: DocumentMessage[], { be
     } finally {
       abort.current = null;
       setBusy(false);
-      setMessages((all) => all.map((m) => (m.id === replyId ? { ...m, streaming: false, content: m.content || (finished ? m.content : ctrl.signal.aborted ? "(stopped)" : "") } : m)).filter((m) => m.role !== "assistant" || m.content));
+      setMessages((all) =>
+        all
+          .map((m) =>
+            m.id === replyId ? { ...m, streaming: false, content: m.content || (finished ? m.content : ctrl.signal.aborted ? "(stopped)" : "") } : m,
+          )
+          .filter((m) => m.role !== "assistant" || m.content),
+      );
       // Server-derived parts of the view (rules, inactive fields, issues) follow the turn.
       void queryClient.invalidateQueries({ queryKey: documentKeys.detail(documentId) });
     }

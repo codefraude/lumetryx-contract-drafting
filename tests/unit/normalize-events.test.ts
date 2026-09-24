@@ -22,7 +22,11 @@ describe("money", () => {
   it("keeps exact decimals and requires an established currency", () => {
     expect(parseMoney("MUR 25,000.50").normalized).toEqual({ kind: "money", amount: "25000.50", currency: "MUR" });
     expect(parseMoney("Rs 25,000", null, "en").status).toBe("needs_clarification");
-    expect(parseMoney("Rs 25,000", "MUR", "en")).toMatchObject({ status: "confirmed", displayValue: "Rs 25,000", normalized: { amount: "25000", currency: "MUR", symbol: "Rs" } });
+    expect(parseMoney("Rs 25,000", "MUR", "en")).toMatchObject({
+      status: "confirmed",
+      displayValue: "Rs 25,000",
+      normalized: { amount: "25000", currency: "MUR", symbol: "Rs" },
+    });
     expect(parseMoney("25000").status).toBe("needs_clarification");
     expect(parseMoney("€1,200 per month", null, "en").normalized).toEqual({ kind: "money", amount: "1200", currency: "EUR" });
     expect(parseMoney("0.1").normalized).toMatchObject({ amount: "0.1" });

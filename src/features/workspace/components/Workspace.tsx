@@ -79,13 +79,33 @@ export function Workspace({ maxUploadMb }: { maxUploadMb: number }) {
   return (
     <>
       {!active ? (
-        <UploadPanel onFile={(file) => upload.mutate(file)} busy={upload.isPending ? upload.variables.name : null} error={uploadError} onShowDrafts={() => setDraftsOpen(true)} maxMb={maxUploadMb} />
+        <UploadPanel
+          onFile={(file) => upload.mutate(file)}
+          busy={upload.isPending ? upload.variables.name : null}
+          error={uploadError}
+          onShowDrafts={() => setDraftsOpen(true)}
+          maxMb={maxUploadMb}
+        />
       ) : view.data ? (
-        <DocumentWorkspace key={`${active.id}:${active.generation}`} ref={workspace} doc={view.data} onShowDrafts={() => setDraftsOpen(true)} onClose={() => setOpen(null)} onOpenDocument={show} announce={setAnnouncement} />
+        <DocumentWorkspace
+          key={`${active.id}:${active.generation}`}
+          ref={workspace}
+          doc={view.data}
+          onShowDrafts={() => setDraftsOpen(true)}
+          onClose={() => setOpen(null)}
+          onOpenDocument={show}
+          announce={setAnnouncement}
+        />
       ) : (
         <Splash />
       )}
-      <DraftsDrawer open={draftsOpen} currentId={active?.id ?? null} onClose={() => setDraftsOpen(false)} onOpen={openDraft} onDeleted={(id) => id === active?.id && setOpen(null)} />
+      <DraftsDrawer
+        open={draftsOpen}
+        currentId={active?.id ?? null}
+        onClose={() => setDraftsOpen(false)}
+        onOpen={openDraft}
+        onDeleted={(id) => id === active?.id && setOpen(null)}
+      />
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>

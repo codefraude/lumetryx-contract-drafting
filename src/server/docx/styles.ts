@@ -57,7 +57,11 @@ export async function loadContext(pkg: DocxPackage): Promise<DocContext> {
         const fmt = firstChild(l, "numFmt");
         const text = firstChild(l, "lvlText");
         const start = firstChild(l, "start");
-        levels[ilvl] = { fmt: fmt ? (wAttr(fmt, "val") ?? "decimal") : "decimal", text: text ? (wAttr(text, "val") ?? "") : "", start: start ? Number(wAttr(start, "val") ?? 1) : 1 };
+        levels[ilvl] = {
+          fmt: fmt ? (wAttr(fmt, "val") ?? "decimal") : "decimal",
+          text: text ? (wAttr(text, "val") ?? "") : "",
+          start: start ? Number(wAttr(start, "val") ?? 1) : 1,
+        };
       }
       abstract.set(wAttr(a, "abstractNumId") ?? String(i), levels);
     }
@@ -78,7 +82,21 @@ export function readNumPr(numPr: XmlElement): { numId: string; ilvl: number } | 
   return { numId: id, ilvl: ilvl ? Number(wAttr(ilvl, "val") ?? 0) : 0 };
 }
 
-const ROMAN: [number, string][] = [[1000, "m"], [900, "cm"], [500, "d"], [400, "cd"], [100, "c"], [90, "xc"], [50, "l"], [40, "xl"], [10, "x"], [9, "ix"], [5, "v"], [4, "iv"], [1, "i"]];
+const ROMAN: [number, string][] = [
+  [1000, "m"],
+  [900, "cm"],
+  [500, "d"],
+  [400, "cd"],
+  [100, "c"],
+  [90, "xc"],
+  [50, "l"],
+  [40, "xl"],
+  [10, "x"],
+  [9, "ix"],
+  [5, "v"],
+  [4, "iv"],
+  [1, "i"],
+];
 
 function formatCounter(n: number, fmt: string): string {
   switch (fmt) {
@@ -90,7 +108,11 @@ function formatCounter(n: number, fmt: string): string {
     case "upperRoman": {
       let r = "";
       let v = n;
-      for (const [k, s] of ROMAN) while (v >= k) { r += s; v -= k; }
+      for (const [k, s] of ROMAN)
+        while (v >= k) {
+          r += s;
+          v -= k;
+        }
       return fmt === "upperRoman" ? r.toUpperCase() : r;
     }
     default:

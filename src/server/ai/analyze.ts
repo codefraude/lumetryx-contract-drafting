@@ -9,7 +9,8 @@ import { AiError, PROMPT_VERSION, SAFETY_RULES, providerOptions, untrusted } fro
 export const PARSER_VERSION = "x4";
 const ANALYSIS_TTL_SECONDS = 60 * 60 * 24;
 
-export const analysisCacheKey = (sessionId: string, templateHash: string, model: string) => `lx:analysis:${sessionId}:${templateHash}:${PARSER_VERSION}:${PROMPT_VERSION}:${model}`;
+export const analysisCacheKey = (sessionId: string, templateHash: string, model: string) =>
+  `lx:analysis:${sessionId}:${templateHash}:${PARSER_VERSION}:${PROMPT_VERSION}:${model}`;
 
 const SYSTEM = `You analyse contract templates (English, French or both) for a lawyer's drafting assistant.
 Identify every piece of information the lawyer must supply to complete the contract.
@@ -27,7 +28,9 @@ Identify every piece of information the lawyer must supply to complete the contr
 ${SAFETY_RULES}`;
 
 function buildPrompt(blocks: Block[], markers: MarkerOccurrence[], conditions: string[]): string {
-  const markerLines = [...new Map(markers.map((m) => [m.key, m])).values()].map((m) => `${m.key} | ${m.marker} | ${m.text} | ${m.context.replace(/\s+/g, " ")}${m.title ? ` (control title: ${m.title})` : ""}`);
+  const markerLines = [...new Map(markers.map((m) => [m.key, m])).values()].map(
+    (m) => `${m.key} | ${m.marker} | ${m.text} | ${m.context.replace(/\s+/g, " ")}${m.title ? ` (control title: ${m.title})` : ""}`,
+  );
   const blockLines = blocks.filter((b) => b.text.trim()).map((b) => `${b.id} | ${b.partKind}/${b.kind} | ${b.text.replace(/\s+/g, " ")}`);
   return `${untrusted("template", `MARKERS (key | kind | text | context):\n${markerLines.join("\n")}\n\nCONDITIONS (from [[IF …]] markers):\n${conditions.join("\n") || "none"}\n\nBLOCKS (id | location | text):\n${blockLines.join("\n")}`)}\n\nReturn the analysis.`;
 }
@@ -38,7 +41,16 @@ export interface AnalysisResult {
   usage: { inputTokens?: number | undefined; outputTokens?: number | undefined } | undefined;
 }
 
-export async function analyzeTemplate(opts: { model: LanguageModel; modelName: string; sessionId: string; templateHash: string; blocks: Block[]; markers: MarkerOccurrence[]; conditions?: string[]; abortSignal?: AbortSignal }): Promise<AnalysisResult> {
+export async function analyzeTemplate(opts: {
+  model: LanguageModel;
+  modelName: string;
+  sessionId: string;
+  templateHash: string;
+  blocks: Block[];
+  markers: MarkerOccurrence[];
+  conditions?: string[];
+  abortSignal?: AbortSignal;
+}): Promise<AnalysisResult> {
   const key = analysisCacheKey(opts.sessionId, opts.templateHash, opts.modelName);
   const hit = await cacheGet(key, (raw) => TemplateAnalysis.parse(raw));
   if (hit) return { analysis: hit, cached: true, usage: undefined };

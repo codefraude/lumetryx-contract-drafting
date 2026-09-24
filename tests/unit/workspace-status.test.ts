@@ -79,11 +79,17 @@ describe("workspace status", () => {
 
   it("counts details and clause decisions separately", () => {
     expect(documentProgress(doc, inactive)).toEqual({ confirmed: 1, total: 2, detailsLeft: 1, decisions: 1, ready: false, hasClauses: true, attention: 1 });
-    expect(statusLine(documentProgress(doc, inactive), idle)).toEqual({ text: "1 detail and 1 decision still needed", tone: "neutral", key: "1 detail and 1 decision" });
+    expect(statusLine(documentProgress(doc, inactive), idle)).toEqual({
+      text: "1 detail and 1 decision still needed",
+      tone: "neutral",
+      key: "1 detail and 1 decision",
+    });
   });
 
   it("is ready once every needed answer is confirmed", () => {
-    const answered = view({ fields: [field("landlord_name", { status: "confirmed", rawValue: "Ada", displayValue: "Ada", normalized: { kind: "text", value: "Ada" } })] });
+    const answered = view({
+      fields: [field("landlord_name", { status: "confirmed", rawValue: "Ada", displayValue: "Ada", normalized: { kind: "text", value: "Ada" } })],
+    });
     const p = documentProgress(answered, new Set());
     expect(p).toMatchObject({ ready: true, detailsLeft: 0, decisions: 0, hasClauses: false, attention: 0 });
     expect(statusLine(p, idle)).toEqual({ text: "Ready to generate", tone: "ok", key: "ready" });
@@ -92,7 +98,11 @@ describe("workspace status", () => {
   it("reports generation first, then the editor's save state once a draft exists", () => {
     const p = documentProgress(doc, inactive);
     expect(statusLine(p, { ...idle, generating: true }).text).toBe("Generating the draft…");
-    expect(statusLine(p, { ...idle, hasDraft: true, save: "saved" })).toEqual({ text: `Saved at ${clockTime(idle.savedAt)}`, tone: "ok", key: `saved:${idle.savedAt}` });
+    expect(statusLine(p, { ...idle, hasDraft: true, save: "saved" })).toEqual({
+      text: `Saved at ${clockTime(idle.savedAt)}`,
+      tone: "ok",
+      key: `saved:${idle.savedAt}`,
+    });
     expect(statusLine(p, { ...idle, hasDraft: true, save: "conflict" })).toMatchObject({ text: "Changed in another tab", tone: "warn" });
   });
 
@@ -102,6 +112,11 @@ describe("workspace status", () => {
       structureIssues: [{ ruleId: null, message: "A clause marker is not closed." }],
       ruleIssues: ["An unknown condition was ignored."],
     });
-    expect(exportWarnings(risky)).toEqual(["“pets clause” is still undecided.", "“parking clause” waits for your confirmation.", "A clause marker is not closed.", "An unknown condition was ignored."]);
+    expect(exportWarnings(risky)).toEqual([
+      "“pets clause” is still undecided.",
+      "“parking clause” waits for your confirmation.",
+      "A clause marker is not closed.",
+      "An unknown condition was ignored.",
+    ]);
   });
 });

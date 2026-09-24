@@ -21,7 +21,8 @@ export const providerOptions = () => ({
 
 export class AiError extends Error {
   constructor(
-    readonly code: "invalid_key" | "quota" | "model_unavailable" | "unavailable" | "truncated" | "invalid_output" | "budget" | "provider" | "not_configured" | "aborted",
+    readonly code:
+      "invalid_key" | "quota" | "model_unavailable" | "unavailable" | "truncated" | "invalid_output" | "budget" | "provider" | "not_configured" | "aborted",
     message: string,
     readonly retryable: boolean,
   ) {
@@ -39,7 +40,8 @@ export function classifyAiError(err: unknown): AiError {
   const call = APICallError.isInstance(err) ? err : err instanceof Error && APICallError.isInstance(err.cause) ? err.cause : null;
   if (call) {
     const s = call.statusCode ?? 0;
-    if (s === 401 || s === 403 || /API key not valid|API_KEY_INVALID/i.test(call.message)) return new AiError("invalid_key", "The AI service rejected the API key. Check GEMINI_API_KEY.", false);
+    if (s === 401 || s === 403 || /API key not valid|API_KEY_INVALID/i.test(call.message))
+      return new AiError("invalid_key", "The AI service rejected the API key. Check GEMINI_API_KEY.", false);
     if (s === 429) return new AiError("quota", "The AI service quota or rate limit was reached. Please wait a minute and retry.", true);
     if (s === 404) return new AiError("model_unavailable", `The model "${modelId()}" is not available for this key. Check GEMINI_MODEL.`, false);
     if (s >= 500) return new AiError("unavailable", "The AI service is temporarily unavailable. Please retry.", true);
@@ -59,12 +61,18 @@ export interface SessionUsage {
 export function assertBudget(s: SessionUsage): void {
   const e = env();
   if (s.aiRequests >= e.AI_MAX_REQUESTS_PER_SESSION || s.aiInputTokens + s.aiOutputTokens >= e.AI_MAX_TOKENS_PER_SESSION) {
-    throw new AiError("budget", "This session has reached its AI usage limit. Fill the remaining fields in the field panel, or start a new session later.", false);
+    throw new AiError(
+      "budget",
+      "This session has reached its AI usage limit. Fill the remaining fields in the field panel, or start a new session later.",
+      false,
+    );
   }
 }
 
 export async function trackUsage(sessionId: string, usage: { inputTokens?: number | undefined; outputTokens?: number | undefined } | undefined) {
-  await recordUsage(sessionId, usage?.inputTokens ?? 0, usage?.outputTokens ?? 0).catch((e) => console.warn("[usage] not recorded", e instanceof Error ? e.message : e));
+  await recordUsage(sessionId, usage?.inputTokens ?? 0, usage?.outputTokens ?? 0).catch((e) =>
+    console.warn("[usage] not recorded", e instanceof Error ? e.message : e),
+  );
 }
 export const untrusted = (label: string, body: string) => `<${label}>\n${body.replaceAll(`</${label}>`, "")}\n</${label}>`;
 

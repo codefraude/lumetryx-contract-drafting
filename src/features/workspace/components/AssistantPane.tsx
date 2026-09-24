@@ -44,7 +44,10 @@ interface Props {
 /** The assistant side: the conversation, the details and the conditional clauses. */
 export function AssistantPane({ doc, inactive, progress, tabs, view, onView, hidden, hasDraft, chat, nextStep, onRuleAction }: Props) {
   return (
-    <aside aria-label="Assistant and details" className={`flex min-h-0 flex-col bg-surface max-lg:absolute max-lg:inset-0 max-lg:transition-[opacity,visibility] max-lg:duration-200 lg:w-[clamp(360px,30vw,430px)] lg:shrink-0 lg:border-r lg:border-line ${hidden ? "max-lg:pointer-events-none max-lg:invisible max-lg:opacity-0" : ""}`}>
+    <aside
+      aria-label="Assistant and details"
+      className={`flex min-h-0 flex-col bg-surface max-lg:absolute max-lg:inset-0 max-lg:transition-[opacity,visibility] max-lg:duration-200 lg:w-[clamp(360px,30vw,430px)] lg:shrink-0 lg:border-r lg:border-line ${hidden ? "max-lg:pointer-events-none max-lg:invisible max-lg:opacity-0" : ""}`}
+    >
       <div className="shrink-0 border-b border-line px-4 py-2.5 max-lg:hidden sm:px-5">
         <TabBar<AssistantView> idBase="assistant" label="Assistant views" value={view} onChange={onView} items={tabs} />
       </div>
@@ -54,7 +57,15 @@ export function AssistantPane({ doc, inactive, progress, tabs, view, onView, hid
             messages={chat.messages}
             busy={chat.busy}
             error={chat.failure}
-            header={<ChatHeader language={doc.analysis === "ai" ? doc.language : null} onLanguage={chat.onLanguage} progress={progress} onReviewDetails={() => onView("details")} onReviewClauses={() => onView("clauses")} />}
+            header={
+              <ChatHeader
+                language={doc.analysis === "ai" ? doc.language : null}
+                onLanguage={chat.onLanguage}
+                progress={progress}
+                onReviewDetails={() => onView("details")}
+                onReviewClauses={() => onView("clauses")}
+              />
+            }
             disabledReason={chat.disabledReason}
             onSend={chat.onSend}
             onStop={chat.onStop}
@@ -67,7 +78,16 @@ export function AssistantPane({ doc, inactive, progress, tabs, view, onView, hid
         </TabPanel>
         {progress.hasClauses && (
           <TabPanel base="assistant" id="clauses" active={view === "clauses"} scroll>
-            <ClausePanel documentId={doc.id} rules={doc.rules} fields={doc.fields} language={doc.language.effective} locked={hasDraft} ruleIssues={doc.ruleIssues} structureIssues={doc.structureIssues} onAction={onRuleAction} />
+            <ClausePanel
+              documentId={doc.id}
+              rules={doc.rules}
+              fields={doc.fields}
+              language={doc.language.effective}
+              locked={hasDraft}
+              ruleIssues={doc.ruleIssues}
+              structureIssues={doc.structureIssues}
+              onAction={onRuleAction}
+            />
           </TabPanel>
         )}
       </div>

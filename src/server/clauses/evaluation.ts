@@ -20,7 +20,11 @@ export function evaluateRule(rule: Rule, fields: Field[]): Evaluation {
   if (rule.override) return { state: rule.override === "include" ? "included" : "excluded", reason: `Manual override: always ${rule.override}.` };
   const f = fields.find((x) => x.id === rule.condition.fieldId);
   if (!f) return { state: "unresolved", reason: `The answer it depends on (${rule.condition.fieldId}) does not exist.` };
-  if (f.status !== "confirmed" || !f.normalized) return { state: "unresolved", reason: f.status === "needs_clarification" ? `${f.label} needs clarification: ${f.note ?? "unclear answer"}` : `Waiting for an answer: ${f.label}.` };
+  if (f.status !== "confirmed" || !f.normalized)
+    return {
+      state: "unresolved",
+      reason: f.status === "needs_clarification" ? `${f.label} needs clarification: ${f.note ?? "unclear answer"}` : `Waiting for an answer: ${f.label}.`,
+    };
   const n = f.normalized;
   const { op, values } = rule.condition;
   let include: boolean;

@@ -19,7 +19,9 @@ class UpstashStore implements KeyValueStore {
     return v === null || v === undefined ? null : typeof v === "string" ? v : JSON.stringify(v);
   }
   async set(key: string, value: string, opts: { ttlSeconds: number; onlyIfAbsent?: boolean }) {
-    const res = opts.onlyIfAbsent ? await this.redis.set(key, value, { ex: opts.ttlSeconds, nx: true }) : await this.redis.set(key, value, { ex: opts.ttlSeconds });
+    const res = opts.onlyIfAbsent
+      ? await this.redis.set(key, value, { ex: opts.ttlSeconds, nx: true })
+      : await this.redis.set(key, value, { ex: opts.ttlSeconds });
     return res === "OK";
   }
   async del(key: string) {

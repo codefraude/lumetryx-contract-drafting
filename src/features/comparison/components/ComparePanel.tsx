@@ -91,7 +91,15 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
       <div className="shrink-0 border-b border-line bg-surface px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="min-w-0 flex-1 basis-60" role="status" aria-live="polite">
-            <p className="text-[14.5px] font-semibold text-ink">{loading ? "Comparing with the template…" : error ? "The comparison failed" : changes.length ? `${changes.length} change${changes.length === 1 ? "" : "s"} from the template` : "No differences from the template"}</p>
+            <p className="text-[14.5px] font-semibold text-ink">
+              {loading
+                ? "Comparing with the template…"
+                : error
+                  ? "The comparison failed"
+                  : changes.length
+                    ? `${changes.length} change${changes.length === 1 ? "" : "s"} from the template`
+                    : "No differences from the template"}
+            </p>
             {data && <p className="mt-0.5 text-[12.5px] leading-snug text-ink-3">Template compared with {SOURCE[data.source]}.</p>}
           </div>
           <div className="flex items-center gap-1">
@@ -100,8 +108,22 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
                 {at + 1} of {stops.length}
               </span>
             )}
-            <IconButton label="Previous change" icon={ChevronUp} variant="secondary" size="sm" disabled={!stops.length || at === 0} onClick={() => go(at - 1)} />
-            <IconButton label="Next change" icon={ChevronDown} variant="secondary" size="sm" disabled={!stops.length || at >= stops.length - 1} onClick={() => go(at + 1)} />
+            <IconButton
+              label="Previous change"
+              icon={ChevronUp}
+              variant="secondary"
+              size="sm"
+              disabled={!stops.length || at === 0}
+              onClick={() => go(at - 1)}
+            />
+            <IconButton
+              label="Next change"
+              icon={ChevronDown}
+              variant="secondary"
+              size="sm"
+              disabled={!stops.length || at >= stops.length - 1}
+              onClick={() => go(at + 1)}
+            />
             <Button size="sm" variant="ghost" icon={RefreshCw} onClick={load} disabled={loading}>
               Refresh
             </Button>
@@ -198,7 +220,8 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
           </ol>
           {data && (
             <p className="mt-6 text-[12.5px] leading-relaxed text-ink-3">
-              This compares content and structure: text word by word, bold, italic and underline, paragraph styles, heading and list levels, and table cells. It does not compare fonts, sizes, colours, spacing or page layout, and it adds nothing to the document you edit or download.
+              This compares content and structure: text word by word, bold, italic and underline, paragraph styles, heading and list levels, and table cells. It
+              does not compare fonts, sizes, colours, spacing or page layout, and it adds nothing to the document you edit or download.
             </p>
           )}
         </div>

@@ -39,7 +39,14 @@ export function useDraftGeneration(documentId: string, { onCompleted, onFailed, 
     const onEvent = (e: StreamEvent) => {
       if (e.type === "draft_block_ready") setBlocks((b) => [...b, e.block]);
       if (e.type === "draft_complete") {
-        patchDocument(queryClient, documentId, (d) => ({ ...d, draftStatus: "ready", phase: "draft", draftStale: false, workingRevision: e.workingRevision, fieldsVersion: e.fieldsVersion }));
+        patchDocument(queryClient, documentId, (d) => ({
+          ...d,
+          draftStatus: "ready",
+          phase: "draft",
+          draftStale: false,
+          workingRevision: e.workingRevision,
+          fieldsVersion: e.fieldsVersion,
+        }));
         onCompleted(e.workingRevision);
         announce("The draft is ready to edit.");
       }

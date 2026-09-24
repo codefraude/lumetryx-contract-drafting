@@ -40,7 +40,15 @@ Rules:
 - Never claim to have verified a company, a registry or the law.
 ${SAFETY_RULES}`;
 
-export function replyPrompt(fields: Field[], changed: string[], clauseText: string, userMessage: string, history: TurnInput["history"], lang: ChatLanguage = "en", inactive: ReadonlySet<string> = new Set()): string {
+export function replyPrompt(
+  fields: Field[],
+  changed: string[],
+  clauseText: string,
+  userMessage: string,
+  history: TurnInput["history"],
+  lang: ChatLanguage = "en",
+  inactive: ReadonlySet<string> = new Set(),
+): string {
   const outstanding = outstandingFields(fields, inactive);
   const nextGroup = GROUP_ORDER.find((g) => outstanding.some((f) => f.group === g && f.status === "missing"));
   const clarify = outstanding.filter((f) => f.status === "needs_clarification");
@@ -49,14 +57,24 @@ export function replyPrompt(fields: Field[], changed: string[], clauseText: stri
   // list for done when two fields had similar names.
   const later = outstanding.filter((f) => !clarify.includes(f) && !next.includes(f));
   return [
-    `JUST RECORDED: ${changed.length ? fields.filter((f) => changed.includes(f.id) && f.status === "confirmed").map((f) => `${f.label} = ${f.displayValue}`).join("; ") || "nothing confirmed" : "nothing"}`,
+    `JUST RECORDED: ${
+      changed.length
+        ? fields
+            .filter((f) => changed.includes(f.id) && f.status === "confirmed")
+            .map((f) => `${f.label} = ${f.displayValue}`)
+            .join("; ") || "nothing confirmed"
+        : "nothing"
+    }`,
     `NEEDS CLARIFICATION: ${clarify.map((f) => `${f.label}: ${f.note ?? "unclear"}`).join("; ") || "none"}`,
     `REPLY LANGUAGE: ${lang === "fr" ? "French" : "English"}`,
     `NEXT TO ASK: ${next.map((f) => `${f.label}${f.valueType === "boolean" ? " [yes/no]" : ""}${questionIn(f, lang) ? ` (suggested: ${questionIn(f, lang)})` : ""}`).join("; ") || "none"}`,
     `STILL NEEDED LATER (do not ask yet): ${later.map((f) => f.label).join("; ") || "none"}`,
     `READY TO GENERATE: ${outstanding.length ? "no" : "yes"}`,
     clauseText ? untrusted("clause", clauseText) : "",
-    `RECENT CONVERSATION:\n${history.slice(-4).map((m) => `${m.role}: ${m.content.slice(0, 400)}`).join("\n")}`,
+    `RECENT CONVERSATION:\n${history
+      .slice(-4)
+      .map((m) => `${m.role}: ${m.content.slice(0, 400)}`)
+      .join("\n")}`,
     untrusted("user_message", userMessage),
   ]
     .filter(Boolean)
@@ -66,7 +84,16 @@ export function replyPrompt(fields: Field[], changed: string[], clauseText: stri
 /** The streamed reply. A failure inside the stream only ends it, so `failure()` says what went wrong. */
 export function streamReply(model: LanguageModel, prompt: string, abortSignal?: AbortSignal) {
   let failure: unknown = null;
-  const stream = streamText({ model, system: REPLY_SYSTEM, prompt, maxOutputTokens: 700, maxRetries: 2, abortSignal, providerOptions: providerOptions(), onError: ({ error }) => void (failure = error) });
+  const stream = streamText({
+    model,
+    system: REPLY_SYSTEM,
+    prompt,
+    maxOutputTokens: 700,
+    maxRetries: 2,
+    abortSignal,
+    providerOptions: providerOptions(),
+    onError: ({ error }) => void (failure = error),
+  });
   return { stream, failure: () => failure };
 }
 

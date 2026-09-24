@@ -18,7 +18,19 @@ export interface Progress extends DetailProgress {
 }
 
 /** Assistant identity, conversation language and a short, truthful progress summary. */
-export function ChatHeader({ language, onLanguage, progress, onReviewDetails, onReviewClauses }: { language: { document: DocLanguage; conversation: ChatLanguage | null; effective: ChatLanguage } | null; onLanguage(l: ChatLanguage | null): void; progress: Progress; onReviewDetails(): void; onReviewClauses(): void }) {
+export function ChatHeader({
+  language,
+  onLanguage,
+  progress,
+  onReviewDetails,
+  onReviewClauses,
+}: {
+  language: { document: DocLanguage; conversation: ChatLanguage | null; effective: ChatLanguage } | null;
+  onLanguage(l: ChatLanguage | null): void;
+  progress: Progress;
+  onReviewDetails(): void;
+  onReviewClauses(): void;
+}) {
   const { confirmed, total, decisions } = progress;
   const left = total - confirmed;
   return (
@@ -29,16 +41,29 @@ export function ChatHeader({ language, onLanguage, progress, onReviewDetails, on
           <div className="min-w-0">
             <p className="text-[14px] font-semibold leading-tight text-ink">Assistant</p>
             <p className="text-[12.5px] leading-snug text-ink-3">
-              {language ? `Replies in ${language.effective === "fr" ? "French" : "English"}. ${TEMPLATE_LANG[language.document] ?? ""}` : "Unavailable for this template"}
+              {language
+                ? `Replies in ${language.effective === "fr" ? "French" : "English"}. ${TEMPLATE_LANG[language.document] ?? ""}`
+                : "Unavailable for this template"}
             </p>
           </div>
         </div>
         {language && (
-          <div role="group" aria-label="Conversation language" title="Auto answers in the language you write in" className="flex shrink-0 rounded-control border border-line bg-subtle p-0.5">
+          <div
+            role="group"
+            aria-label="Conversation language"
+            title="Auto answers in the language you write in"
+            className="flex shrink-0 rounded-control border border-line bg-subtle p-0.5"
+          >
             {LANGS.map((l) => {
               const on = language.conversation === l.value;
               return (
-                <button key={l.label} type="button" aria-pressed={on} onClick={() => onLanguage(l.value)} className={`h-7 rounded-[8px] px-2.5 text-[12.5px] font-medium transition-colors duration-150 pointer-coarse:h-9 ${on ? "bg-surface text-ink shadow-sm ring-1 ring-line dark:bg-raised" : "text-ink-2 hover:text-ink"}`}>
+                <button
+                  key={l.label}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => onLanguage(l.value)}
+                  className={`h-7 rounded-[8px] px-2.5 text-[12.5px] font-medium transition-colors duration-150 pointer-coarse:h-9 ${on ? "bg-surface text-ink shadow-sm ring-1 ring-line dark:bg-raised" : "text-ink-2 hover:text-ink"}`}
+                >
                   {l.label}
                 </button>
               );
@@ -50,8 +75,18 @@ export function ChatHeader({ language, onLanguage, progress, onReviewDetails, on
       {total > 0 && (
         <div className="mt-3 [@media(max-height:560px)]:hidden">
           <div className="flex items-center gap-3">
-            <div role="progressbar" aria-label="Required details confirmed" aria-valuemin={0} aria-valuemax={total} aria-valuenow={confirmed} className="h-1.5 flex-1 overflow-hidden rounded-full bg-hover">
-              <div className="h-full rounded-full bg-primary transition-[width] duration-500 ease-(--ease-out)" style={{ width: `${(confirmed / total) * 100}%` }} />
+            <div
+              role="progressbar"
+              aria-label="Required details confirmed"
+              aria-valuemin={0}
+              aria-valuemax={total}
+              aria-valuenow={confirmed}
+              className="h-1.5 flex-1 overflow-hidden rounded-full bg-hover"
+            >
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-500 ease-(--ease-out)"
+                style={{ width: `${(confirmed / total) * 100}%` }}
+              />
             </div>
             <span className="text-[12.5px] font-medium tabular-nums text-ink-2">
               {confirmed} of {total}

@@ -46,7 +46,10 @@ function paragraphCheck(name: string, from: Paragraph[], to: Paragraph[], keys: 
 }
 
 function storyProblems(where: string, a: Story, b: Story): string[] {
-  return [...differences(a, b, ["images"]).map((d) => `${where} ${d}`), ...(a.fields.join() !== b.fields.join() ? [`${where} fields ${a.fields.join()} → ${b.fields.join()}`] : [])];
+  return [
+    ...differences(a, b, ["images"]).map((d) => `${where} ${d}`),
+    ...(a.fields.join() !== b.fields.join() ? [`${where} fields ${a.fields.join()} → ${b.fields.join()}`] : []),
+  ];
 }
 
 const count = (what: string, a: unknown[], b: unknown[]) => (a.length !== b.length ? [`${what} ${a.length} → ${b.length}`] : []);
@@ -61,14 +64,29 @@ function layoutChecks(from: View, to: View): Check[] {
     margins.push(...differences(s, t, ["top", "bottom", "left", "right", "width", "height", "orientation"]).map((d) => `section ${i + 1} ${d}`));
     headers.push(...storyProblems(`section ${i + 1} header`, s.header, t.header), ...storyProblems(`section ${i + 1} footer`, s.footer, t.footer));
   });
-  const tables = [...count("tables", from.tables, to.tables), ...from.tables.flatMap((t, i) => differences(t, to.tables[i] ?? t, ["rows", "cols", "borders"]).map((d) => `table ${i + 1} ${d}`))];
+  const tables = [
+    ...count("tables", from.tables, to.tables),
+    ...from.tables.flatMap((t, i) => differences(t, to.tables[i] ?? t, ["rows", "cols", "borders"]).map((d) => `table ${i + 1} ${d}`)),
+  ];
   const kept = [
     ...count("footnotes", from.footnotes, to.footnotes),
     ...count("endnotes", from.endnotes, to.endnotes),
-    ...same("comments", from.comments.map((c) => c.text), to.comments.map((c) => c.text)),
-    ...same("tracked changes", from.revisions.map((r) => `${r.type}:${r.text}`), to.revisions.map((r) => `${r.type}:${r.text}`)),
+    ...same(
+      "comments",
+      from.comments.map((c) => c.text),
+      to.comments.map((c) => c.text),
+    ),
+    ...same(
+      "tracked changes",
+      from.revisions.map((r) => `${r.type}:${r.text}`),
+      to.revisions.map((r) => `${r.type}:${r.text}`),
+    ),
     ...(from.tocs !== to.tocs ? [`tables of contents ${from.tocs} → ${to.tocs}`] : []),
-    ...same("shapes", from.shapes.map((s) => String(s.type)), to.shapes.map((s) => String(s.type))),
+    ...same(
+      "shapes",
+      from.shapes.map((s) => String(s.type)),
+      to.shapes.map((s) => String(s.type)),
+    ),
     ...storyProblems("body", from.body, to.body),
     ...count("content controls", from.body.controls, to.body.controls),
   ];
@@ -85,9 +103,14 @@ export function fillChecks(template: View, filled: View, answers: Answers): Chec
   const source = template.paragraphs.filter((p) => !isMarker(p));
   const leftovers = [
     ...filled.paragraphs.filter((p) => LEFTOVER.test(p.text)).map((p) => `“${p.text.slice(0, 50)}”`),
-    ...filled.sections.flatMap((s) => [s.header.text, s.footer.text]).filter((t) => LEFTOVER.test(t)).map((t) => `header/footer “${t.slice(0, 50)}”`),
+    ...filled.sections
+      .flatMap((s) => [s.header.text, s.footer.text])
+      .filter((t) => LEFTOVER.test(t))
+      .map((t) => `header/footer “${t.slice(0, 50)}”`),
     ...filled.shapes.filter((s) => LEFTOVER.test(s.text)).map((s) => `text box “${s.text.slice(0, 50)}”`),
-    ...[...filled.body.controls, ...filled.sections.flatMap((s) => s.header.controls)].filter((c) => c.mapped).map((c) => `content control “${c.title ?? ""}” is still bound to document data`),
+    ...[...filled.body.controls, ...filled.sections.flatMap((s) => s.header.controls)]
+      .filter((c) => c.mapped)
+      .map((c) => `content control “${c.title ?? ""}” is still bound to document data`),
   ];
   const formatting = answers.fields.flatMap((f) => {
     const value = filled.probes.find((p) => p.text === f.answer);
@@ -120,7 +143,14 @@ export function roundTripCheck(filled: View, roundTrip: View): Check {
   problems.push(...layoutChecks(filled, roundTrip).flatMap((c) => c.problems));
   const controls = (v: View) => [...v.body.controls, ...v.sections.flatMap((s) => s.header.controls)].map((c) => `${c.text}|${c.placeholder}|${c.mapped}`);
   problems.push(...same("content controls", controls(filled), controls(roundTrip)));
-  problems.push(...same("footnote text", filled.footnotes, roundTrip.footnotes), ...same("text boxes", filled.shapes.map((s) => s.text), roundTrip.shapes.map((s) => s.text)));
+  problems.push(
+    ...same("footnote text", filled.footnotes, roundTrip.footnotes),
+    ...same(
+      "text boxes",
+      filled.shapes.map((s) => s.text),
+      roundTrip.shapes.map((s) => s.text),
+    ),
+  );
   return { name: "Editor round trip changes nothing", problems };
 }
 
@@ -134,7 +164,8 @@ export function editChecks(template: View, edited: View): Check {
   if (find("The Tenant shall not: at any time")?.italic !== true) problems.push("the italic paragraph edit is missing or not italic");
   if (!edited.tables.some((t) => t.cells.some((c) => c.includes("Deposit (refundable)")))) problems.push("the table cell edit is missing");
   const late = find("Late payments attract interest");
-  if (late?.listLevel !== 2 || late.list !== "3.2.") problems.push(`the outdented clause is ${late ? `“${late.list}” at level ${late.listLevel}` : "missing"}, expected “3.2.” at level 2`);
+  if (late?.listLevel !== 2 || late.list !== "3.2.")
+    problems.push(`the outdented clause is ${late ? `“${late.list}” at level ${late.listLevel}` : "missing"}, expected “3.2.” at level 2`);
   if (find("A security deposit")?.list !== "3.3.") problems.push("the next clause was not renumbered to 3.3.");
   const bold = edited.probes.find((p) => p.text === "Strictly");
   if (!bold?.found || bold.whole.bold !== true) problems.push("“Strictly” is not bold");

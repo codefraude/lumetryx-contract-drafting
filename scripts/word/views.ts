@@ -32,8 +32,21 @@ export type Paragraph = z.infer<typeof Paragraph>;
 const Control = z.object({ title: z.string().nullable(), placeholder: z.boolean(), mapped: z.boolean(), text: z.string() });
 const Story = z.object({ text: z.string(), fields: z.array(z.number()), images: z.number(), controls: z.array(Control) });
 export type Story = z.infer<typeof Story>;
-const Section = z.object({ top: z.number(), bottom: z.number(), left: z.number(), right: z.number(), width: z.number(), height: z.number(), orientation: z.number(), header: Story, footer: Story });
-const Probe = z.discriminatedUnion("found", [z.object({ text: z.string(), found: z.literal(true), story: z.number(), whole: Format, first: Format }), z.object({ text: z.string(), found: z.literal(false) })]);
+const Section = z.object({
+  top: z.number(),
+  bottom: z.number(),
+  left: z.number(),
+  right: z.number(),
+  width: z.number(),
+  height: z.number(),
+  orientation: z.number(),
+  header: Story,
+  footer: Story,
+});
+const Probe = z.discriminatedUnion("found", [
+  z.object({ text: z.string(), found: z.literal(true), story: z.number(), whole: Format, first: Format }),
+  z.object({ text: z.string(), found: z.literal(false) }),
+]);
 
 export const View = z.object({
   pages: z.number(),
@@ -58,5 +71,7 @@ export const Inspection = z.object({
 });
 
 /** What tests/e2e/word-exports.spec.ts answered for each field of a fixture. */
-export const Answers = z.object({ fields: z.array(z.object({ label: z.string(), answer: z.string(), shown: z.string().nullable(), placeholders: z.array(z.string()) })) });
+export const Answers = z.object({
+  fields: z.array(z.object({ label: z.string(), answer: z.string(), shown: z.string().nullable(), placeholders: z.array(z.string()) })),
+});
 export type Answers = z.infer<typeof Answers>;

@@ -44,7 +44,12 @@ export type Occurrence = z.infer<typeof Occurrence>;
 
 export const NormalizedValue = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("date"), iso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }),
-  z.object({ kind: z.literal("money"), amount: z.string().regex(/^\d+(\.\d{1,4})?$/), currency: z.string().min(3).max(3), /** Symbol the user wrote when it differs from the code (e.g. "Rs"). */ symbol: z.string().max(8).optional() }),
+  z.object({
+    kind: z.literal("money"),
+    amount: z.string().regex(/^\d+(\.\d{1,4})?$/),
+    currency: z.string().min(3).max(3),
+    /** Symbol the user wrote when it differs from the code (e.g. "Rs"). */ symbol: z.string().max(8).optional(),
+  }),
   z.object({ kind: z.literal("number"), value: z.string() }),
   z.object({ kind: z.literal("text"), value: z.string() }),
   z.object({ kind: z.literal("boolean"), value: z.boolean() }),

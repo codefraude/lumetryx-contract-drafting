@@ -12,7 +12,9 @@ export const sessions = pgTable("sessions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
   /** Sliding expiry, refreshed together with the cookie's max-age on authorised activity. */
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull().default(sql`now() + interval '30 days'`),
+  expiresAt: timestamp("expires_at", { withTimezone: true })
+    .notNull()
+    .default(sql`now() + interval '30 days'`),
   aiRequests: integer("ai_requests").notNull().default(0),
   aiInputTokens: integer("ai_input_tokens").notNull().default(0),
   aiOutputTokens: integer("ai_output_tokens").notNull().default(0),
@@ -24,7 +26,9 @@ export const documents = pgTable(
   "documents",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    sessionId: uuid("session_id").notNull().references(() => sessions.id, { onDelete: "cascade" }),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
     filename: text("filename").notNull(),
     /** User-facing draft name (defaults to the template's file name). */
     title: text("title").notNull().default(""),
@@ -44,7 +48,9 @@ export const documents = pgTable(
     /** Last successful save of anything in this draft (answers, conversation, document). */
     savedAt: timestamp("saved_at", { withTimezone: true }).notNull().defaultNow(),
     /** Retention: the draft is not served after this and is removed by `npm run db:cleanup`. */
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull().default(sql`now() + interval '30 days'`),
+    expiresAt: timestamp("expires_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now() + interval '30 days'`),
   },
   (t) => [index("documents_session_updated_idx").on(t.sessionId, t.updatedAt), index("documents_expires_idx").on(t.expiresAt)],
 );
@@ -53,7 +59,9 @@ export const messages = pgTable(
   "messages",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    documentId: uuid("document_id").notNull().references(() => documents.id, { onDelete: "cascade" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
     role: text("role").$type<"user" | "assistant">().notNull(),
     content: text("content").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

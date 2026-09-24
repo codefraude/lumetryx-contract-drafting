@@ -25,12 +25,20 @@ export const ClausePanel = memo(function ClausePanel({ rules, ruleIssues, struct
       <div>
         <p className="text-[15px] font-semibold text-ink">Conditional clauses</p>
         <p className="mt-0.5 text-[13px] text-ink-2">
-          {visible.length ? `${included} included, ${excluded} excluded${attention ? `, ${attention} waiting for you` : ""}.` : "This template has no conditional clauses."} Clauses follow your answers; a suggested condition applies only after you confirm it.
+          {visible.length
+            ? `${included} included, ${excluded} excluded${attention ? `, ${attention} waiting for you` : ""}.`
+            : "This template has no conditional clauses."}{" "}
+          Clauses follow your answers; a suggested condition applies only after you confirm it.
         </p>
       </div>
       {issues.length > 0 && (
         <div className="rounded-xl border border-warn-line bg-warn-surface text-warn">
-          <button type="button" aria-expanded={showIssues} onClick={() => setShowIssues((o) => !o)} className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13.5px] font-semibold">
+          <button
+            type="button"
+            aria-expanded={showIssues}
+            onClick={() => setShowIssues((o) => !o)}
+            className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13.5px] font-semibold"
+          >
             <TriangleAlert aria-hidden className="size-4 shrink-0" />
             {issues.length} {issues.length === 1 ? "problem" : "problems"} to review
             <ChevronDown aria-hidden className={`ml-auto size-4 transition-transform duration-200 ${showIssues ? "rotate-180" : ""}`} />

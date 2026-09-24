@@ -58,7 +58,13 @@ export function ChatPanel({ messages, busy, error, disabledReason, onSend, onSto
     <section aria-label="Assistant" className="flex h-full min-h-0 flex-col">
       {header}
       <div className="relative min-h-0 flex-1">
-        <div ref={list} onScroll={onScroll} aria-label="Conversation" role="region" className="h-full space-y-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
+        <div
+          ref={list}
+          onScroll={onScroll}
+          aria-label="Conversation"
+          role="region"
+          className="h-full space-y-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5"
+        >
           {messages.map((m) => (
             <Message key={m.id} m={m} />
           ))}
@@ -77,7 +83,11 @@ export function ChatPanel({ messages, busy, error, disabledReason, onSend, onSto
           )}
         </div>
         {away && (
-          <button type="button" onClick={jump} className="lx-rise absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-line bg-raised px-3.5 py-1.5 text-[13px] font-medium text-ink shadow-md transition-colors hover:bg-hover">
+          <button
+            type="button"
+            onClick={jump}
+            className="lx-rise absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-line bg-raised px-3.5 py-1.5 text-[13px] font-medium text-ink shadow-md transition-colors hover:bg-hover"
+          >
             <ArrowDown aria-hidden className="size-3.5" />
             Jump to latest
             {fresh && (

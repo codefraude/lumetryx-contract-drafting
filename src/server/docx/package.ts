@@ -10,16 +10,7 @@ export const DOCX_LIMITS = {
   maxBlocks: 2_500,
 } as const;
 
-export type DocxRejection =
-  | "too_large"
-  | "not_zip"
-  | "encrypted"
-  | "macro_enabled"
-  | "not_docx"
-  | "zip_bomb"
-  | "too_many_entries"
-  | "corrupt"
-  | "too_complex";
+export type DocxRejection = "too_large" | "not_zip" | "encrypted" | "macro_enabled" | "not_docx" | "zip_bomb" | "too_many_entries" | "corrupt" | "too_complex";
 
 export class DocxValidationError extends Error {
   constructor(
@@ -127,7 +118,11 @@ export async function loadDocxPackage(bytes: Uint8Array): Promise<DocxPackage> {
 }
 
 export async function serializePackage(pkg: DocxPackage): Promise<Uint8Array> {
-  return pkg.zip.generateAsync({ type: "uint8array", compression: "DEFLATE", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  return pkg.zip.generateAsync({
+    type: "uint8array",
+    compression: "DEFLATE",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
 }
 
 export async function sha256Hex(bytes: Uint8Array): Promise<string> {

@@ -6,7 +6,10 @@ export const TemplateAnalysis = z.object({
   // Gemini rejects maxItems on arrays of objects (HTTP 400); caps are applied in buildFields.
   fields: z.array(
     z.object({
-      id: z.string().regex(/^[a-z][a-z0-9_]{0,63}$/).describe("English snake_case identifier, whatever the template language"),
+      id: z
+        .string()
+        .regex(/^[a-z][a-z0-9_]{0,63}$/)
+        .describe("English snake_case identifier, whatever the template language"),
       label: z.string().min(1).max(120).describe("Short label in the template's language"),
       question: z.string().max(240).describe("Plain-language question for a lawyer, in English"),
       questionFr: z.string().max(240).nullable().optional().describe("The same question in French"),
@@ -18,8 +21,16 @@ export const TemplateAnalysis = z.object({
         .array(
           z.object({
             blockId: z.string(),
-            quote: z.string().min(3).max(160).describe("Verbatim text: the placeholder wording itself when replace is true, else the text immediately BEFORE the missing information"),
-            replace: z.boolean().describe("true when the quote is placeholder wording that stands where the value goes and must be replaced by it; false when the value goes right after the quote"),
+            quote: z
+              .string()
+              .min(3)
+              .max(160)
+              .describe("Verbatim text: the placeholder wording itself when replace is true, else the text immediately BEFORE the missing information"),
+            replace: z
+              .boolean()
+              .describe(
+                "true when the quote is placeholder wording that stands where the value goes and must be replaced by it; false when the value goes right after the quote",
+              ),
           }),
         )
         .describe("Places where information is missing but no marker exists"),
@@ -27,7 +38,13 @@ export const TemplateAnalysis = z.object({
   ),
   notFields: z.array(z.string()).describe("Marker keys that are ordinary contract text, not fillable fields"),
   conditions: z
-    .array(z.object({ name: z.string().describe("Name used in the [[IF name]] marker"), question: z.string().max(240), questionFr: z.string().max(240).nullable().optional() }))
+    .array(
+      z.object({
+        name: z.string().describe("Name used in the [[IF name]] marker"),
+        question: z.string().max(240),
+        questionFr: z.string().max(240).nullable().optional(),
+      }),
+    )
     .optional()
     .describe("A plain question for each [[IF …]] condition marker listed"),
   proposedRules: z

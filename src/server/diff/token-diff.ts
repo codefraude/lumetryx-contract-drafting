@@ -8,8 +8,16 @@ export const tokenize = (s: string) => s.match(/\{\{[^}]*\}\}|\[[^\]]*\]|_{4,}|\
 export function diffTokens(a: string, b: string): Segment[] {
   const x = tokenize(a);
   const y = tokenize(b);
-  if (x.length * y.length > 250_000) return merge([{ op: "del", text: a }, { op: "ins", text: b }]);
-  return merge(lcsSteps(x, y, (p, q) => p === q).map((s): Segment => (s.op === "both" ? { op: "eq", text: s.a } : s.op === "a" ? { op: "del", text: s.a } : { op: "ins", text: s.b })));
+  if (x.length * y.length > 250_000)
+    return merge([
+      { op: "del", text: a },
+      { op: "ins", text: b },
+    ]);
+  return merge(
+    lcsSteps(x, y, (p, q) => p === q).map((s): Segment =>
+      s.op === "both" ? { op: "eq", text: s.a } : s.op === "a" ? { op: "del", text: s.a } : { op: "ins", text: s.b },
+    ),
+  );
 }
 
 function merge(segs: Segment[]): Segment[] {

@@ -56,11 +56,19 @@ function parseMarker(b: Block, issues: string[]): Marker | null {
   if (END.test(text)) return { block: b, kind: "end", negate: false, name: "", op: null, values: [] };
   const m = START.exec(text);
   if (!m) {
-    issues.push(`${where}: unsupported condition syntax${text.replace(ANY_CONTROL, "").trim() ? " (a marker must be on its own line)" : ""}. It was left as text.`);
+    issues.push(
+      `${where}: unsupported condition syntax${text.replace(ANY_CONTROL, "").trim() ? " (a marker must be on its own line)" : ""}. It was left as text.`,
+    );
     return null;
   }
   const op = m[3] ? (m[3] === "=" ? "=" : "in") : null;
-  const values = m[4] ? m[4].replace(/^\(|\)$/g, "").split(",").map((v) => v.trim().replace(/^["“'‘]|["”'’]$/g, "")).filter(Boolean) : [];
+  const values = m[4]
+    ? m[4]
+        .replace(/^\(|\)$/g, "")
+        .split(",")
+        .map((v) => v.trim().replace(/^["“'‘]|["”'’]$/g, ""))
+        .filter(Boolean)
+    : [];
   if (op && !values.length) {
     issues.push(`${where}: the condition has no value to compare with. It was left as text.`);
     return null;
@@ -133,7 +141,9 @@ export function parseConditionMarkers(blocks: Block[]): ParsedConditions {
         id: fieldId,
         label,
         question: boolean ? `Does this apply to this agreement: ${label.toLowerCase()}? (yes or no)` : `What is the ${label.toLowerCase()}?`,
-        questionFr: boolean ? `Cette condition s'applique-t-elle à ce contrat : ${label.toLowerCase()} ? (oui ou non)` : `Quelle est la valeur de « ${label.toLowerCase()} » ?`,
+        questionFr: boolean
+          ? `Cette condition s'applique-t-elle à ce contrat : ${label.toLowerCase()} ? (oui ou non)`
+          : `Quelle est la valeur de « ${label.toLowerCase()} » ?`,
         valueType: boolean ? "boolean" : "text",
         group: "other",
         occurrences: [],

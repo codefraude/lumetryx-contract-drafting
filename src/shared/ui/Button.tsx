@@ -1,4 +1,3 @@
-
 import { LoaderCircle, type LucideIcon } from "lucide-react";
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
@@ -27,7 +26,10 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   busy?: boolean;
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ variant = "secondary", size = "md", icon: Icon, busy = false, className = "", children, disabled, type = "button", ...rest }, ref) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant = "secondary", size = "md", icon: Icon, busy = false, className = "", children, disabled, type = "button", ...rest },
+  ref,
+) {
   return (
     <button
       ref={ref}
@@ -46,6 +48,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 const BOX: Record<Size, string> = { sm: "size-8 pointer-coarse:size-10", md: "size-9 pointer-coarse:size-11", lg: "size-11" };
 
 /** An icon-only button; `label` is its accessible name and tooltip. */
-export const IconButton = forwardRef<HTMLButtonElement, Omit<ButtonProps, "children"> & { label: string; icon: LucideIcon }>(function IconButton({ label, variant = "ghost", size = "md", className = "", ...rest }, ref) {
+export const IconButton = forwardRef<HTMLButtonElement, Omit<ButtonProps, "children"> & { label: string; icon: LucideIcon }>(function IconButton(
+  { label, variant = "ghost", size = "md", className = "", ...rest },
+  ref,
+) {
   return <Button ref={ref} variant={variant} size={size} aria-label={label} title={label} className={`${BOX[size]} px-0! ${className}`} {...rest} />;
 });

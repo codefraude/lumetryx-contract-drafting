@@ -29,15 +29,96 @@ const lease = new Uint8Array(readFileSync("fixtures/synthetic-residential-lease.
 const LEASE_ANALYSIS: TemplateAnalysis = {
   notFields: [],
   fields: [
-    { id: "landlord_name", label: "Landlord name", question: "Who is the landlord, and is it an individual or a company?", valueType: "party", group: "parties", required: true, markerKeys: ["k:landlord name"], implicit: [] },
-    { id: "tenant_name", label: "Tenant name", question: "Who is the tenant?", valueType: "party", group: "parties", required: true, markerKeys: ["k:tenant name"], implicit: [] },
-    { id: "tenant_address", label: "Tenant address", question: "What is the tenant's current address?", valueType: "address", group: "parties", required: true, markerKeys: ["k:address"], implicit: [] },
-    { id: "property_address", label: "Property address", question: "What is the address of the property?", valueType: "address", group: "subject", required: true, markerKeys: ["k:property address"], implicit: [] },
-    { id: "start_date", label: "Lease start date", question: "When does the lease start?", valueType: "date", group: "dates", required: true, markerKeys: ["k:start date"], implicit: [] },
-    { id: "monthly_rent", label: "Monthly rent", question: "What is the monthly rent?", valueType: "money", group: "money", required: true, markerKeys: ["k:monthly rent"], implicit: [] },
-    { id: "deposit_amount", label: "Deposit amount", question: "How much is the deposit?", valueType: "money", group: "money", required: true, markerKeys: ["k:deposit amount"], implicit: [] },
-    { id: "interest_rate", label: "Late interest rate", question: "What interest rate applies to late rent?", valueType: "percentage", group: "money", required: true, markerKeys: ["k:interest rate"], implicit: [] },
-    { id: "reference", label: "Reference number", question: "What reference number should appear in the header?", valueType: "text", group: "other", required: true, markerKeys: ["k:reference number"], implicit: [] },
+    {
+      id: "landlord_name",
+      label: "Landlord name",
+      question: "Who is the landlord, and is it an individual or a company?",
+      valueType: "party",
+      group: "parties",
+      required: true,
+      markerKeys: ["k:landlord name"],
+      implicit: [],
+    },
+    {
+      id: "tenant_name",
+      label: "Tenant name",
+      question: "Who is the tenant?",
+      valueType: "party",
+      group: "parties",
+      required: true,
+      markerKeys: ["k:tenant name"],
+      implicit: [],
+    },
+    {
+      id: "tenant_address",
+      label: "Tenant address",
+      question: "What is the tenant's current address?",
+      valueType: "address",
+      group: "parties",
+      required: true,
+      markerKeys: ["k:address"],
+      implicit: [],
+    },
+    {
+      id: "property_address",
+      label: "Property address",
+      question: "What is the address of the property?",
+      valueType: "address",
+      group: "subject",
+      required: true,
+      markerKeys: ["k:property address"],
+      implicit: [],
+    },
+    {
+      id: "start_date",
+      label: "Lease start date",
+      question: "When does the lease start?",
+      valueType: "date",
+      group: "dates",
+      required: true,
+      markerKeys: ["k:start date"],
+      implicit: [],
+    },
+    {
+      id: "monthly_rent",
+      label: "Monthly rent",
+      question: "What is the monthly rent?",
+      valueType: "money",
+      group: "money",
+      required: true,
+      markerKeys: ["k:monthly rent"],
+      implicit: [],
+    },
+    {
+      id: "deposit_amount",
+      label: "Deposit amount",
+      question: "How much is the deposit?",
+      valueType: "money",
+      group: "money",
+      required: true,
+      markerKeys: ["k:deposit amount"],
+      implicit: [],
+    },
+    {
+      id: "interest_rate",
+      label: "Late interest rate",
+      question: "What interest rate applies to late rent?",
+      valueType: "percentage",
+      group: "money",
+      required: true,
+      markerKeys: ["k:interest rate"],
+      implicit: [],
+    },
+    {
+      id: "reference",
+      label: "Reference number",
+      question: "What reference number should appear in the header?",
+      valueType: "text",
+      group: "other",
+      required: true,
+      markerKeys: ["k:reference number"],
+      implicit: [],
+    },
   ],
 };
 
@@ -131,7 +212,9 @@ describe("guided conversation", () => {
     const s = await newSession();
     const d = await createFromUpload(s, "lease.docx", lease);
     const msg = "The tenant is John Smith, rent is Rs 25,000 monthly, and the lease starts on 1 October 2026";
-    const events = await say(s, d.id, msg, { updates: [u("tenant_name", "John Smith"), u("monthly_rent", "Rs 25,000", "Rs 25,000"), u("start_date", "1 October 2026")] });
+    const events = await say(s, d.id, msg, {
+      updates: [u("tenant_name", "John Smith"), u("monthly_rent", "Rs 25,000", "Rs 25,000"), u("start_date", "1 October 2026")],
+    });
     const types = events.map((e) => e.type);
     expect(types.indexOf("fields_updated")).toBeLessThan(types.indexOf("assistant_delta"));
     expect(types.filter((t) => t === "assistant_delta").length).toBeGreaterThan(1);
@@ -143,7 +226,11 @@ describe("guided conversation", () => {
     expect(rent.note).toMatch(/several currencies/);
     // The currency is resolved only once the user names it.
     await say(s, d.id, "Mauritian rupees", { updates: [u("monthly_rent", "Rs 25,000", "Mauritian rupees", "MUR")] });
-    expect(await field(s.id, d.id, "monthly_rent")).toMatchObject({ status: "confirmed", displayValue: "Rs 25,000", normalized: { amount: "25000", currency: "MUR" } });
+    expect(await field(s.id, d.id, "monthly_rent")).toMatchObject({
+      status: "confirmed",
+      displayValue: "Rs 25,000",
+      normalized: { amount: "25000", currency: "MUR" },
+    });
   });
 
   it("flags ambiguous numeric dates and rejects values the user never wrote", async () => {
@@ -168,14 +255,19 @@ describe("guided conversation", () => {
   it("rejects stale field versions and preserves answers when the reply stream fails", async () => {
     const s = await newSession();
     const d = await createFromUpload(s, "lease.docx", lease);
-    await expect(chatTurn(s, d.id, { message: "hi", fieldsVersion: d.fieldsVersion - 1 }, () => undefined, new AbortController().signal)).rejects.toBeInstanceOf(repo.StaleRevisionError);
+    await expect(
+      chatTurn(s, d.id, { message: "hi", fieldsVersion: d.fieldsVersion - 1 }, () => undefined, new AbortController().signal),
+    ).rejects.toBeInstanceOf(repo.StaleRevisionError);
   });
 
   it("keeps the answers of a turn whose reply fails, and says so", async () => {
     const s = await newSession();
     const d = await createFromUpload(s, "lease.docx", lease);
     setModelForTests(mockModel({ object: () => ({ clauseBlockIds: [], updates: [u("tenant_name", "John Smith")] }), failStream: true }));
-    await expect(say(s, d.id, "The tenant is John Smith.", { updates: [] })).rejects.toMatchObject({ code: "unavailable", message: expect.stringContaining("Your answers were saved") });
+    await expect(say(s, d.id, "The tenant is John Smith.", { updates: [] })).rejects.toMatchObject({
+      code: "unavailable",
+      message: expect.stringContaining("Your answers were saved"),
+    });
     setModelForTests(model);
     expect(await field(s.id, d.id, "tenant_name")).toMatchObject({ status: "confirmed", displayValue: "John Smith" });
   });
@@ -197,10 +289,21 @@ describe("guided conversation", () => {
 
 async function completeLease(s: Awaited<ReturnType<typeof newSession>>, docId: string) {
   await say(s, docId, "Landlord Ravi Ramdin; tenant John Smith of 12 Royal Road, Curepipe; property 4 Sea View Lane, Flic en Flac", {
-    updates: [u("landlord_name", "Ravi Ramdin"), u("tenant_name", "John Smith"), u("tenant_address", "12 Royal Road, Curepipe"), u("property_address", "4 Sea View Lane, Flic en Flac")],
+    updates: [
+      u("landlord_name", "Ravi Ramdin"),
+      u("tenant_name", "John Smith"),
+      u("tenant_address", "12 Royal Road, Curepipe"),
+      u("property_address", "4 Sea View Lane, Flic en Flac"),
+    ],
   });
   await say(s, docId, "Starts 1 October 2026, rent MUR 25,000, deposit MUR 50,000, interest 8%, ref LX-7 & Co", {
-    updates: [u("start_date", "1 October 2026"), u("monthly_rent", "MUR 25,000"), u("deposit_amount", "MUR 50,000"), u("interest_rate", "8%"), u("reference", "LX-7 & Co")],
+    updates: [
+      u("start_date", "1 October 2026"),
+      u("monthly_rent", "MUR 25,000"),
+      u("deposit_amount", "MUR 50,000"),
+      u("interest_rate", "8%"),
+      u("reference", "LX-7 & Co"),
+    ],
   });
   const view = await getView(s.id, docId);
   // The unmarked-in-analysis underscore blank becomes its own field; fill via the field panel.
@@ -268,9 +371,15 @@ describe("progressive drafting, editing and export", () => {
     const ctrl = new AbortController();
     let blocks = 0;
     await expect(
-      generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, (e) => {
-        if (e.type === "draft_block_ready" && ++blocks === 3) ctrl.abort();
-      }, ctrl.signal),
+      generateDraft(
+        s.id,
+        d.id,
+        { fieldsVersion: ready.fieldsVersion },
+        (e) => {
+          if (e.type === "draft_block_ready" && ++blocks === 3) ctrl.abort();
+        },
+        ctrl.signal,
+      ),
     ).rejects.toThrow(/stopped/i);
     const after = await getView(s.id, d.id);
     expect(after.draftStatus).toBe("none");

@@ -22,21 +22,60 @@ import type { FieldState } from "@/server/fields/state";
 
 const fixture = (name: string) => new Uint8Array(readFileSync(`fixtures/${name}.docx`));
 const bodyText = async (bytes: Uint8Array) => (await indexBlocks(await loadDocxPackage(bytes))).filter((b) => b.partKind === "body").map((b) => b.text);
-const block = (id: string, text: string, extra: Partial<Block> = {}): Block => ({ id, part: "word/document.xml", partKind: "body", ordinal: 0, kind: "paragraph", styleId: null, numbering: null, table: null, text, paraId: null, ...extra });
+const block = (id: string, text: string, extra: Partial<Block> = {}): Block => ({
+  id,
+  part: "word/document.xml",
+  partKind: "body",
+  ordinal: 0,
+  kind: "paragraph",
+  styleId: null,
+  numbering: null,
+  table: null,
+  text,
+  paraId: null,
+  ...extra,
+});
 
 async function stateFor(name: string): Promise<{ original: Uint8Array; state: FieldState }> {
   const original = fixture(name);
   const blocks = await indexBlocks(await loadDocxPackage(original));
   const b = buildFields(blocks, detectMarkers(blocks), null);
   const language = documentLanguage(blocks.filter((x) => x.partKind === "body").map((x) => x.text));
-  return { original, state: { version: 2, fields: b.fields, draftAnchors: {}, rules: b.rules, ruleIssues: b.ruleIssues, structureIssues: [], pendingClauses: [], references: [], language, conversationLanguage: null } };
+  return {
+    original,
+    state: {
+      version: 2,
+      fields: b.fields,
+      draftAnchors: {},
+      rules: b.rules,
+      ruleIssues: b.ruleIssues,
+      structureIssues: [],
+      pendingClauses: [],
+      references: [],
+      language,
+      conversationLanguage: null,
+    },
+  };
 }
 
 function answer(state: FieldState, id: string, value: string): FieldState {
-  return { ...state, fields: state.fields.map((f) => (f.id === id ? { ...f, rawValue: value, ...normalizeValue(f.valueType, value, { lang: "en", currencyHint: "EUR" }) } : f)) };
+  return {
+    ...state,
+    fields: state.fields.map((f) => (f.id === id ? { ...f, rawValue: value, ...normalizeValue(f.valueType, value, { lang: "en", currencyHint: "EUR" }) } : f)),
+  };
 }
 const answerAll = (state: FieldState) =>
-  state.fields.reduce((s, f) => (f.status === "confirmed" || f.source === "condition" ? s : answer(s, f.id, f.valueType === "date" ? "1 October 2026" : f.valueType === "money" ? "EUR 1,250.50" : f.valueType === "duration" ? "12 months" : `Value ${f.id}`)), state);
+  state.fields.reduce(
+    (s, f) =>
+      f.status === "confirmed" || f.source === "condition"
+        ? s
+        : answer(
+            s,
+            f.id,
+            f.valueType === "date" ? "1 October 2026" : f.valueType === "money" ? "EUR 1,250.50" : f.valueType === "duration" ? "12 months" : `Value ${f.id}`,
+          ),
+    state,
+  );
 
 describe("language", () => {
   it("detects English, French and unknown text, and a template's dominant language", () => {
@@ -44,7 +83,9 @@ describe("language", () => {
     expect(detectLanguage("Le Locataire paie le loyer au Bailleur le premier jour de chaque mois.")).toBe("fr");
     expect(detectLanguage("Services")).toBe("unknown");
     expect(messageLanguage("oui")).toBe("fr");
-    expect(documentLanguage(["The Tenant shall pay the rent to the Landlord monthly.", "Le Locataire paie le loyer au Bailleur chaque mois."]).document).toBe("mixed");
+    expect(documentLanguage(["The Tenant shall pay the rent to the Landlord monthly.", "Le Locataire paie le loyer au Bailleur chaque mois."]).document).toBe(
+      "mixed",
+    );
     expect(replyLanguage(null, "Le locataire est Jean Dupont", "en")).toBe("fr");
     expect(replyLanguage("en", "Le locataire est Jean Dupont", "fr")).toBe("en");
     expect(replyLanguage(null, "12", "fr")).toBe("fr");
@@ -68,7 +109,9 @@ describe("language", () => {
   it("finds accented French placeholders, including one split across runs, and never merges EN/FR markers by itself", async () => {
     const blocks = await indexBlocks(await loadDocxPackage(fixture("synthetic-contrat-prestation-fr")));
     const markers = detectMarkers(blocks);
-    expect(markers.map((m) => m.text)).toEqual(expect.arrayContaining(["{{date_de_signature}}", "[NUMÉRO D’IMMATRICULATION]", "[adresse du prestataire]", "[date de début]", "[TAUX D’INTÉRÊT]"]));
+    expect(markers.map((m) => m.text)).toEqual(
+      expect.arrayContaining(["{{date_de_signature}}", "[NUMÉRO D’IMMATRICULATION]", "[adresse du prestataire]", "[date de début]", "[TAUX D’INTÉRÊT]"]),
+    );
     const { fields } = buildFields(blocks, markers, null);
     expect(fields.find((f) => f.label === "Date de début")).toMatchObject({ valueType: "date" });
     expect(fields.find((f) => f.label === "Nom du prestataire")).toMatchObject({ valueType: "party" });
@@ -78,9 +121,29 @@ describe("language", () => {
     expect(lf.find((f) => f.id === "tenant_name")!.occurrences.map((o) => o.lang)).toEqual(["en"]);
     expect(lf.find((f) => f.id === "nom_du_locataire")!.occurrences.map((o) => o.lang)).toEqual(["fr"]);
     // Live Gemini echoes marker keys without their "k:" prefix; they must still resolve to the real markers.
-    const grouped = buildFields(lease, detectMarkers(lease), { notFields: [], fields: [{ id: "tenant_name", label: "Tenant", question: "?", questionFr: "?", valueType: "party", group: "parties", required: true, markerKeys: ["tenant name", "k:nom du locataire"], implicit: [] }] });
+    const grouped = buildFields(lease, detectMarkers(lease), {
+      notFields: [],
+      fields: [
+        {
+          id: "tenant_name",
+          label: "Tenant",
+          question: "?",
+          questionFr: "?",
+          valueType: "party",
+          group: "parties",
+          required: true,
+          markerKeys: ["tenant name", "k:nom du locataire"],
+          implicit: [],
+        },
+      ],
+    });
     expect(grouped.rejected).toEqual([]);
-    expect(grouped.fields.find((x) => x.id === "tenant_name")!.occurrences.map((o) => o.lang).sort()).toEqual(["en", "fr"]);
+    expect(
+      grouped.fields
+        .find((x) => x.id === "tenant_name")!
+        .occurrences.map((o) => o.lang)
+        .sort(),
+    ).toEqual(["en", "fr"]);
     expect(grouped.fields.some((x) => x.id === "nom_du_locataire")).toBe(false);
     // "employer" must not be read as the French word "loyer" (rent).
     expect(guessType("Employer name").valueType).toBe("party");
@@ -149,16 +212,46 @@ describe("model-proposed conditional clauses", () => {
     const law = body.find((b) => b.text === "Droit applicable")!;
     const lawText = body[body.indexOf(law) + 1]!;
     const table = body.filter((b) => b.table);
-    const proposal = (over: Record<string, unknown>) => ({ label: "Governing law", firstBlockId: law.id, lastBlockId: lawText.id, conditionName: "foreign_client", question: "Is the client established abroad?", questionFr: "Le client est-il établi à l'étranger ?", evidence: "Le présent contrat est régi par le droit", ...over });
+    const proposal = (over: Record<string, unknown>) => ({
+      label: "Governing law",
+      firstBlockId: law.id,
+      lastBlockId: lawText.id,
+      conditionName: "foreign_client",
+      question: "Is the client established abroad?",
+      questionFr: "Le client est-il établi à l'étranger ?",
+      evidence: "Le présent contrat est régi par le droit",
+      ...over,
+    });
     const r = buildFields(blocks, detectMarkers(blocks), {
       notFields: [],
       fields: [],
-      proposedRules: [proposal({}), proposal({ label: "Invented", conditionName: "x_one", firstBlockId: body.find((b) => b.text === "Objet")!.id, lastBlockId: body.find((b) => b.text === "Objet")!.id, evidence: "only if the client agrees in writing" }), proposal({ label: "Cut table", conditionName: "x_two", firstBlockId: table[0]!.id, lastBlockId: table[1]!.id })],
+      proposedRules: [
+        proposal({}),
+        proposal({
+          label: "Invented",
+          conditionName: "x_one",
+          firstBlockId: body.find((b) => b.text === "Objet")!.id,
+          lastBlockId: body.find((b) => b.text === "Objet")!.id,
+          evidence: "only if the client agrees in writing",
+        }),
+        proposal({ label: "Cut table", conditionName: "x_two", firstBlockId: table[0]!.id, lastBlockId: table[1]!.id }),
+      ],
     });
     expect(r.rules.map((x) => x.label)).toEqual(["Governing law"]);
     expect(r.rejected.join("\n")).toMatch(/Invented.*not verbatim/);
     expect(r.rejected.join("\n")).toMatch(/Cut table.*table/);
-    const state: FieldState = { version: 2, fields: r.fields, draftAnchors: {}, rules: r.rules, ruleIssues: [], structureIssues: [], pendingClauses: [], references: [], language: { document: "fr", en: 0, fr: 1 }, conversationLanguage: null };
+    const state: FieldState = {
+      version: 2,
+      fields: r.fields,
+      draftAnchors: {},
+      rules: r.rules,
+      ruleIssues: [],
+      structureIssues: [],
+      pendingClauses: [],
+      references: [],
+      language: { document: "fr", en: 0, fr: 1 },
+      conversationLanguage: null,
+    };
     expect(evaluateRule(state.rules[0]!, state.fields).state).toBe("proposed");
     expect(omittedBlocks(state).has(lawText.id)).toBe(false); // the clause stays as written
     expect(inactiveFields(state).has("foreign_client")).toBe(true); // its question is not asked yet
@@ -178,7 +271,12 @@ describe("structural clause changes on a real DOCX", () => {
     expect(text.filter((t) => t === "Non-competition")).toHaveLength(1);
     expect(text.join("\n")).toContain("subject to clause 4");
 
-    const no = await updateWorkingDraft({ working: draft.bytes, original, state: answer(draft.state, "employee_is_senior", "no"), changedFieldIds: ["employee_is_senior"] });
+    const no = await updateWorkingDraft({
+      working: draft.bytes,
+      original,
+      state: answer(draft.state, "employee_is_senior", "no"),
+      changedFieldIds: ["employee_is_senior"],
+    });
     expect(no.clauseChanges).toMatchObject([{ action: "exclude" }]);
     text = await bodyText(no.bytes!);
     expect(text).not.toContain("Non-competition");
@@ -189,7 +287,12 @@ describe("structural clause changes on a real DOCX", () => {
     const numbering = async (b: Uint8Array) => (await JSZip.loadAsync(b)).file("word/numbering.xml")!.async("string");
     expect(await numbering(no.bytes!)).toBe(await numbering(draft.bytes));
 
-    const again = await updateWorkingDraft({ working: no.bytes!, original, state: answer(no.state, "employee_is_senior", "yes"), changedFieldIds: ["employee_is_senior"] });
+    const again = await updateWorkingDraft({
+      working: no.bytes!,
+      original,
+      state: answer(no.state, "employee_is_senior", "yes"),
+      changedFieldIds: ["employee_is_senior"],
+    });
     expect(await bodyText(again.bytes!)).toEqual(await bodyText(draft.bytes));
     // Applying the same decision again changes nothing (idempotent).
     const same = await updateWorkingDraft({ working: again.bytes!, original, state: again.state, changedFieldIds: [] });
@@ -206,13 +309,29 @@ describe("structural clause changes on a real DOCX", () => {
     await applyTextEdits(pkg, [{ blockId: b.id, start: b.text.length, end: b.text.length, expected: "", value: " (EDITED BY HAND)" }]);
     const edited = await serializePackage(pkg);
 
-    const ask = await updateWorkingDraft({ working: edited, original, state: answer(draft.state, "employee_is_senior", "no"), changedFieldIds: ["employee_is_senior"] });
+    const ask = await updateWorkingDraft({
+      working: edited,
+      original,
+      state: answer(draft.state, "employee_is_senior", "no"),
+      changedFieldIds: ["employee_is_senior"],
+    });
     expect(ask.bytes).toBeNull();
     expect(ask.needsConfirmation).toMatchObject([{ ruleId: "clause_employee_is_senior", action: "exclude" }]);
-    const confirmed = await updateWorkingDraft({ working: edited, original, state: ask.state, changedFieldIds: [], confirmEdited: new Set(["clause_employee_is_senior"]) });
+    const confirmed = await updateWorkingDraft({
+      working: edited,
+      original,
+      state: ask.state,
+      changedFieldIds: [],
+      confirmEdited: new Set(["clause_employee_is_senior"]),
+    });
     expect((await bodyText(confirmed.bytes!)).join("\n")).not.toContain("EDITED BY HAND");
     expect(confirmed.state.rules[0]!.removedXml).toContain("EDITED BY HAND");
-    const back = await updateWorkingDraft({ working: confirmed.bytes!, original, state: answer(confirmed.state, "employee_is_senior", "yes"), changedFieldIds: ["employee_is_senior"] });
+    const back = await updateWorkingDraft({
+      working: confirmed.bytes!,
+      original,
+      state: answer(confirmed.state, "employee_is_senior", "yes"),
+      changedFieldIds: ["employee_is_senior"],
+    });
     const restored = (await bodyText(back.bytes!)).join("\n");
     expect(restored.match(/EDITED BY HAND/g)).toHaveLength(1);
   });
@@ -221,7 +340,8 @@ describe("structural clause changes on a real DOCX", () => {
     const { original, state: s0 } = await stateFor("synthetic-bilingual-employment");
     let s = answer(s0, "employee_is_senior", "no");
     s = answerAll(s);
-    for (const id of ["non_compete_period", "restricted_area"]) s = { ...s, fields: s.fields.map((f) => (f.id === id ? { ...f, status: "missing", displayValue: null, normalized: null } : f)) };
+    for (const id of ["non_compete_period", "restricted_area"])
+      s = { ...s, fields: s.fields.map((f) => (f.id === id ? { ...f, status: "missing", displayValue: null, normalized: null } : f)) };
     const draft = await renderDraft(original, s);
     expect((await bodyText(draft.bytes)).join("\n")).not.toContain("Non-competition");
     let next = answer(draft.state, "employee_is_senior", "yes");
@@ -235,7 +355,14 @@ describe("structural clause changes on a real DOCX", () => {
 });
 
 describe("comparison", () => {
-  const rb = (id: string, text: string, paraId: string | null, extra: Partial<RenderedBlock> = {}): RenderedBlock => ({ ...block(id, text), paraId, runs: [{ text, bold: false, italic: false, underline: false }], numberLabel: null, headingLevel: null, ...extra });
+  const rb = (id: string, text: string, paraId: string | null, extra: Partial<RenderedBlock> = {}): RenderedBlock => ({
+    ...block(id, text),
+    paraId,
+    runs: [{ text, bold: false, italic: false, underline: false }],
+    numberLabel: null,
+    headingLevel: null,
+    ...extra,
+  });
 
   it("reports word-level changes exactly, keeps accents/amounts, and ignores run splitting", () => {
     expect(diffTokens("Le loyer est de 1 250,50 EUR.", "Le loyer est de 1 250,55 EUR.")).toEqual([
@@ -244,20 +371,41 @@ describe("comparison", () => {
       { op: "ins", text: "55" },
       { op: "eq", text: " EUR." },
     ]);
-    expect(diffTokens("résidence", "residence")).toEqual([{ op: "del", text: "résidence" }, { op: "ins", text: "residence" }]);
+    expect(diffTokens("résidence", "residence")).toEqual([
+      { op: "del", text: "résidence" },
+      { op: "ins", text: "residence" },
+    ]);
     const o = [rb("a", "Same text here.", "1"), rb("b", "Repeated.", "2"), rb("c", "Repeated.", "3")];
-    const split = rb("a", "Same text here.", "1", { runs: [{ text: "Same ", bold: false, italic: false, underline: false }, { text: "text here.", bold: false, italic: false, underline: false }] });
+    const split = rb("a", "Same text here.", "1", {
+      runs: [
+        { text: "Same ", bold: false, italic: false, underline: false },
+        { text: "text here.", bold: false, italic: false, underline: false },
+      ],
+    });
     expect(compareBlocks(o, [split, o[1]!, o[2]!], { fields: [], rules: [] }).items).toEqual([]);
   });
 
   it("finds additions, deletions, repeated paragraphs, table cells and bold/list-level changes; reverting removes them", () => {
-    const o = [rb("a", "Intro.", "1"), rb("b", "Repeated.", "2"), rb("c", "Repeated.", "3"), rb("t", "Rent", "4", { kind: "tableCell", table: { table: 0, row: 1, col: 1 } }), rb("d", "Strictly private.", "5", { numbering: { numId: "1", ilvl: 2 }, numberLabel: "3.1.1." })];
+    const o = [
+      rb("a", "Intro.", "1"),
+      rb("b", "Repeated.", "2"),
+      rb("c", "Repeated.", "3"),
+      rb("t", "Rent", "4", { kind: "tableCell", table: { table: 0, row: 1, col: 1 } }),
+      rb("d", "Strictly private.", "5", { numbering: { numId: "1", ilvl: 2 }, numberLabel: "3.1.1." }),
+    ];
     const c = [
       rb("a", "Intro.", "1"),
       rb("b", "Repeated.", "2"),
       rb("n", "Brand new paragraph.", "9"),
       rb("t", "Rent (monthly)", "4", { kind: "tableCell", table: { table: 0, row: 1, col: 1 } }),
-      rb("d", "Strictly private.", "5", { numbering: { numId: "1", ilvl: 1 }, numberLabel: "3.2.", runs: [{ text: "Strictly", bold: true, italic: false, underline: false }, { text: " private.", bold: false, italic: false, underline: false }] }),
+      rb("d", "Strictly private.", "5", {
+        numbering: { numId: "1", ilvl: 1 },
+        numberLabel: "3.2.",
+        runs: [
+          { text: "Strictly", bold: true, italic: false, underline: false },
+          { text: " private.", bold: false, italic: false, underline: false },
+        ],
+      }),
     ];
     const r = compareBlocks(o, c, { fields: [], rules: [] });
     expect(r.counts).toMatchObject({ added: 1, deleted: 1, modified: 2 });
@@ -275,7 +423,10 @@ describe("comparison", () => {
     const op = await loadDocxPackage(original);
     await ensureParaIds(op);
     const r = compareBlocks(await indexBlocks(op), await indexBlocks(await loadDocxPackage(draft.bytes)), draft.state);
-    expect(r.items.find((i) => i.type === "clause_excluded")).toMatchObject({ location: "Conditional clause “Non-competition”", notes: ["Excluded: Employee is senior = No"] });
+    expect(r.items.find((i) => i.type === "clause_excluded")).toMatchObject({
+      location: "Conditional clause “Non-competition”",
+      notes: ["Excluded: Employee is senior = No"],
+    });
     expect(r.items.find((i) => i.type === "markers_removed")).toBeTruthy();
     expect(r.items.flatMap((i) => i.notes).some((n) => n.startsWith("Filled: Employer name"))).toBe(true);
     const xml = await (await JSZip.loadAsync(draft.bytes)).file("word/document.xml")!.async("string");

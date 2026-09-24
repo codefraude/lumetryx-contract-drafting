@@ -7,7 +7,21 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
  * A button that opens a small panel in the top layer (never clipped by scroll containers). Light
  * dismiss and Escape are native; the panel is placed next to its button and closes on scroll or resize.
  */
-export function Popover({ label, icon: Icon, children, align = "end", buttonClassName = "", panelClassName = "" }: { label: string; icon: LucideIcon; children: (close: () => void) => ReactNode; align?: "start" | "end"; buttonClassName?: string; panelClassName?: string }) {
+export function Popover({
+  label,
+  icon: Icon,
+  children,
+  align = "end",
+  buttonClassName = "",
+  panelClassName = "",
+}: {
+  label: string;
+  icon: LucideIcon;
+  children: (close: () => void) => ReactNode;
+  align?: "start" | "end";
+  buttonClassName?: string;
+  panelClassName?: string;
+}) {
   const id = useId();
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -30,7 +44,16 @@ export function Popover({ label, icon: Icon, children, align = "end", buttonClas
 
   return (
     <>
-      <button ref={button} type="button" popoverTarget={id} aria-expanded={open} aria-controls={id} aria-label={label} title={label} className={`grid size-9 shrink-0 place-items-center rounded-control text-ink-2 transition-colors duration-150 hover:bg-hover hover:text-ink aria-expanded:bg-hover aria-expanded:text-ink pointer-coarse:size-11 ${buttonClassName}`}>
+      <button
+        ref={button}
+        type="button"
+        popoverTarget={id}
+        aria-expanded={open}
+        aria-controls={id}
+        aria-label={label}
+        title={label}
+        className={`grid size-9 shrink-0 place-items-center rounded-control text-ink-2 transition-colors duration-150 hover:bg-hover hover:text-ink aria-expanded:bg-hover aria-expanded:text-ink pointer-coarse:size-11 ${buttonClassName}`}
+      >
         <Icon aria-hidden className="size-[18px]" strokeWidth={2} />
       </button>
       <div
@@ -65,9 +88,26 @@ export function Popover({ label, icon: Icon, children, align = "end", buttonClas
   );
 }
 
-export function MenuItem({ icon: Icon, children, onClick, tone, disabled }: { icon?: LucideIcon; children: ReactNode; onClick(): void; tone?: "danger"; disabled?: boolean }) {
+export function MenuItem({
+  icon: Icon,
+  children,
+  onClick,
+  tone,
+  disabled,
+}: {
+  icon?: LucideIcon;
+  children: ReactNode;
+  onClick(): void;
+  tone?: "danger";
+  disabled?: boolean;
+}) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors duration-150 hover:bg-hover disabled:opacity-45 pointer-coarse:py-3 ${tone === "danger" ? "text-danger" : "text-ink"}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors duration-150 hover:bg-hover disabled:opacity-45 pointer-coarse:py-3 ${tone === "danger" ? "text-danger" : "text-ink"}`}
+    >
       {Icon && <Icon aria-hidden className={`size-4 shrink-0 ${tone === "danger" ? "" : "text-ink-2"}`} strokeWidth={2} />}
       {children}
     </button>

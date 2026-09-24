@@ -37,7 +37,9 @@ export function FieldRow({ documentId, f, locked, inactive }: { documentId: stri
             {f.displayValue ? (
               <span className="border-b border-primary/45 pb-px text-ink">{f.displayValue}</span>
             ) : (
-              <span className="inline-block min-w-36 border-b border-dashed border-control/70 pb-px italic text-ink-3">{inactive ? "Not needed now" : "Not answered yet"}</span>
+              <span className="inline-block min-w-36 border-b border-dashed border-control/70 pb-px italic text-ink-3">
+                {inactive ? "Not needed now" : "Not answered yet"}
+              </span>
             )}
           </p>
           {inactive && <p className="mt-1.5 text-[12.5px] text-ink-3">Only used by a clause that is excluded or still undecided.</p>}
@@ -64,11 +66,24 @@ export function FieldRow({ documentId, f, locked, inactive }: { documentId: stri
             correction.mutate({ fieldId: f.id, value: value.trim() || null }, { onSuccess: () => setEditing(false) });
           }}
         >
-          <label className="sr-only" htmlFor={`${id}-v`}>{f.label}</label>
-          <input id={`${id}-v`} autoFocus value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => e.key === "Escape" && setEditing(false)} className="h-9 min-w-0 flex-1 basis-48 rounded-control border border-control bg-surface px-3 text-sm text-ink outline-none transition-[border-color,box-shadow] focus:border-primary focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--lx-primary)_20%,transparent)] dark:bg-raised pointer-coarse:h-11" />
+          <label className="sr-only" htmlFor={`${id}-v`}>
+            {f.label}
+          </label>
+          <input
+            id={`${id}-v`}
+            autoFocus
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && setEditing(false)}
+            className="h-9 min-w-0 flex-1 basis-48 rounded-control border border-control bg-surface px-3 text-sm text-ink outline-none transition-[border-color,box-shadow] focus:border-primary focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--lx-primary)_20%,transparent)] dark:bg-raised pointer-coarse:h-11"
+          />
           <div className="flex gap-2">
-            <Button type="submit" variant="primary" busy={busy}>Save</Button>
-            <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+            <Button type="submit" variant="primary" busy={busy}>
+              Save
+            </Button>
+            <Button variant="ghost" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
           </div>
         </form>
       ) : (

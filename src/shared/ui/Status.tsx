@@ -1,4 +1,3 @@
-
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -22,7 +21,23 @@ export function StatusBadge({ tone, icon: Icon, children, className = "" }: { to
   );
 }
 
-export function Callout({ tone = "neutral", icon: Icon, title, children, actions, role, className = "" }: { tone?: Tone; icon?: LucideIcon; title?: ReactNode; children?: ReactNode; actions?: ReactNode; role?: "alert" | "status" | "note"; className?: string }) {
+export function Callout({
+  tone = "neutral",
+  icon: Icon,
+  title,
+  children,
+  actions,
+  role,
+  className = "",
+}: {
+  tone?: Tone;
+  icon?: LucideIcon;
+  title?: ReactNode;
+  children?: ReactNode;
+  actions?: ReactNode;
+  role?: "alert" | "status" | "note";
+  className?: string;
+}) {
   return (
     <div role={role} className={`flex gap-2.5 rounded-xl border px-3.5 py-3 text-sm leading-relaxed ${TONE[tone]} ${className}`}>
       {Icon && <Icon aria-hidden className="mt-[3px] size-4 shrink-0" strokeWidth={2.1} />}
@@ -39,5 +54,11 @@ export const Skeleton = ({ className = "" }: { className?: string }) => <div ari
 
 /** Small count shown inside a tab. */
 export function Count({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "warn" }) {
-  return <span className={`rounded-[5px] px-1.5 text-[11.5px] font-semibold tabular-nums leading-[18px] ${tone === "warn" ? "bg-warn-surface text-warn ring-1 ring-warn-line" : "bg-hover text-ink-2"}`}>{children}</span>;
+  return (
+    <span
+      className={`rounded-[5px] px-1.5 text-[11.5px] font-semibold tabular-nums leading-[18px] ${tone === "warn" ? "bg-warn-surface text-warn ring-1 ring-warn-line" : "bg-hover text-ink-2"}`}
+    >
+      {children}
+    </span>
+  );
 }

@@ -62,7 +62,12 @@ export async function* buildDraft(original: Uint8Array, state: FieldState): Asyn
 
   const issues: StructureIssue[] = [];
   const bd = await openBody(pkg);
-  const rules: Rule[] = state.rules.map((r) => ({ ...r, paraIds: r.blockIds.map((id) => paraIds.get(id)).filter((x): x is string => Boolean(x)), removedXml: null, contentHash: null }));
+  const rules: Rule[] = state.rules.map((r) => ({
+    ...r,
+    paraIds: r.blockIds.map((id) => paraIds.get(id)).filter((x): x is string => Boolean(x)),
+    removedXml: null,
+    contentHash: null,
+  }));
   for (const r of rules) {
     for (const id of r.markerBlockIds) {
       const markerPara = paraIds.get(id);
@@ -93,7 +98,11 @@ export async function* buildDraft(original: Uint8Array, state: FieldState): Asyn
   refs.issues.forEach((message) => issues.push({ ruleId: null, message }));
   const h = await hashes(pkg, rules);
   for (const r of rules) r.contentHash = h.get(r.id) ?? null;
-  yield { type: "done", bytes: await serializePackage(pkg), state: { ...state, rules, draftAnchors: anchors, references: refs.references, structureIssues: issues } };
+  yield {
+    type: "done",
+    bytes: await serializePackage(pkg),
+    state: { ...state, rules, draftAnchors: anchors, references: refs.references, structureIssues: issues },
+  };
 }
 
 /** Renders a draft without streaming (used for the comparison preview before a draft exists). */

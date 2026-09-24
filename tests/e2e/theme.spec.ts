@@ -15,7 +15,13 @@ test("system theme is applied before the first paint and an explicit choice pers
   const page = await ctx.newPage();
   const warnings: string[] = [];
   page.on("console", (m) => /hydrat|did not match|script tag/i.test(m.text()) && warnings.push(m.text()));
-  await page.addInitScript(() => document.addEventListener("readystatechange", () => document.readyState === "interactive" && ((window as unknown as { first: string }).first = document.documentElement.dataset.theme ?? ""), { once: true }));
+  await page.addInitScript(() =>
+    document.addEventListener(
+      "readystatechange",
+      () => document.readyState === "interactive" && ((window as unknown as { first: string }).first = document.documentElement.dataset.theme ?? ""),
+      { once: true },
+    ),
+  );
   await page.goto("/");
   expect(await page.evaluate(() => (window as unknown as { first: string }).first)).toBe("dark");
   await choose(page, "Light");
@@ -50,15 +56,45 @@ test("switching theme keeps the editor, unsaved input and the exported document"
   await expect.poll(() => theme(page)).toBe("dark");
   await page.getByRole("tab", { name: "Chat" }).click();
   await page.getByRole("tab", { name: /^Details/ }).click();
-  expect(await page.locator("#assistant-panel-details").getByRole("textbox").inputValue(), "unsaved input survives the theme and tab switch").toBe("Unsaved value");
-  expect(await page.locator(".v2-super-editor__stage").evaluate((el) => (el as HTMLElement & { marker?: number }).marker), "the editor was not remounted").toBe(1);
-  expect(await page.locator(".superdoc-page").first().evaluate((el) => getComputedStyle(el).backgroundColor), "the page stays paper").toBe("rgb(255, 255, 255)");
+  expect(await page.locator("#assistant-panel-details").getByRole("textbox").inputValue(), "unsaved input survives the theme and tab switch").toBe(
+    "Unsaved value",
+  );
+  expect(await page.locator(".v2-super-editor__stage").evaluate((el) => (el as HTMLElement & { marker?: number }).marker), "the editor was not remounted").toBe(
+    1,
+  );
+  expect(
+    await page
+      .locator(".superdoc-page")
+      .first()
+      .evaluate((el) => getComputedStyle(el).backgroundColor),
+    "the page stays paper",
+  ).toBe("rgb(255, 255, 255)");
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(11, 18, 24)");
 
   // With a draft: switching theme fetches and saves nothing, and the export is identical in both themes.
-  const values: Record<string, string> = { "Tenant name": "John Smith", "Landlord name": "Ravi Ramdin", Address: "12 Royal Road, Curepipe", "Property address": "4 Sea View Lane, Flic en Flac", "Start date": "1 October 2026", "Monthly rent": "MUR 25,000", "Deposit amount": "MUR 50,000", "Interest rate": "8%", "Reference number": "LX-7 & Co" };
-  let doc = (await (await page.request.get("/api/documents/current")).json()).document as { id: string; fieldsVersion: number; fields: { id: string; label: string }[] };
-  for (const f of doc.fields) doc = await (await page.request.patch(`/api/documents/${doc.id}/fields`, { headers: ORIGIN, data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: values[f.label] ?? "30 September 2027" } })).json();
+  const values: Record<string, string> = {
+    "Tenant name": "John Smith",
+    "Landlord name": "Ravi Ramdin",
+    Address: "12 Royal Road, Curepipe",
+    "Property address": "4 Sea View Lane, Flic en Flac",
+    "Start date": "1 October 2026",
+    "Monthly rent": "MUR 25,000",
+    "Deposit amount": "MUR 50,000",
+    "Interest rate": "8%",
+    "Reference number": "LX-7 & Co",
+  };
+  let doc = (await (await page.request.get("/api/documents/current")).json()).document as {
+    id: string;
+    fieldsVersion: number;
+    fields: { id: string; label: string }[];
+  };
+  for (const f of doc.fields)
+    doc = await (
+      await page.request.patch(`/api/documents/${doc.id}/fields`, {
+        headers: ORIGIN,
+        data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: values[f.label] ?? "30 September 2027" },
+      })
+    ).json();
   await page.reload();
   await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
@@ -74,7 +110,10 @@ test("switching theme keeps the editor, unsaved input and the exported document"
   await page.locator(".v2-super-editor__stage").evaluate((el) => ((el as HTMLElement & { marker?: number }).marker = 2));
   await choose(page, "Light");
   await expect.poll(() => theme(page)).toBe("light");
-  expect(await page.locator(".v2-super-editor__stage").evaluate((el) => (el as HTMLElement & { marker?: number }).marker), "the draft editor was not remounted").toBe(2);
+  expect(
+    await page.locator(".v2-super-editor__stage").evaluate((el) => (el as HTMLElement & { marker?: number }).marker),
+    "the draft editor was not remounted",
+  ).toBe(2);
   expect(docRequests, "the theme change fetched and saved nothing").toEqual([]);
   expect(await exportXml(), "the same content and formatting are exported in both themes").toBe(before);
   expect(errors).toEqual([]);

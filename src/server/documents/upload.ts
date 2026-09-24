@@ -57,7 +57,15 @@ export async function createFromUpload(session: SessionUsage, filename: string, 
     conversationLanguage: null,
   };
   const title = filename.replace(/\.docx$/i, "").slice(0, 120) || "Untitled draft";
-  const doc = await repo.createDocument({ sessionId: session.id, filename: filename.slice(0, 200), title, templateHash, originalDocx: Buffer.from(bytes), fieldState: state, analysis: analysis ? "ai" : "markers_only" });
+  const doc = await repo.createDocument({
+    sessionId: session.id,
+    filename: filename.slice(0, 200),
+    title,
+    templateHash,
+    originalDocx: Buffer.from(bytes),
+    fieldState: state,
+    analysis: analysis ? "ai" : "markers_only",
+  });
   const lang: ChatLanguage = language.document === "fr" ? "fr" : "en";
   await repo.addMessage(doc.id, "assistant", openingMessage(state.fields, lang, inactiveFields(state)) + analysisNote);
   return documentView(session.id, doc);

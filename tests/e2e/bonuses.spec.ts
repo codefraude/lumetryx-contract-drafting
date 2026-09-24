@@ -17,7 +17,13 @@ const ORIGIN = { Origin: BASE };
 test.skip(!process.env.E2E_LIVE_AI, "needs a server with a live Gemini key; set E2E_LIVE_AI=1");
 test.setTimeout(300_000);
 
-type Doc = { id: string; fieldsVersion: number; fields: { id: string; label: string; status: string; valueType: string; source: string; normalized: { kind: string; value?: unknown } | null }[]; rules: { id: string; state: string; applied: string | null; pending: boolean }[]; language: { effective: string } };
+type Doc = {
+  id: string;
+  fieldsVersion: number;
+  fields: { id: string; label: string; status: string; valueType: string; source: string; normalized: { kind: string; value?: unknown } | null }[];
+  rules: { id: string; state: string; applied: string | null; pending: boolean }[];
+  language: { effective: string };
+};
 
 const stage = (page: Page) => page.locator(".v2-super-editor__stage");
 
@@ -79,7 +85,10 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
   await expect(page.getByText("Bilingual template.", { exact: false })).toBeVisible();
 
   // 1. Answer in French, including the condition that decides the non-compete.
-  await chat(page, "L'employeur est Lumetryx Ltée et la salariée est Hélène Dupré-Lefèvre. Elle commence le 1er octobre 2026. Oui, elle est bien classée senior pour ce contrat.");
+  await chat(
+    page,
+    "L'employeur est Lumetryx Ltée et la salariée est Hélène Dupré-Lefèvre. Elle commence le 1er octobre 2026. Oui, elle est bien classée senior pour ce contrat.",
+  );
   let doc = await current(page);
   expect(doc.language.effective).toBe("fr");
   expect(doc.fields.find((f) => f.id === "employee_is_senior")).toMatchObject({ status: "confirmed", normalized: { kind: "boolean", value: true } });
@@ -90,7 +99,14 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
     doc = await current(page);
     const next = doc.fields.find((f) => f.status !== "confirmed" && f.source !== "condition");
     if (!next) break;
-    const value = next.valueType === "date" ? "1 October 2026" : next.valueType === "money" ? "EUR 48000" : next.valueType === "duration" ? "12 months" : `Valeur ${next.label}`;
+    const value =
+      next.valueType === "date"
+        ? "1 October 2026"
+        : next.valueType === "money"
+          ? "EUR 48000"
+          : next.valueType === "duration"
+            ? "12 months"
+            : `Valeur ${next.label}`;
     await page.request.patch(`/api/documents/${doc.id}/fields`, { headers: ORIGIN, data: { fieldsVersion: doc.fieldsVersion, fieldId: next.id, value } });
   }
   await page.reload();

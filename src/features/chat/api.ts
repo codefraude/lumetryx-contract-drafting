@@ -9,4 +9,5 @@ export const streamChatTurn = (documentId: string, message: string, fieldsVersio
   postEventStream(`/api/documents/${documentId}/chat`, { message, fieldsVersion }, StreamEvent, onEvent, signal);
 
 /** The conversation language (null follows the language the user writes in). */
-export const setConversationLanguage = (documentId: string, fieldsVersion: number, language: ChatLanguage | null) => requestJson(`/api/documents/${documentId}`, DocumentView, jsonBody("PATCH", { fieldsVersion, language }));
+export const setConversationLanguage = (documentId: string, fieldsVersion: number, language: ChatLanguage | null) =>
+  requestJson(`/api/documents/${documentId}`, DocumentView, jsonBody("PATCH", { fieldsVersion, language }));

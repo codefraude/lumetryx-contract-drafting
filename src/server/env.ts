@@ -15,7 +15,10 @@ const schema = z.object({
   AI_MAX_REQUESTS_PER_SESSION: z.coerce.number().int().positive().default(80),
   AI_MAX_TOKENS_PER_SESSION: z.coerce.number().int().positive().default(400_000),
   /** Local-only escape hatch: run a production build without Redis (no rate limits, no dedupe). Never set on a public deployment. */
-  ALLOW_NO_REDIS: z.enum(["true", "false"]).default("false").transform((v) => v === "true"),
+  ALLOW_NO_REDIS: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   /** Saved drafts are kept this many days after their last save; the browser credential lasts as long (sliding). */
   DRAFT_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
 });
@@ -37,7 +40,10 @@ export function env(): Env {
 }
 
 export class ConfigMissingError extends Error {
-  constructor(readonly variable: string, purpose: string) {
+  constructor(
+    readonly variable: string,
+    purpose: string,
+  ) {
     super(`${variable} is not configured, so ${purpose} is unavailable. Add it to .env.local (see .env.example).`);
     this.name = "ConfigMissingError";
   }

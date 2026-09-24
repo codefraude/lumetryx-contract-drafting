@@ -58,13 +58,18 @@ export const CachedBlocks: z.ZodType<Block[]> = z.array(
     table: z.object({ table: z.number().int(), row: z.number().int(), col: z.number().int() }).nullable(),
     text: z.string(),
     paraId: z.string().nullable(),
-    placeholders: z.array(z.object({ start: z.number().int(), end: z.number().int(), binding: z.string().nullable(), title: z.string().nullable() })).optional(),
+    placeholders: z
+      .array(z.object({ start: z.number().int(), end: z.number().int(), binding: z.string().nullable(), title: z.string().nullable() }))
+      .optional(),
   }),
 );
 
 export function assertIndexable(blocks: Block[]): void {
   const chars = blocks.reduce((n, b) => n + b.text.length, 0);
   if (blocks.length > DOCX_LIMITS.maxBlocks || chars > DOCX_LIMITS.maxIndexedChars) {
-    throw new DocxValidationError("too_complex", `This template is larger than the supported size (${DOCX_LIMITS.maxBlocks} paragraphs / ${DOCX_LIMITS.maxIndexedChars.toLocaleString("en")} characters).`);
+    throw new DocxValidationError(
+      "too_complex",
+      `This template is larger than the supported size (${DOCX_LIMITS.maxBlocks} paragraphs / ${DOCX_LIMITS.maxIndexedChars.toLocaleString("en")} characters).`,
+    );
   }
 }

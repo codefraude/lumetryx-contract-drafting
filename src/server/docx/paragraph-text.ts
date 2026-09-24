@@ -62,7 +62,18 @@ export function mapParagraph(p: XmlElement): ParagraphMap {
 }
 
 /** Controls that hold something other than text (galleries, pictures, check boxes, …) are never fields. */
-const NON_TEXT_CONTROLS = new Set(["docPartObj", "docPartList", "picture", "group", "citation", "bibliography", "equation", "checkbox", "repeatingSection", "repeatingSectionItem"]);
+const NON_TEXT_CONTROLS = new Set([
+  "docPartObj",
+  "docPartList",
+  "picture",
+  "group",
+  "citation",
+  "bibliography",
+  "equation",
+  "checkbox",
+  "repeatingSection",
+  "repeatingSectionItem",
+]);
 
 const showsPlaceholder = (sdt: XmlElement): boolean => {
   const pr = firstChild(sdt, "sdtPr");
@@ -79,7 +90,8 @@ const showsPlaceholder = (sdt: XmlElement): boolean => {
 export function placeholderSpans(map: ParagraphMap): PlaceholderSpan[] {
   const found = map.controls.filter((c) => showsPlaceholder(c.el));
   const outer = nearestAncestor(map.el, "sdt");
-  if (!found.length && outer && showsPlaceholder(outer) && outer.getElementsByTagNameNS(W_NS, "p").length === 1) found.push({ el: outer, start: 0, end: map.text.length });
+  if (!found.length && outer && showsPlaceholder(outer) && outer.getElementsByTagNameNS(W_NS, "p").length === 1)
+    found.push({ el: outer, start: 0, end: map.text.length });
   const inside = (outerEl: XmlElement, el: XmlElement) => {
     for (let n = el.parentNode; n; n = n.parentNode) if (n === outerEl) return true;
     return false;
@@ -91,7 +103,12 @@ export function placeholderSpans(map: ParagraphMap): PlaceholderSpan[] {
       const pr = firstChild(el, "sdtPr");
       const bind = pr && firstChild(pr, "dataBinding");
       const title = pr && (firstChild(pr, "alias") ?? firstChild(pr, "tag"));
-      return { start, end, binding: bind ? `${(wAttr(bind, "storeItemID") ?? "").toUpperCase()}${wAttr(bind, "xpath") ?? ""}` : null, title: title ? (wAttr(title, "val") ?? null) : null };
+      return {
+        start,
+        end,
+        binding: bind ? `${(wAttr(bind, "storeItemID") ?? "").toUpperCase()}${wAttr(bind, "xpath") ?? ""}` : null,
+        title: title ? (wAttr(title, "val") ?? null) : null,
+      };
     });
 }
 

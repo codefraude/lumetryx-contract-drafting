@@ -38,7 +38,10 @@ export async function correctField(sessionId: string, documentId: string, input:
     const typed = input.value ? messageLanguage(input.value) : "unknown";
     const occurrence = f.occurrences.map((o) => o.lang).find((l) => l !== "unknown");
     const context: Lang = typed !== "unknown" ? typed : (occurrence ?? docLangAsLang(doc.fieldState.language.document));
-    const r = input.value === null ? { status: "missing" as const, displayValue: null, normalized: null, note: null } : normalizeValue(f.valueType, input.value, { currencyHint: templateCurrencyHint(blocks.map((b) => b.text).join("\n")), lang: context });
+    const r =
+      input.value === null
+        ? { status: "missing" as const, displayValue: null, normalized: null, note: null }
+        : normalizeValue(f.valueType, input.value, { currencyHint: templateCurrencyHint(blocks.map((b) => b.text).join("\n")), lang: context });
     Object.assign(f, { rawValue: input.value, ...r });
   }
   const updated = await repo.updateFieldState(sessionId, documentId, input.fieldsVersion, { ...doc.fieldState, fields });
@@ -46,18 +49,40 @@ export async function correctField(sessionId: string, documentId: string, input:
 }
 
 /** Applies answer and clause changes to an existing working draft, persisting document and state in one statement. */
-async function syncDraft(sessionId: string, doc: repo.DocumentSummary, state: FieldState, changedFieldIds: string[], confirmEdited: ReadonlySet<string> = new Set()): Promise<{ update: DraftUpdate; saved: repo.DocumentSummary }> {
+async function syncDraft(
+  sessionId: string,
+  doc: repo.DocumentSummary,
+  state: FieldState,
+  changedFieldIds: string[],
+  confirmEdited: ReadonlySet<string> = new Set(),
+): Promise<{ update: DraftUpdate; saved: repo.DocumentSummary }> {
   const bytes = await mustGetBytes(sessionId, doc.id);
   if (!bytes.workingDocx) throw new NotFound();
-  const update = await updateWorkingDraft({ working: new Uint8Array(bytes.workingDocx), original: new Uint8Array(bytes.originalDocx), state, changedFieldIds, confirmEdited });
+  const update = await updateWorkingDraft({
+    working: new Uint8Array(bytes.workingDocx),
+    original: new Uint8Array(bytes.originalDocx),
+    state,
+    changedFieldIds,
+    confirmEdited,
+  });
   const next: FieldState = { ...update.state, pendingClauses: update.needsConfirmation.map((c) => c.ruleId) };
   const saved = update.bytes
-    ? await repo.saveWorkingDocx(sessionId, doc.id, bytes.workingRevision, Buffer.from(update.bytes), { state: next, draftCurrent: update.conflicts.length === 0, expectedFieldsVersion: doc.fieldsVersion })
+    ? await repo.saveWorkingDocx(sessionId, doc.id, bytes.workingRevision, Buffer.from(update.bytes), {
+        state: next,
+        draftCurrent: update.conflicts.length === 0,
+        expectedFieldsVersion: doc.fieldsVersion,
+      })
     : await repo.updateFieldState(sessionId, doc.id, doc.fieldsVersion, next);
   return { update, saved };
 }
 
-export async function chatTurn(session: SessionUsage, documentId: string, input: { message: string; fieldsVersion: number }, emit: (e: EventPayload) => void, signal: AbortSignal) {
+export async function chatTurn(
+  session: SessionUsage,
+  documentId: string,
+  input: { message: string; fieldsVersion: number },
+  emit: (e: EventPayload) => void,
+  signal: AbortSignal,
+) {
   const doc = await mustGet(session.id, documentId);
   if (doc.fieldsVersion !== input.fieldsVersion) throw new repo.StaleRevisionError("The answers");
   assertBudget(session);
@@ -85,7 +110,14 @@ export async function chatTurn(session: SessionUsage, documentId: string, input:
     if (doc.draftStatus === "ready") {
       const { update, saved } = await syncDraft(session.id, doc, next, changedConfirmed);
       fields = saved.fieldState.fields;
-      emit({ type: "draft_patch", workingRevision: saved.workingRevision, applied: update.appliedFields, conflicts: update.conflicts, clauseChanges: update.clauseChanges, needsConfirmation: update.needsConfirmation });
+      emit({
+        type: "draft_patch",
+        workingRevision: saved.workingRevision,
+        applied: update.appliedFields,
+        conflicts: update.conflicts,
+        clauseChanges: update.clauseChanges,
+        needsConfirmation: update.needsConfirmation,
+      });
       emit({ type: "fields_updated", fields, fieldsVersion: saved.fieldsVersion, changed: applied.changed });
     } else {
       const saved = await repo.updateFieldState(session.id, documentId, doc.fieldsVersion, next);
@@ -108,7 +140,9 @@ export async function chatTurn(session: SessionUsage, documentId: string, input:
   } catch (err) {
     // The stream reports "no output" when the call behind it failed; that failure is the one to classify.
     const cause = classifyAiError(reply.failure() ?? err);
-    throw applied.changed.length && cause.retryable && cause.code !== "aborted" ? new AiError(cause.code, `${cause.message} Your answers were saved.`, true) : cause;
+    throw applied.changed.length && cause.retryable && cause.code !== "aborted"
+      ? new AiError(cause.code, `${cause.message} Your answers were saved.`, true)
+      : cause;
   } finally {
     await trackUsage(session.id, await Promise.resolve(reply.stream.usage).catch(() => undefined));
   }

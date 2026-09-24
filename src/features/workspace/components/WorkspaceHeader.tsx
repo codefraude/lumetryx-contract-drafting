@@ -38,7 +38,23 @@ interface Props {
   downloading: boolean;
 }
 
-export function WorkspaceHeader({ title, filename, status, note, step, hasDraft, canSaveNow, saving, onSaveNow, onDrafts, onNewTemplate, onDownload, downloadDisabled, downloadHint, downloading }: Props) {
+export function WorkspaceHeader({
+  title,
+  filename,
+  status,
+  note,
+  step,
+  hasDraft,
+  canSaveNow,
+  saving,
+  onSaveNow,
+  onDrafts,
+  onNewTemplate,
+  onDownload,
+  downloadDisabled,
+  downloadHint,
+  downloading,
+}: Props) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface pl-3 pr-2 sm:pl-4 sm:pr-3 lg:h-16">
       <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-control bg-accent-surface text-accent-ink max-sm:hidden">
@@ -68,8 +84,14 @@ export function WorkspaceHeader({ title, filename, status, note, step, hasDraft,
           return (
             <li key={s} aria-current={state === "current" ? "step" : undefined} className="flex items-center">
               {i > 0 && <span aria-hidden className={`mx-0.5 h-px w-4 transition-colors duration-300 ${i <= step ? "bg-primary/60" : "bg-line"}`} />}
-              <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12.5px] font-medium transition-colors duration-300 ${state === "current" ? "bg-accent-surface text-accent-ink" : state === "done" ? "text-ink-2" : "text-ink-3"}`}>
-                {state === "done" ? <Check aria-hidden className="size-3.5 text-ok" strokeWidth={2.5} /> : <span aria-hidden className={`size-1.5 rounded-full ${state === "current" ? "bg-primary" : "bg-control/60"}`} />}
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12.5px] font-medium transition-colors duration-300 ${state === "current" ? "bg-accent-surface text-accent-ink" : state === "done" ? "text-ink-2" : "text-ink-3"}`}
+              >
+                {state === "done" ? (
+                  <Check aria-hidden className="size-3.5 text-ok" strokeWidth={2.5} />
+                ) : (
+                  <span aria-hidden className={`size-1.5 rounded-full ${state === "current" ? "bg-primary" : "bg-control/60"}`} />
+                )}
                 {s}
                 <span className="sr-only">{state === "done" ? ", done" : state === "current" ? ", current step" : ""}</span>
               </span>
@@ -98,7 +120,14 @@ export function WorkspaceHeader({ title, filename, status, note, step, hasDraft,
             {downloadHint}
           </span>
         )}
-        <Button variant="primary" icon={Download} onClick={onDownload} disabled={downloadDisabled} busy={downloading} aria-describedby={downloadHint ? "download-hint" : undefined}>
+        <Button
+          variant="primary"
+          icon={Download}
+          onClick={onDownload}
+          disabled={downloadDisabled}
+          busy={downloading}
+          aria-describedby={downloadHint ? "download-hint" : undefined}
+        >
           <span className="sm:hidden">Download</span>
           <span className="max-sm:hidden">Download .docx</span>
         </Button>

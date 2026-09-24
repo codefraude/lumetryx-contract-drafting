@@ -13,7 +13,10 @@ import { TabBar } from "@/shared/ui/TabBar";
 import { TabPanel } from "@/shared/ui/TabPanel";
 
 // The editor is large; load it only when a document is on screen.
-const SuperDocEditor = dynamic(() => import("@/features/documents/editor/SuperDocEditor").then((m) => m.SuperDocEditor), { ssr: false, loading: () => <PaperSkeleton /> });
+const SuperDocEditor = dynamic(() => import("@/features/documents/editor/SuperDocEditor").then((m) => m.SuperDocEditor), {
+  ssr: false,
+  loading: () => <PaperSkeleton />,
+});
 
 /** The template before a draft exists, the streamed preview while it is generated, then the editor. */
 export type DocMode = "template" | "preview" | "editor";
@@ -40,9 +43,29 @@ interface Props {
   onRegenerate(): void;
 }
 
-export function DocumentPane({ documentId, filename, mode, hasDraft, generating, blocks, pane, onPane, hidden, editorRef, editorKey, onEditorStatus, onEditorSaved, snapshot, compareVersion, onRegenerate }: Props) {
+export function DocumentPane({
+  documentId,
+  filename,
+  mode,
+  hasDraft,
+  generating,
+  blocks,
+  pane,
+  onPane,
+  hidden,
+  editorRef,
+  editorKey,
+  onEditorStatus,
+  onEditorSaved,
+  snapshot,
+  compareVersion,
+  onRegenerate,
+}: Props) {
   return (
-    <main aria-label="Document" className={`flex min-h-0 min-w-0 flex-1 flex-col max-lg:absolute max-lg:inset-0 max-lg:transition-[opacity,visibility] max-lg:duration-200 ${hidden ? "max-lg:pointer-events-none max-lg:invisible max-lg:opacity-0" : ""}`}>
+    <main
+      aria-label="Document"
+      className={`flex min-h-0 min-w-0 flex-1 flex-col max-lg:absolute max-lg:inset-0 max-lg:transition-[opacity,visibility] max-lg:duration-200 ${hidden ? "max-lg:pointer-events-none max-lg:invisible max-lg:opacity-0" : ""}`}
+    >
       <div className="flex shrink-0 items-center gap-3 border-b border-line bg-surface px-3 py-2 sm:px-4">
         <TabBar<DocPane>
           idBase="doc"
@@ -76,7 +99,15 @@ export function DocumentPane({ documentId, filename, mode, hasDraft, generating,
           {mode === "preview" ? (
             <DraftPreview blocks={blocks} generating={generating} />
           ) : (
-            <SuperDocEditor ref={editorRef} documentId={documentId} filename={filename} source={mode === "editor" ? "working" : "original"} loadKey={mode === "editor" ? editorKey : `${documentId}:original`} onStatus={onEditorStatus} onSaved={onEditorSaved} />
+            <SuperDocEditor
+              ref={editorRef}
+              documentId={documentId}
+              filename={filename}
+              source={mode === "editor" ? "working" : "original"}
+              loadKey={mode === "editor" ? editorKey : `${documentId}:original`}
+              onStatus={onEditorStatus}
+              onSaved={onEditorSaved}
+            />
           )}
         </TabPanel>
         {pane === "compare" && (

@@ -11,13 +11,16 @@ import { GROUP_ORDER, type Field } from "./contracts/fields";
 
 /** Required, unconfirmed fields in questioning order. */
 export const outstandingFields = (fields: Field[], inactive: ReadonlySet<string> = new Set()): Field[] =>
-  fields.filter((f) => f.required && f.status !== "confirmed" && !inactive.has(f.id)).sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group));
+  fields
+    .filter((f) => f.required && f.status !== "confirmed" && !inactive.has(f.id))
+    .sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group));
 
 /**
  * Details the lawyer still has to give. A yes/no answer that decides a clause is counted as a
  * clause decision instead, so it is never counted twice.
  */
-export const detailsLeft = (fields: Field[], inactive: ReadonlySet<string>): number => outstandingFields(fields, inactive).filter((f) => f.source !== "condition").length;
+export const detailsLeft = (fields: Field[], inactive: ReadonlySet<string>): number =>
+  outstandingFields(fields, inactive).filter((f) => f.source !== "condition").length;
 
 export interface DetailProgress {
   confirmed: number;

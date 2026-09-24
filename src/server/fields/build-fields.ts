@@ -7,7 +7,13 @@ import { detectLanguage, stripAccents } from "./lang";
 import type { Rule } from "./state";
 import type { TemplateAnalysis } from "./template-analysis";
 
-const slug = (s: string) => stripAccents(s).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").replace(/^(\d)/, "f_$1").slice(0, 60) || "field";
+const slug = (s: string) =>
+  stripAccents(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/^(\d)/, "f_$1")
+    .slice(0, 60) || "field";
 
 /**
  * Deterministic fallback typing for markers the model did not describe (English and French
@@ -21,10 +27,17 @@ export function guessType(label: string): { valueType: ValueType; group: FieldGr
   const has = (words: string) => new RegExp(`\\b(${words})`).test(l);
   if (/\b(name|nom)\b/.test(l)) return { valueType: "party", group: "parties" };
   if (has("date\\b|commence|start|end\\b|expir|effective|debut|fin\\b|echeance|signature\\b|entree\\b")) return { valueType: "date", group: "dates" };
-  if (has("rent|amount|price|fees?\\b|deposit|sum\\b|salary|payment|indemnit|loyer|montant|prix|depot|garantie|salaire|honoraires|remuneration|acompte|solde")) return { valueType: "money", group: "money" };
+  if (has("rent|amount|price|fees?\\b|deposit|sum\\b|salary|payment|indemnit|loyer|montant|prix|depot|garantie|salaire|honoraires|remuneration|acompte|solde"))
+    return { valueType: "money", group: "money" };
   if (has("rate|percent|interest|taux|pourcentage|interet")) return { valueType: "percentage", group: "money" };
-  if (has("address|premises|property|situated|adresse|locaux|bien\\b|situe")) return { valueType: "address", group: has("property|premises|locaux|bien\\b") ? "subject" : "parties" };
-  if (has("landlord|tenant|party|client|employee|employer|company|lessor|lessee|buyer|seller|bailleur|locataire|partie|salarie|employeur|societe|vendeur|acheteur|prestataire")) return { valueType: "party", group: "parties" };
+  if (has("address|premises|property|situated|adresse|locaux|bien\\b|situe"))
+    return { valueType: "address", group: has("property|premises|locaux|bien\\b") ? "subject" : "parties" };
+  if (
+    has(
+      "landlord|tenant|party|client|employee|employer|company|lessor|lessee|buyer|seller|bailleur|locataire|partie|salarie|employeur|societe|vendeur|acheteur|prestataire",
+    )
+  )
+    return { valueType: "party", group: "parties" };
   if (has("law\\b|jurisdiction|court|droit\\b|juridiction|tribunal")) return { valueType: "jurisdiction", group: "other" };
   if (has("years|months|period|term\\b|duration|duree|mois|annees|periode|preavis|notice")) return { valueType: "duration", group: "other" };
   return { valueType: "text", group: "other" };
@@ -54,7 +67,15 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
   const ids = new Set<string>();
   const rejected: string[] = [];
   const fields: Field[] = [];
-  const toOccurrence = (m: MarkerOccurrence): Occurrence => ({ blockId: m.blockId, start: m.start, end: m.end, expected: m.text, mode: "replace", marker: m.marker, lang: langOf.get(m.blockId) ?? "unknown" });
+  const toOccurrence = (m: MarkerOccurrence): Occurrence => ({
+    blockId: m.blockId,
+    start: m.start,
+    end: m.end,
+    expected: m.text,
+    mode: "replace",
+    marker: m.marker,
+    lang: langOf.get(m.blockId) ?? "unknown",
+  });
 
   const uniqueId = (base: string) => {
     let id = slug(base);
@@ -66,7 +87,8 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
 
   // Models often echo a key without its "k:" prefix or with other spacing; resolve it against the
   // real markers (never invent one). Underscore keys are positional and must match exactly.
-  const resolveKey = (key: string) => (byKey.has(key) ? key : byKey.has(`k:${normalizeKey(key.replace(/^k:/, ""))}`) ? `k:${normalizeKey(key.replace(/^k:/, ""))}` : key);
+  const resolveKey = (key: string) =>
+    byKey.has(key) ? key : byKey.has(`k:${normalizeKey(key.replace(/^k:/, ""))}`) ? `k:${normalizeKey(key.replace(/^k:/, ""))}` : key;
   const notFields = new Set((analysis?.notFields ?? []).map(resolveKey));
   /** Places given to implicit values so far; two answers never share or overlap one. */
   const taken: Occurrence[] = [];
@@ -103,7 +125,15 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
         rejected.push(`overlapping place in ${imp.blockId}: ${imp.quote}`);
         continue;
       }
-      const o: Occurrence = { blockId: block.id, start, end, expected: imp.replace ? imp.quote : "", mode: imp.replace ? "replace" : "insert", marker: "implicit", lang: langOf.get(block.id) ?? "unknown" };
+      const o: Occurrence = {
+        blockId: block.id,
+        start,
+        end,
+        expected: imp.replace ? imp.quote : "",
+        mode: imp.replace ? "replace" : "insert",
+        marker: "implicit",
+        lang: langOf.get(block.id) ?? "unknown",
+      };
       taken.push(o);
       occurrences.push(o);
     }

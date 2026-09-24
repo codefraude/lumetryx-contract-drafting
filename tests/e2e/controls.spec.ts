@@ -43,14 +43,21 @@ test("placeholder boxes are replaced by the answers, before and after the editor
   await expect(page.getByText(/still needed/)).toBeVisible({ timeout: 20_000 });
   let doc = (await (await page.request.get("/api/documents/current")).json()).document as Doc;
   expect(doc.fields.map((f) => f.label).sort(), "one field per blank, two same-worded blanks named apart").toEqual(Object.keys(VALUES).sort());
-  for (const f of doc.fields) doc = await (await page.request.patch(`/api/documents/${doc.id}/fields`, { headers: ORIGIN, data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: VALUES[f.label]! } })).json();
+  for (const f of doc.fields)
+    doc = await (
+      await page.request.patch(`/api/documents/${doc.id}/fields`, {
+        headers: ORIGIN,
+        data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: VALUES[f.label]! },
+      })
+    ).json();
   await page.reload();
   await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
 
   const stage = page.locator(".v2-super-editor__stage");
   await expect(stage.getByText("Cher/Chère Jeanne Dupont :")).toBeVisible();
-  for (const placeholder of ["Votre nom", "Adresse postale", "Nom du destinataire", "Titre"]) await expect(stage.getByText(placeholder, { exact: true }), placeholder).toHaveCount(0);
+  for (const placeholder of ["Votre nom", "Adresse postale", "Nom du destinataire", "Titre"])
+    await expect(stage.getByText(placeholder, { exact: true }), placeholder).toHaveCount(0);
 
   // An edit makes the editor re-export the document; download right away (the save is flushed first).
   await settle(page);
@@ -66,15 +73,28 @@ test("placeholder boxes are replaced by the answers, before and after the editor
   const zip = await JSZip.loadAsync(readFileSync("tests/output/e2e-controls.docx"));
   const xml = await zip.file("word/document.xml")!.async("string");
   const header = await zip.file(Object.keys(zip.files).find((n) => /^word\/header\d*\.xml$/.test(n))!)!.async("string");
-  const texts = (part: string) => [...part.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)].map((m) => [...m[0].matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)].map((t) => t[1]).join(""));
+  const texts = (part: string) =>
+    [...part.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)].map((m) => [...m[0].matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)].map((t) => t[1]).join(""));
   const body = texts(xml);
 
   expect(body, "the edit was saved").toContain("Bien à vous et à bientôt");
-  for (const line of ["Camille Martin", "12 rue des Lilas", "Port-Louis 11302", "24 septembre 2026", "Jeanne Dupont", "Responsable des sinistres", "1 place de la Bourse", "Cher/Chère Jeanne Dupont :", "Numéro de police : POL-778"]) expect(body, line).toContain(line);
+  for (const line of [
+    "Camille Martin",
+    "12 rue des Lilas",
+    "Port-Louis 11302",
+    "24 septembre 2026",
+    "Jeanne Dupont",
+    "Responsable des sinistres",
+    "1 place de la Bourse",
+    "Cher/Chère Jeanne Dupont :",
+    "Numéro de police : POL-778",
+  ])
+    expect(body, line).toContain(line);
   expect(body.find((t) => t.includes("longue date de"))).toContain("longue date de Assurances &amp; Fils, je conteste cette augmentation de 8 pourcent !");
   expect(texts(header)).toEqual(expect.arrayContaining(["Jeanne Dupont", "24 septembre 2026"]));
   // Values sit where the placeholders were: no placeholder wording is left next to them.
-  for (const placeholder of ["Votre nom", "Adresse postale", "Ville, rue et code postal", "Nom du destinataire", "Compagnie d’assurance", "Cliquez ou appuyez"]) expect(body.join("\n"), placeholder).not.toContain(placeholder);
+  for (const placeholder of ["Votre nom", "Adresse postale", "Ville, rue et code postal", "Nom du destinataire", "Compagnie d’assurance", "Cliquez ou appuyez"])
+    expect(body.join("\n"), placeholder).not.toContain(placeholder);
   // Word must not show a filled box as a placeholder, or refill it from the (empty) bound property.
   for (const value of ["Camille Martin", "Jeanne Dupont", "POL-778"]) {
     const at = xml.indexOf(value);

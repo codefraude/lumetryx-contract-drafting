@@ -6,7 +6,8 @@ import { StreamEvent } from "./contracts/stream-events";
 
 /** Browser functions for a draft's endpoints. Every response is validated against its contract. */
 
-export const fetchCurrentDocument = (signal?: AbortSignal) => requestJson("/api/documents/current", CurrentDocumentResponse, { signal }).then((r) => r.document);
+export const fetchCurrentDocument = (signal?: AbortSignal) =>
+  requestJson("/api/documents/current", CurrentDocumentResponse, { signal }).then((r) => r.document);
 
 export const fetchDocument = (id: string, signal?: AbortSignal) => requestJson(`/api/documents/${id}`, DocumentView, { signal });
 
@@ -21,14 +22,16 @@ export const correctField = (id: string, body: FieldCorrection) => requestJson(`
 export const applyRuleAction = (id: string, body: RuleActionRequest) => requestJson(`/api/documents/${id}/rules`, DocumentView, jsonBody("POST", body));
 
 /** Saves a separate copy, with the editor's current content when given (keeps local edits after a conflict). */
-export const copyDocument = (id: string, snapshot: Blob | null) => requestJson(`/api/documents/${id}/copy`, DocumentView, { method: "POST", body: snapshot ?? new Blob([]) });
+export const copyDocument = (id: string, snapshot: Blob | null) =>
+  requestJson(`/api/documents/${id}/copy`, DocumentView, { method: "POST", body: snapshot ?? new Blob([]) });
 
 export async function loadDocx(id: string, which: "working" | "original") {
   const { blob, headers } = await requestBlob(`/api/documents/${id}/docx?which=${which}`);
   return { blob, revision: Number(headers.get("X-Working-Revision") ?? 0) };
 }
 
-export const saveDocx = (id: string, revision: number, blob: Blob) => requestJson(`/api/documents/${id}/docx?rev=${revision}`, SavedRevision, { method: "PUT", body: blob });
+export const saveDocx = (id: string, revision: number, blob: Blob) =>
+  requestJson(`/api/documents/${id}/docx?rev=${revision}`, SavedRevision, { method: "PUT", body: blob });
 
 /** Fetched rather than navigated to, so a failed export is reported in the page instead of replacing it. */
 export async function downloadDocx(id: string) {
@@ -40,4 +43,5 @@ export async function downloadDocx(id: string) {
 }
 
 /** Streams the draft as the server fills the template. */
-export const streamDraftGeneration = (id: string, fieldsVersion: number, onEvent: (e: StreamEvent) => void, signal: AbortSignal) => postEventStream(`/api/documents/${id}/draft`, { fieldsVersion }, StreamEvent, onEvent, signal);
+export const streamDraftGeneration = (id: string, fieldsVersion: number, onEvent: (e: StreamEvent) => void, signal: AbortSignal) =>
+  postEventStream(`/api/documents/${id}/draft`, { fieldsVersion }, StreamEvent, onEvent, signal);

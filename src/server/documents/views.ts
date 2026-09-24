@@ -55,7 +55,11 @@ export async function documentView(sessionId: string, doc: repo.DocumentSummary)
     analysis: doc.analysis,
     savedAt: doc.savedAt.toISOString(),
     expiresAt: doc.expiresAt.toISOString(),
-    language: { document: s.language.document, conversation: s.conversationLanguage, effective: replyLanguage(s.conversationLanguage, lastUser, s.language.document) },
+    language: {
+      document: s.language.document,
+      conversation: s.conversationLanguage,
+      effective: replyLanguage(s.conversationLanguage, lastUser, s.language.document),
+    },
     rules: ruleViews(s),
     ruleIssues: s.ruleIssues,
     structureIssues: s.structureIssues,

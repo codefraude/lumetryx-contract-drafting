@@ -9,7 +9,8 @@ const GROUP_NAMES: Record<ChatLanguage, Record<Field["group"], string>> = {
   fr: { parties: "les parties", subject: "le bien ou les services", dates: "les dates", money: "les montants", other: "les autres éléments" },
 };
 
-const joinList = (items: string[], lang: ChatLanguage = "en") => (items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} ${lang === "fr" ? "et" : "and"} ${items.at(-1)}`);
+const joinList = (items: string[], lang: ChatLanguage = "en") =>
+  items.length <= 1 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} ${lang === "fr" ? "et" : "and"} ${items.at(-1)}`;
 
 /** Deterministic next question (no LLM call), in the conversation language. */
 function nextQuestion(out: Field[], lang: ChatLanguage): string {
@@ -18,8 +19,16 @@ function nextQuestion(out: Field[], lang: ChatLanguage): string {
   const { group } = head;
   const first = out.filter((f) => f.group === group).slice(0, 3);
   const q = questionIn(head, lang);
-  if (lang === "fr") return q ? `Commençons par ${GROUP_NAMES.fr[group]}. ${q}` : `Commençons par ${GROUP_NAMES.fr[group]} : ${joinList(first.map((f) => f.label.toLowerCase()), "fr")}.`;
-  return q ? `Let's start with ${GROUP_NAMES.en[group]}. ${q}` : `Let's start with ${GROUP_NAMES.en[group]}: ${joinList(first.map((f) => f.label.toLowerCase()))}.`;
+  if (lang === "fr")
+    return q
+      ? `Commençons par ${GROUP_NAMES.fr[group]}. ${q}`
+      : `Commençons par ${GROUP_NAMES.fr[group]} : ${joinList(
+          first.map((f) => f.label.toLowerCase()),
+          "fr",
+        )}.`;
+  return q
+    ? `Let's start with ${GROUP_NAMES.en[group]}. ${q}`
+    : `Let's start with ${GROUP_NAMES.en[group]}: ${joinList(first.map((f) => f.label.toLowerCase()))}.`;
 }
 
 /** Opening message; asks the first group without an LLM call. */
@@ -37,6 +46,7 @@ export function openingMessage(fields: Field[], lang: ChatLanguage = "en", inact
 export function languageSwitchMessage(fields: Field[], lang: ChatLanguage, inactive: ReadonlySet<string>): string {
   const out = outstandingFields(fields, inactive);
   const done = fields.filter((f) => f.status === "confirmed").length;
-  if (lang === "fr") return `D'accord, je continue en français. Vos ${done} réponse${done === 1 ? "" : "s"} déjà confirmée${done === 1 ? "" : "s"} sont conservées et le contrat n'est pas traduit.${out.length ? ` ${nextQuestion(out, "fr").replace(/^Commençons par/, "Poursuivons avec")}` : " Tout est prêt pour générer le projet."}`;
+  if (lang === "fr")
+    return `D'accord, je continue en français. Vos ${done} réponse${done === 1 ? "" : "s"} déjà confirmée${done === 1 ? "" : "s"} sont conservées et le contrat n'est pas traduit.${out.length ? ` ${nextQuestion(out, "fr").replace(/^Commençons par/, "Poursuivons avec")}` : " Tout est prêt pour générer le projet."}`;
   return `Sure, I'll continue in English. Your ${done} confirmed answer${done === 1 ? " is" : "s are"} kept and the contract itself is not translated.${out.length ? ` ${nextQuestion(out, "en").replace(/^Let's start with/, "Next,")}` : " Everything is ready to generate the draft."}`;
 }

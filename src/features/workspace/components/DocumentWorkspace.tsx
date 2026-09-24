@@ -39,7 +39,10 @@ interface Props {
  * One open draft. It is mounted per draft (and per reload of it), so the conversation, the editor and
  * the views start from that draft's saved state, and a stream still running for it stops when it is left.
  */
-export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(function DocumentWorkspace({ doc, onShowDrafts, onClose, onOpenDocument, announce }, ref) {
+export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(function DocumentWorkspace(
+  { doc, onShowDrafts, onClose, onOpenDocument, announce },
+  ref,
+) {
   const queryClient = useQueryClient();
   const editor = useRef<EditorHandle>(null);
   const [save, setSave] = useState<{ status: SaveStatus; message?: string }>({ status: "loading" });
@@ -108,14 +111,23 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
       await editor.current?.flush();
       return true;
     } catch {
-      return ask({ title: "Your latest edits could not be saved", body: "Leave this draft anyway? The edits made since the last save will be lost.", confirm: "Leave without saving", cancel: "Stay here", tone: "danger" });
+      return ask({
+        title: "Your latest edits could not be saved",
+        body: "Leave this draft anyway? The edits made since the last save will be lost.",
+        confirm: "Leave without saving",
+        cancel: "Stay here",
+        tone: "danger",
+      });
     }
   }, [ask]);
   useImperativeHandle(ref, () => ({ leave }), [leave]);
 
   // Stable handlers keep the memoised panels and the editor from re-rendering on every streamed token.
   const onEditorStatus = useCallback((status: SaveStatus, message?: string) => setSave({ status, message }), []);
-  const onEditorSaved = useCallback((revision: number, savedAt: string) => patchDocument(queryClient, doc.id, (d) => ({ ...d, workingRevision: revision, savedAt })), [queryClient, doc.id]);
+  const onEditorSaved = useCallback(
+    (revision: number, savedAt: string) => patchDocument(queryClient, doc.id, (d) => ({ ...d, workingRevision: revision, savedAt })),
+    [queryClient, doc.id],
+  );
   const onRuleAction = useCallback((ruleId: string, action: RuleAction) => applyRule({ ruleId, action }), [applyRule]);
   const mode: DocMode = generation.generating ? "preview" : hasDraft ? "editor" : "template";
   const snapshot = useCallback(async () => (mode === "editor" ? ((await editor.current?.snapshot()) ?? null) : null), [mode]);
@@ -125,12 +137,35 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
   const shown: AssistantView = view === "clauses" && !progress.hasClauses ? "chat" : view;
   const tabs: TabItem<AssistantView>[] = [
     { id: "chat", label: "Chat" },
-    { id: "details", label: "Details", name: `Details, ${progress.confirmed} of ${progress.total} confirmed`, badge: progress.total ? <Count>{`${progress.confirmed}/${progress.total}`}</Count> : undefined },
-    ...(progress.hasClauses ? [{ id: "clauses" as const, label: "Clauses", name: progress.attention ? `Clauses, ${progress.attention} need attention` : "Clauses", badge: progress.attention ? <Count tone="warn">{progress.attention}</Count> : undefined }] : []),
+    {
+      id: "details",
+      label: "Details",
+      name: `Details, ${progress.confirmed} of ${progress.total} confirmed`,
+      badge: progress.total ? <Count>{`${progress.confirmed}/${progress.total}`}</Count> : undefined,
+    },
+    ...(progress.hasClauses
+      ? [
+          {
+            id: "clauses" as const,
+            label: "Clauses",
+            name: progress.attention ? `Clauses, ${progress.attention} need attention` : "Clauses",
+            badge: progress.attention ? <Count tone="warn">{progress.attention}</Count> : undefined,
+          },
+        ]
+      : []),
   ];
 
   const startGeneration = async () => {
-    if (hasDraft && !(await ask({ title: "Regenerate the draft?", body: "The draft is rebuilt from the template with your current answers. Edits you made in the editor are replaced.", confirm: "Regenerate", tone: "danger" }))) return;
+    if (
+      hasDraft &&
+      !(await ask({
+        title: "Regenerate the draft?",
+        body: "The draft is rebuilt from the template with your current answers. Edits you made in the editor are replaced.",
+        confirm: "Regenerate",
+        tone: "danger",
+      }))
+    )
+      return;
     chat.clearFailure();
     setPane("document");
     setDocInFront(true);
@@ -139,10 +174,20 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
   // One failure is shown at a time, with the retry that belongs to it.
   const failure = generation.failure ?? chat.failure;
   const retry = generation.failure ? () => void startGeneration() : chat.retry;
-  const loadNewer = () => void queryClient.fetchQuery({ ...documentQuery(doc.id), staleTime: 0 }).then(onOpenDocument, (e: unknown) => setSave({ status: "conflict", message: errorMessage(e) }));
+  const loadNewer = () =>
+    void queryClient
+      .fetchQuery({ ...documentQuery(doc.id), staleTime: 0 })
+      .then(onOpenDocument, (e: unknown) => setSave({ status: "conflict", message: errorMessage(e) }));
   const newTemplate = async () => {
     if (!(await leave())) return;
-    if (await ask({ title: "Start with a different template?", body: "This draft stays saved. You can reopen it any time from Saved drafts.", confirm: "Choose a template" })) onClose();
+    if (
+      await ask({
+        title: "Start with a different template?",
+        body: "This draft stays saved. You can reopen it any time from Saved drafts.",
+        confirm: "Choose a template",
+      })
+    )
+      onClose();
   };
 
   return (
@@ -164,7 +209,15 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
         downloadHint={generation.generating ? "Available when the draft is ready" : !hasDraft ? "Generate the draft first" : null}
         downloading={download.downloading}
       />
-      <SaveBanner draftSave={hasDraft ? save : null} exportError={download.error} onLoadNewer={loadNewer} onSaveAsNew={() => copy.mutate()} onRetrySave={() => void flush().catch(() => undefined)} onRetryDownload={() => void download.download(exportWarnings(doc))} onDismissExportError={download.dismissError} />
+      <SaveBanner
+        draftSave={hasDraft ? save : null}
+        exportError={download.error}
+        onLoadNewer={loadNewer}
+        onSaveAsNew={() => copy.mutate()}
+        onRetrySave={() => void flush().catch(() => undefined)}
+        onRetryDownload={() => void download.download(exportWarnings(doc))}
+        onDismissExportError={download.dismissError}
+      />
       <ViewSwitcher<AssistantView | "document">
         views={[...tabs, { id: "document", label: "Document", name: "Document" }]}
         active={docInFront ? "document" : shown}
@@ -188,7 +241,12 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
             messages: chat.messages,
             busy: chat.busy,
             failure,
-            disabledReason: doc.analysis === "markers_only" ? "The assistant is unavailable for this template. Fill the details in under Details." : generation.generating ? "Wait for the draft to finish." : null,
+            disabledReason:
+              doc.analysis === "markers_only"
+                ? "The assistant is unavailable for this template. Fill the details in under Details."
+                : generation.generating
+                  ? "Wait for the draft to finish."
+                  : null,
             onSend: (text) => {
               generation.clearFailure();
               return chat.send(text);
@@ -197,7 +255,18 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
             onRetry: retry,
             onLanguage: chat.setLanguage,
           }}
-          nextStep={<NextStep generating={generation.generating} filledSoFar={generation.blocks.filter((b) => b.partKind === "body").length} interrupted={doc.phase === "interrupted"} ready={progress.ready} hasDraft={hasDraft} stale={doc.draftStale} onGenerate={() => void startGeneration()} onStop={generation.stop} />}
+          nextStep={
+            <NextStep
+              generating={generation.generating}
+              filledSoFar={generation.blocks.filter((b) => b.partKind === "body").length}
+              interrupted={doc.phase === "interrupted"}
+              ready={progress.ready}
+              hasDraft={hasDraft}
+              stale={doc.draftStale}
+              onGenerate={() => void startGeneration()}
+              onStop={generation.stop}
+            />
+          }
           onRuleAction={onRuleAction}
         />
         <DocumentPane

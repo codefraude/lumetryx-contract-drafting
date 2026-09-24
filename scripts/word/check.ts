@@ -20,7 +20,12 @@ const wsl = process.platform !== "win32";
 const output = (cmd: string, args: string[]) => spawnSync(cmd, args, { encoding: "utf8" }).stdout.trim();
 const toWindows = (path: string) => (wsl ? output("wslpath", ["-w", path]) : path);
 
-const fixtures = existsSync(OUT) ? readdirSync(OUT).filter((f) => f.endsWith(".filled.docx")).map((f) => f.replace(/\.filled\.docx$/, "")).sort() : [];
+const fixtures = existsSync(OUT)
+  ? readdirSync(OUT)
+      .filter((f) => f.endsWith(".filled.docx"))
+      .map((f) => f.replace(/\.filled\.docx$/, ""))
+      .sort()
+  : [];
 if (!fixtures.length) {
   console.error("Nothing to check yet: run `npm run test:e2e -- word-exports` against a markers-only server first.");
   process.exit(2);
@@ -41,8 +46,16 @@ const answers = new Map(fixtures.map((f) => [f, Answers.parse(JSON.parse(readFil
 for (const f of fixtures) {
   // Free-text answers read the same in every language, so Word can find them and their placeholders.
   const free = (answers.get(f)?.fields ?? []).filter((x) => x.answer.startsWith("Sample "));
-  add(`fixtures/${f}.docx`, `${f}.docx`, free.flatMap((x) => x.placeholders.slice(0, 1)));
-  add(join(OUT, `${f}.filled.docx`), `${f}.filled.docx`, free.map((x) => x.answer));
+  add(
+    `fixtures/${f}.docx`,
+    `${f}.docx`,
+    free.flatMap((x) => x.placeholders.slice(0, 1)),
+  );
+  add(
+    join(OUT, `${f}.filled.docx`),
+    `${f}.filled.docx`,
+    free.map((x) => x.answer),
+  );
   add(join(OUT, `${f}.roundtrip.docx`), `${f}.roundtrip.docx`);
 }
 if (existsSync(EDITED)) add(EDITED, "lease-edited.docx", ["Strictly"]);
@@ -51,7 +64,22 @@ writeFileSync(join(dir, "probes.json"), JSON.stringify(probes));
 copyFileSync("scripts/word/inspect.ps1", join(dir, "inspect.ps1"));
 
 const at = (name: string) => toWindows(join(dir, name));
-const args = ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", at("inspect.ps1"), "-ListFile", at("list.txt"), "-OutFile", at("views.json"), "-PidFile", at("pid.txt"), "-ProbeFile", at("probes.json")];
+const args = [
+  "-NoProfile",
+  "-NonInteractive",
+  "-ExecutionPolicy",
+  "Bypass",
+  "-File",
+  at("inspect.ps1"),
+  "-ListFile",
+  at("list.txt"),
+  "-OutFile",
+  at("views.json"),
+  "-PidFile",
+  at("pid.txt"),
+  "-ProbeFile",
+  at("probes.json"),
+];
 const ps = spawnSync("powershell.exe", [...args, ...(process.argv.includes("--pdf") ? ["-Pdf"] : [])], { stdio: "inherit", timeout: 600_000 });
 if (!existsSync(join(dir, "views.json"))) {
   // Word stuck on a dialog: stop the instance this run started, and only that one.
@@ -63,7 +91,10 @@ if (!existsSync(join(dir, "views.json"))) {
 
 const inspection = Inspection.parse(JSON.parse(readFileSync(join(dir, "views.json"), "utf8")));
 const entry = (name: string) => inspection.files.find((e) => basename(e.file.replaceAll("\\", "/")) === name);
-const opens = (names: string[]): Check => ({ name: "Opens in Word without repair", problems: names.filter((n) => !entry(n)?.opened).map((n) => `${n}: ${entry(n)?.error ?? "not checked"}`) });
+const opens = (names: string[]): Check => ({
+  name: "Opens in Word without repair",
+  problems: names.filter((n) => !entry(n)?.opened).map((n) => `${n}: ${entry(n)?.error ?? "not checked"}`),
+});
 
 const sections: { title: string; pages: string; checks: Check[] }[] = fixtures.map((f) => {
   const [template, filled, roundTrip] = [`${f}.docx`, `${f}.filled.docx`, `${f}.roundtrip.docx`].map((n) => entry(n)?.view ?? null);
@@ -73,7 +104,12 @@ const sections: { title: string; pages: string; checks: Check[] }[] = fixtures.m
 });
 const lease = entry("synthetic-residential-lease.docx")?.view;
 const edited = entry("lease-edited.docx");
-if (edited && lease) sections.push({ title: "synthetic-residential-lease, edited in the browser (flow.spec.ts)", pages: String(edited.view?.pages ?? "?"), checks: [opens(["lease-edited.docx"]), ...(edited.view ? [editChecks(lease, edited.view)] : [])] });
+if (edited && lease)
+  sections.push({
+    title: "synthetic-residential-lease, edited in the browser (flow.spec.ts)",
+    pages: String(edited.view?.pages ?? "?"),
+    checks: [opens(["lease-edited.docx"]), ...(edited.view ? [editChecks(lease, edited.view)] : [])],
+  });
 
 const failed = sections.flatMap((s) => s.checks.filter((c) => c.problems.length).map((c) => `${s.title}: ${c.name}`));
 const lines = [

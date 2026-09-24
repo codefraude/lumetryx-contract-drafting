@@ -31,7 +31,17 @@ const lease = new Uint8Array(readFileSync("fixtures/synthetic-bilingual-lease.do
 const employment = new Uint8Array(readFileSync("fixtures/synthetic-bilingual-employment.docx"));
 
 type AF = TemplateAnalysis["fields"][number];
-const f = (id: string, label: string, valueType: AF["valueType"], group: AF["group"], markerKeys: string[], question: string, questionFr: string): AF => ({ id, label, question, questionFr, valueType, group, required: true, markerKeys, implicit: [] });
+const f = (id: string, label: string, valueType: AF["valueType"], group: AF["group"], markerKeys: string[], question: string, questionFr: string): AF => ({
+  id,
+  label,
+  question,
+  questionFr,
+  valueType,
+  group,
+  required: true,
+  markerKeys,
+  implicit: [],
+});
 
 /** What a correct analysis of the bilingual lease looks like: English and French occurrences of the same value grouped. */
 const LEASE_ANALYSIS: TemplateAnalysis = {
@@ -39,12 +49,52 @@ const LEASE_ANALYSIS: TemplateAnalysis = {
   fields: [
     f("landlord_name", "Landlord / Bailleur", "party", "parties", ["k:landlord name", "k:nom du bailleur"], "Who is the landlord?", "Qui est le bailleur ?"),
     f("tenant_name", "Tenant / Locataire", "party", "parties", ["k:tenant name", "k:nom du locataire"], "Who is the tenant?", "Qui est le locataire ?"),
-    f("property_address", "Property address / Adresse du bien", "address", "subject", ["k:property address", "k:adresse du bien"], "What is the property address?", "Quelle est l'adresse du bien ?"),
-    f("start_date", "Start date / Date de début", "date", "dates", ["k:start date", "k:date de debut"], "When does the lease start?", "Quand le bail commence-t-il ?"),
-    f("term_months", "Term in months / Durée en mois", "number", "dates", ["k:number of months", "k:nombre de mois"], "For how many months?", "Pour combien de mois ?"),
-    f("monthly_rent", "Monthly rent / Loyer mensuel", "money", "money", ["k:monthly rent", "k:loyer mensuel"], "What is the monthly rent?", "Quel est le loyer mensuel ?"),
+    f(
+      "property_address",
+      "Property address / Adresse du bien",
+      "address",
+      "subject",
+      ["k:property address", "k:adresse du bien"],
+      "What is the property address?",
+      "Quelle est l'adresse du bien ?",
+    ),
+    f(
+      "start_date",
+      "Start date / Date de début",
+      "date",
+      "dates",
+      ["k:start date", "k:date de debut"],
+      "When does the lease start?",
+      "Quand le bail commence-t-il ?",
+    ),
+    f(
+      "term_months",
+      "Term in months / Durée en mois",
+      "number",
+      "dates",
+      ["k:number of months", "k:nombre de mois"],
+      "For how many months?",
+      "Pour combien de mois ?",
+    ),
+    f(
+      "monthly_rent",
+      "Monthly rent / Loyer mensuel",
+      "money",
+      "money",
+      ["k:monthly rent", "k:loyer mensuel"],
+      "What is the monthly rent?",
+      "Quel est le loyer mensuel ?",
+    ),
     f("deposit", "Deposit / Dépôt de garantie", "money", "money", ["k:deposit"], "How much is the deposit?", "Quel est le montant du dépôt de garantie ?"),
-    f("reference", "Reference", "text", "other", ["k:reference number"], "What reference should appear in the header?", "Quelle référence doit figurer en en-tête ?"),
+    f(
+      "reference",
+      "Reference",
+      "text",
+      "other",
+      ["k:reference number"],
+      "What reference should appear in the header?",
+      "Quelle référence doit figurer en en-tête ?",
+    ),
   ],
 };
 
@@ -115,12 +165,22 @@ describe("French and bilingual templates", () => {
     const s = await newSession();
     const d = await createFromUpload(s, "bail.docx", lease);
     expect(d.language.document).toBe("mixed");
-    expect(d.fields.find((x) => x.id === "tenant_name")!.occurrences.map((o) => o.lang).sort()).toEqual(["en", "fr"]);
+    expect(
+      d.fields
+        .find((x) => x.id === "tenant_name")!
+        .occurrences.map((o) => o.lang)
+        .sort(),
+    ).toEqual(["en", "fr"]);
 
     const msg = "Le locataire est Hélène Dupré-Lefèvre, le bail commence le 1er octobre 2026 et le loyer est de 1 250,50 EUR par mois.";
-    await say(s, d.id, msg, { updates: [u("tenant_name", "Hélène Dupré-Lefèvre"), u("start_date", "1er octobre 2026"), u("monthly_rent", "1 250,50 EUR", "1 250,50 EUR")] });
+    await say(s, d.id, msg, {
+      updates: [u("tenant_name", "Hélène Dupré-Lefèvre"), u("start_date", "1er octobre 2026"), u("monthly_rent", "1 250,50 EUR", "1 250,50 EUR")],
+    });
     const v = await getView(s.id, d.id);
-    expect(v.fields.find((x) => x.id === "monthly_rent")).toMatchObject({ status: "confirmed", normalized: { kind: "money", amount: "1250.50", currency: "EUR" } });
+    expect(v.fields.find((x) => x.id === "monthly_rent")).toMatchObject({
+      status: "confirmed",
+      normalized: { kind: "money", amount: "1250.50", currency: "EUR" },
+    });
     expect(v.fields.find((x) => x.id === "start_date")!.normalized).toEqual({ kind: "date", iso: "2026-10-01" });
     expect(v.language.effective).toBe("fr");
     expect(lastReplyPrompt).toContain("REPLY LANGUAGE: French");
@@ -133,7 +193,13 @@ describe("French and bilingual templates", () => {
     expect(en.messages.at(-1)!.content).toMatch(/continue in English.*3 confirmed answers are kept/);
     expect(en.fields.filter((x) => x.status === "confirmed")).toHaveLength(3);
     await say(s, en.id, "The landlord is Ravi Ramdin, property 4 Sea View Lane, 12 months, deposit EUR 2,500, ref LX-9", {
-      updates: [u("landlord_name", "Ravi Ramdin"), u("property_address", "4 Sea View Lane"), u("term_months", "12"), u("deposit", "EUR 2,500"), u("reference", "LX-9")],
+      updates: [
+        u("landlord_name", "Ravi Ramdin"),
+        u("property_address", "4 Sea View Lane"),
+        u("term_months", "12"),
+        u("deposit", "EUR 2,500"),
+        u("reference", "LX-9"),
+      ],
     });
     expect(lastReplyPrompt).toContain("REPLY LANGUAGE: English");
 
@@ -157,7 +223,17 @@ describe("French and bilingual templates", () => {
 });
 
 describe("conditional clauses", () => {
-  const EMPLOYMENT: TemplateAnalysis = { notFields: [], fields: [], conditions: [{ name: "employee_is_senior", question: "Is the employee classified as senior for this agreement?", questionFr: "Le salarié est-il classé cadre dirigeant pour ce contrat ?" }] };
+  const EMPLOYMENT: TemplateAnalysis = {
+    notFields: [],
+    fields: [],
+    conditions: [
+      {
+        name: "employee_is_senior",
+        question: "Is the employee classified as senior for this agreement?",
+        questionFr: "Le salarié est-il classé cadre dirigeant pour ce contrat ?",
+      },
+    ],
+  };
 
   async function setup() {
     analysis = EMPLOYMENT;
@@ -171,7 +247,18 @@ describe("conditional clauses", () => {
       const v = await getView(sid, docId);
       const next = v.fields.find((x) => x.status !== "confirmed" && x.source !== "condition" && !skip(x.id));
       if (!next) return v;
-      await correctField(sid, docId, { fieldsVersion: v.fieldsVersion, fieldId: next.id, value: next.valueType === "date" ? "1 October 2026" : next.valueType === "money" ? "EUR 1,250.50" : next.valueType === "duration" ? "12 months" : `V ${next.id}` });
+      await correctField(sid, docId, {
+        fieldsVersion: v.fieldsVersion,
+        fieldId: next.id,
+        value:
+          next.valueType === "date"
+            ? "1 October 2026"
+            : next.valueType === "money"
+              ? "EUR 1,250.50"
+              : next.valueType === "duration"
+                ? "12 months"
+                : `V ${next.id}`,
+      });
     }
   }
 
@@ -179,8 +266,19 @@ describe("conditional clauses", () => {
     const { s, d } = await setup();
     expect(d.rules).toMatchObject([{ id: "clause_employee_is_senior", state: "unresolved", source: "marker" }]);
     expect(d.fields.find((x) => x.id === "employee_is_senior")!.question).toBe("Is the employee classified as senior for this agreement?");
-    await fillAllExcept(s.id, d.id, (id) => ["non_compete_period", "restricted_area", "zone_geographique", "duree_de_non_concurrence", "non_compete_indemnity", "indemnite_de_non_concurrence"].includes(id));
-    expect(await generate(s.id, d.id)).toEqual([expect.objectContaining({ type: "error", code: "incomplete", message: expect.stringMatching(/Employee is senior.*decision for “Non-competition”/) })]);
+    await fillAllExcept(s.id, d.id, (id) =>
+      [
+        "non_compete_period",
+        "restricted_area",
+        "zone_geographique",
+        "duree_de_non_concurrence",
+        "non_compete_indemnity",
+        "indemnite_de_non_concurrence",
+      ].includes(id),
+    );
+    expect(await generate(s.id, d.id)).toEqual([
+      expect.objectContaining({ type: "error", code: "incomplete", message: expect.stringMatching(/Employee is senior.*decision for “Non-competition”/) }),
+    ]);
 
     // "No": the clause's own fields no longer block completion.
     await say(s, d.id, "non", { updates: [u("employee_is_senior", "no", "non")] });
@@ -254,7 +352,8 @@ describe("saved drafts", () => {
       () => ruleAction(b.id, d2.id, { fieldsVersion: 1, ruleId: "clause_employee_is_senior", action: "include" }),
       () => setConversationLanguage(b.id, d1.id, { fieldsVersion: 1, language: "fr" }),
       () => readDocx(b.id, d1.id, "original"),
-    ]) await expect(attempt()).rejects.toBeInstanceOf(NotFound);
+    ])
+      await expect(attempt()).rejects.toBeInstanceOf(NotFound);
 
     const copy = await copyDraft(a.id, d1.id, null);
     expect(copy.title).toBe("Dupont lease (copy)");
@@ -294,7 +393,11 @@ describe("saved drafts", () => {
 
     for (const field of (await getView(s.id, d.id)).fields) {
       const v = await getView(s.id, d.id);
-      await correctField(s.id, d.id, { fieldsVersion: v.fieldsVersion, fieldId: field.id, value: field.valueType === "date" ? "1 October 2026" : field.valueType === "money" ? "EUR 100" : "X" });
+      await correctField(s.id, d.id, {
+        fieldsVersion: v.fieldsVersion,
+        fieldId: field.id,
+        value: field.valueType === "date" ? "1 October 2026" : field.valueType === "money" ? "EUR 100" : "X",
+      });
     }
     const before = { ...calls };
     expect((await generate(s.id, d.id)).at(-1)!.type).toBe("draft_complete");
@@ -338,7 +441,13 @@ describe("Word content controls", () => {
     let d = await createFromUpload(s, "lettre.docx", new Uint8Array(readFileSync("fixtures/synthetic-lettre-controles-fr.docx")));
     const titre = d.fields.find((x) => x.label === "Titre")!;
     for (const field of d.fields) {
-      d = await correctField(s.id, d.id, field.id === titre.id ? { fieldsVersion: d.fieldsVersion, fieldId: field.id, required: false } : { fieldsVersion: d.fieldsVersion, fieldId: field.id, value: field.valueType === "date" ? "24 septembre 2026" : `Valeur ${field.id}` });
+      d = await correctField(
+        s.id,
+        d.id,
+        field.id === titre.id
+          ? { fieldsVersion: d.fieldsVersion, fieldId: field.id, required: false }
+          : { fieldsVersion: d.fieldsVersion, fieldId: field.id, value: field.valueType === "date" ? "24 septembre 2026" : `Valeur ${field.id}` },
+      );
     }
     expect((await generate(s.id, d.id)).some((e) => e.type === "draft_complete")).toBe(true);
     expect(await bodyText((await readDocx(s.id, d.id, "working")).bytes)).toContain("Titre"); // still the placeholder

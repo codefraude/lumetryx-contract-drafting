@@ -49,8 +49,12 @@ export function Composer({ busy, disabledReason, onSend, onStop, onSubmitted }: 
           {disabledReason}
         </p>
       )}
-      <div className={`flex items-end gap-2 rounded-2xl border bg-surface p-1.5 pl-3.5 shadow-sm transition-[border-color,box-shadow] duration-150 dark:bg-raised ${off ? "border-line opacity-70" : "border-control/60 focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--lx-primary)_20%,transparent)]"}`}>
-        <label htmlFor="composer" className="sr-only">Message the assistant</label>
+      <div
+        className={`flex items-end gap-2 rounded-2xl border bg-surface p-1.5 pl-3.5 shadow-sm transition-[border-color,box-shadow] duration-150 dark:bg-raised ${off ? "border-line opacity-70" : "border-control/60 focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--lx-primary)_20%,transparent)]"}`}
+      >
+        <label htmlFor="composer" className="sr-only">
+          Message the assistant
+        </label>
         <textarea
           id="composer"
           ref={area}

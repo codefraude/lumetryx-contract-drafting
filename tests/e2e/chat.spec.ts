@@ -10,7 +10,9 @@ import { expect, test, type Page } from "@playwright/test";
  */
 type Field = { id: string; label: string };
 const frame = (e: object) => `event: e\ndata: ${JSON.stringify(e)}\n\n`;
-const LONG = "Thanks, noted.\n\nBefore drafting I still need:\n- the landlord's full name\n- the property address\n- the start date\n\n" + "The monthly rent is written in the rent clause and in the schedule, so one answer fills both places. ".repeat(6);
+const LONG =
+  "Thanks, noted.\n\nBefore drafting I still need:\n- the landlord's full name\n- the property address\n- the start date\n\n" +
+  "The monthly rent is written in the rent clause and in the schedule, so one answer fills both places. ".repeat(6);
 
 async function open(page: Page) {
   // Present the document as AI-analysed so the composer is enabled (markers-only mode disables it).
@@ -69,7 +71,10 @@ test("new content does not move a reader who scrolled up; Jump to latest does", 
   await page.route(/\/api\/documents\/[^/]+\/chat$/, async (route) => {
     const { requestId, fieldsVersion } = route.request().postDataJSON() as { requestId: string; fieldsVersion: number };
     await new Promise((r) => setTimeout(r, 900));
-    const events = [{ type: "fields_updated", fields, fieldsVersion, changed: [] }, { type: "assistant_done", text: LONG }];
+    const events = [
+      { type: "fields_updated", fields, fieldsVersion, changed: [] },
+      { type: "assistant_done", text: LONG },
+    ];
     await route.fulfill({ status: 200, contentType: "text/event-stream", body: events.map((e, seq) => frame({ ...e, requestId, seq })).join("") });
   });
   const conversation = page.getByRole("region", { name: "Conversation" });

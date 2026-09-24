@@ -43,8 +43,14 @@ export function UploadPanel({ onFile, busy, error, onShowDrafts, maxMb }: Props)
   const accept = (f: File | undefined) => {
     setLocal(null);
     if (!f) return;
-    if (!/\.docx$/i.test(f.name)) return setLocal(`“${f.name}” is not a Word .docx file. If your template is a .doc, PDF or Pages file, open it in Word, save it as .docx, then upload that copy.`);
-    if (f.size > maxMb * 1024 * 1024) return setLocal(`“${f.name}” is ${(f.size / 1024 / 1024).toFixed(1)} MB. Files up to ${maxMb} MB are supported; remove large images from the template and try again.`);
+    if (!/\.docx$/i.test(f.name))
+      return setLocal(
+        `“${f.name}” is not a Word .docx file. If your template is a .doc, PDF or Pages file, open it in Word, save it as .docx, then upload that copy.`,
+      );
+    if (f.size > maxMb * 1024 * 1024)
+      return setLocal(
+        `“${f.name}” is ${(f.size / 1024 / 1024).toFixed(1)} MB. Files up to ${maxMb} MB are supported; remove large images from the template and try again.`,
+      );
     onFile(f);
   };
 
@@ -87,17 +93,24 @@ export function UploadPanel({ onFile, busy, error, onShowDrafts, maxMb }: Props)
 
       <main className="mx-auto grid w-full max-w-[1200px] flex-1 grid-cols-1 content-start gap-x-16 gap-y-10 px-4 pb-16 pt-10 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)] lg:grid-rows-[auto_auto_auto_1fr] lg:pt-16">
         <div className="lg:col-start-1 lg:row-start-1">
-          <h1 className="lx-rise max-w-[28ch] font-serif text-[30px] font-semibold leading-[1.12] tracking-[-0.015em] text-ink sm:text-[38px] lg:text-[36px] xl:text-[38px]" style={stagger(0)}>
+          <h1
+            className="lx-rise max-w-[28ch] font-serif text-[30px] font-semibold leading-[1.12] tracking-[-0.015em] text-ink sm:text-[38px] lg:text-[36px] xl:text-[38px]"
+            style={stagger(0)}
+          >
             Draft a contract from your own Word template.
           </h1>
           <p className="lx-rise mt-4 max-w-[54ch] text-[16px] leading-relaxed text-ink-2" style={stagger(1)}>
-            Upload the template you already use. The assistant asks for the missing details and writes them into the document itself, so its formatting carries over. You edit the draft and download a .docx.
+            Upload the template you already use. The assistant asks for the missing details and writes them into the document itself, so its formatting carries
+            over. You edit the draft and download a .docx.
           </p>
         </div>
 
         <section aria-labelledby="upload-title" className="lx-rise relative lg:col-start-2 lg:row-span-4 lg:row-start-1" style={stagger(2)}>
           {/* One faint tint behind the card gives it depth without decorating the page. */}
-          <div aria-hidden className="pointer-events-none absolute -inset-8 -z-10 rounded-[40px] max-lg:hidden bg-[radial-gradient(60%_60%_at_50%_35%,var(--lx-tint),transparent)]" />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-8 -z-10 rounded-[40px] max-lg:hidden bg-[radial-gradient(60%_60%_at_50%_35%,var(--lx-tint),transparent)]"
+          />
           <div className="rounded-[20px] border border-line bg-raised p-2 shadow-md">
             <div
               onDragOver={(e) => {
@@ -123,11 +136,15 @@ export function UploadPanel({ onFile, busy, error, onShowDrafts, maxMb }: Props)
                   <h2 id="upload-title" className="mt-5 break-words text-[17px] font-semibold text-ink">
                     Reading “{busy}”
                   </h2>
-                  <p className="mx-auto mt-1.5 max-w-[36ch] text-sm leading-relaxed text-ink-2">Checking the file and finding the fields to fill. This usually takes a few seconds.</p>
+                  <p className="mx-auto mt-1.5 max-w-[36ch] text-sm leading-relaxed text-ink-2">
+                    Checking the file and finding the fields to fill. This usually takes a few seconds.
+                  </p>
                 </div>
               ) : (
                 <>
-                  <div className={`mx-auto grid size-14 place-items-center rounded-2xl bg-accent-surface text-accent-ink transition-transform duration-200 ease-(--ease-out) ${over ? "-translate-y-1 scale-105" : ""}`}>
+                  <div
+                    className={`mx-auto grid size-14 place-items-center rounded-2xl bg-accent-surface text-accent-ink transition-transform duration-200 ease-(--ease-out) ${over ? "-translate-y-1 scale-105" : ""}`}
+                  >
                     <FileUp aria-hidden className="size-7" strokeWidth={1.8} />
                   </div>
                   <h2 id="upload-title" className="mt-5 text-[17px] font-semibold text-ink">
@@ -192,10 +209,23 @@ export function UploadPanel({ onFile, busy, error, onShowDrafts, maxMb }: Props)
                       {ex.conditional && <span className="ml-2 text-accent-ink">Conditional clause</span>}
                     </p>
                   </div>
-                  <Button size="sm" variant="secondary" busy={fetching === ex.file} disabled={working || fetching !== null} onClick={() => void tryExample(ex)} aria-label={`Use the ${ex.title} example`}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    busy={fetching === ex.file}
+                    disabled={working || fetching !== null}
+                    onClick={() => void tryExample(ex)}
+                    aria-label={`Use the ${ex.title} example`}
+                  >
                     Use
                   </Button>
-                  <a href={`/examples/${ex.file}`} download aria-label={`Download the ${ex.title} example`} title="Download .docx" className="grid size-8 shrink-0 place-items-center rounded-control text-ink-3 transition-colors hover:bg-hover hover:text-ink pointer-coarse:size-10">
+                  <a
+                    href={`/examples/${ex.file}`}
+                    download
+                    aria-label={`Download the ${ex.title} example`}
+                    title="Download .docx"
+                    className="grid size-8 shrink-0 place-items-center rounded-control text-ink-3 transition-colors hover:bg-hover hover:text-ink pointer-coarse:size-10"
+                  >
                     <Download aria-hidden className="size-4" />
                   </a>
                 </li>
@@ -225,8 +255,13 @@ export function UploadPanel({ onFile, busy, error, onShowDrafts, maxMb }: Props)
           </summary>
           <ul className="space-y-2 border-t border-line px-4 py-3.5 text-[13.5px] leading-relaxed text-ink-2">
             <li>One unencrypted .docx up to {maxMb} MB. Macros are never run.</li>
-            <li>To find the fields and understand your answers, the template text and your messages are sent from the server to the AI model (Google Gemini).</li>
-            <li>Values are written into the template&apos;s own text, so fonts, numbering, tables, headers and footers carry over. Review the draft before you rely on it.</li>
+            <li>
+              To find the fields and understand your answers, the template text and your messages are sent from the server to the AI model (Google Gemini).
+            </li>
+            <li>
+              Values are written into the template&apos;s own text, so fonts, numbering, tables, headers and footers carry over. Review the draft before you
+              rely on it.
+            </li>
             <li>No account is needed. Drafts are saved on the server, linked to this browser, and kept for a set period after their last save.</li>
           </ul>
         </details>

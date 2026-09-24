@@ -25,7 +25,12 @@ const s = await generateText({
 });
 console.log(`[structured] model=${modelId} finish=${s.finishReason}`, s.output, s.usage);
 
-const r = streamText({ model, providerOptions, maxOutputTokens: 120, prompt: "In one sentence, ask a lawyer who the landlord is and whether it is an individual or a company." });
+const r = streamText({
+  model,
+  providerOptions,
+  maxOutputTokens: 120,
+  prompt: "In one sentence, ask a lawyer who the landlord is and whether it is an individual or a company.",
+});
 let chunks = 0;
 process.stdout.write("[stream] ");
 for await (const d of r.textStream) {

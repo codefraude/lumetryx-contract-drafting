@@ -153,7 +153,8 @@ export function insertClause(bd: BodyDoc, xml: string, slot: { before: string | 
   const holder = (id: string | null) => (id ? kids.find((el) => paraIdsIn(el).includes(id)) : undefined);
   const after = holder(slot.before);
   const before = after ? undefined : holder(slot.after);
-  if (!after && !before) throw new ClauseStructureError("The paragraphs around this clause were removed in the editor, so it can't be put back in a safe place.");
+  if (!after && !before)
+    throw new ClauseStructureError("The paragraphs around this clause were removed in the editor, so it can't be put back in a safe place.");
   const wrapper = parseXml(`<w:body xmlns:w="${W_NS}">${xml}</w:body>`).documentElement;
   if (!wrapper) throw new ClauseStructureError("The removed clause could not be read back.");
   const nodes = children(wrapper).map((el) => bd.doc.importNode(el, true));

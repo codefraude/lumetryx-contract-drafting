@@ -4,7 +4,11 @@ import { requireSession } from "@/server/session";
 
 export const runtime = "nodejs";
 
-const safeName = (name: string) => name.replace(/\.docx$/i, "").replace(/[^\w .-]+/g, "_").slice(0, 80) || "contract";
+const safeName = (name: string) =>
+  name
+    .replace(/\.docx$/i, "")
+    .replace(/[^\w .-]+/g, "_")
+    .slice(0, 80) || "contract";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

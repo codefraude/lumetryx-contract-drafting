@@ -10,7 +10,11 @@ export const MC_NS = "http://schemas.openxmlformats.org/markup-compatibility/200
 export const XML_NS = "http://www.w3.org/XML/1998/namespace";
 
 export const parseXml = (xml: string): XmlDocument => {
-  const doc = new DOMParser({ onError: (level, msg) => { if (level !== "warning") throw new DocxValidationError("corrupt", `Invalid XML: ${msg}`); } }).parseFromString(xml, "application/xml");
+  const doc = new DOMParser({
+    onError: (level, msg) => {
+      if (level !== "warning") throw new DocxValidationError("corrupt", `Invalid XML: ${msg}`);
+    },
+  }).parseFromString(xml, "application/xml");
   return doc;
 };
 

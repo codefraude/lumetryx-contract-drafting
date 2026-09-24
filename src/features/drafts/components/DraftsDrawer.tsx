@@ -56,22 +56,35 @@ export function DraftsDrawer({ open, currentId, onClose, onOpen, onDeleted }: Pr
   };
 
   const confirmDelete = async (d: DraftListItem) => {
-    const ok = await ask({ title: `Delete “${d.title}”?`, body: "The draft, its answers and its conversation are deleted permanently. This cannot be undone.", confirm: "Delete draft", tone: "danger" });
+    const ok = await ask({
+      title: `Delete “${d.title}”?`,
+      body: "The draft, its answers and its conversation are deleted permanently. This cannot be undone.",
+      confirm: "Delete draft",
+      tone: "danger",
+    });
     if (ok) await run(d.id, () => remove.mutateAsync(d.id).then(() => onDeleted(d.id)));
   };
 
   const drafts = list.data;
   const error = actionError ?? (list.error ? errorMessage(list.error) : null);
   return (
-    <dialog ref={dialog} onClose={onClose} aria-labelledby={titleId} className="lx-drawer fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-none w-full max-w-md border-l border-line bg-surface p-0 text-ink shadow-lg sm:w-[28rem]">
+    <dialog
+      ref={dialog}
+      onClose={onClose}
+      aria-labelledby={titleId}
+      className="lx-drawer fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-none w-full max-w-md border-l border-line bg-surface p-0 text-ink shadow-lg sm:w-[28rem]"
+    >
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 border-b border-line px-5 py-4">
           <FolderOpen aria-hidden className="size-5 text-ink-2" />
-          <h2 id={titleId} className="flex-1 text-[17px] font-semibold">Saved drafts</h2>
+          <h2 id={titleId} className="flex-1 text-[17px] font-semibold">
+            Saved drafts
+          </h2>
           <IconButton label="Close" icon={X} onClick={onClose} />
         </div>
         <p className="border-b border-line bg-subtle px-5 py-3 text-[13px] leading-relaxed text-ink-2">
-          Drafts are saved on the server and linked to this browser, with no account. Each one is kept until the date shown, which moves forward whenever you save. Another browser, device or private window will not see them.
+          Drafts are saved on the server and linked to this browser, with no account. Each one is kept until the date shown, which moves forward whenever you
+          save. Another browser, device or private window will not see them.
         </p>
         {error && (
           <div role="alert" className="mx-5 mt-4 flex items-start gap-2 rounded-xl border border-danger-line bg-danger-surface px-3.5 py-3 text-sm text-danger">

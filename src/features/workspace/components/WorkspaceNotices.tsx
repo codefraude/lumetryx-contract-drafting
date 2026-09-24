@@ -6,7 +6,10 @@ import { TONE, type Tone } from "@/shared/ui/Status";
 
 function Banner({ tone, icon: Icon, title, children, actions }: { tone: Tone; icon: LucideIcon; title: string; children?: ReactNode; actions: ReactNode }) {
   return (
-    <div role="alert" className={`lx-rise flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-x-0 border-t-0 border-b px-4 py-2.5 text-sm ${TONE[tone]}`}>
+    <div
+      role="alert"
+      className={`lx-rise flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-x-0 border-t-0 border-b px-4 py-2.5 text-sm ${TONE[tone]}`}
+    >
       <Icon aria-hidden className="size-4 shrink-0" />
       <p className="min-w-0 flex-1 basis-64">
         <span className="font-semibold">{title}</span>
@@ -38,8 +41,12 @@ export function SaveBanner({ draftSave: save, exportError, onLoadNewer, onSaveAs
         title="This draft was changed somewhere else."
         actions={
           <>
-            <Button size="sm" variant="primary" onClick={onLoadNewer}>Load the newer version</Button>
-            <Button size="sm" variant="secondary" onClick={onSaveAsNew}>Save mine as a new draft</Button>
+            <Button size="sm" variant="primary" onClick={onLoadNewer}>
+              Load the newer version
+            </Button>
+            <Button size="sm" variant="secondary" onClick={onSaveAsNew}>
+              Save mine as a new draft
+            </Button>
           </>
         }
       >
@@ -48,7 +55,16 @@ export function SaveBanner({ draftSave: save, exportError, onLoadNewer, onSaveAs
     );
   if (save?.status === "error")
     return (
-      <Banner tone="danger" icon={CircleAlert} title="Your latest edits are not saved." actions={<Button size="sm" variant="secondary" icon={RotateCcw} onClick={onRetrySave}>Retry save</Button>}>
+      <Banner
+        tone="danger"
+        icon={CircleAlert}
+        title="Your latest edits are not saved."
+        actions={
+          <Button size="sm" variant="secondary" icon={RotateCcw} onClick={onRetrySave}>
+            Retry save
+          </Button>
+        }
+      >
         {save.message}
       </Banner>
     );
@@ -60,8 +76,12 @@ export function SaveBanner({ draftSave: save, exportError, onLoadNewer, onSaveAs
         title="The download failed."
         actions={
           <>
-            <Button size="sm" variant="secondary" icon={RotateCcw} onClick={onRetryDownload}>Try again</Button>
-            <Button size="sm" variant="ghost" onClick={onDismissExportError}>Dismiss</Button>
+            <Button size="sm" variant="secondary" icon={RotateCcw} onClick={onRetryDownload}>
+              Try again
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onDismissExportError}>
+              Dismiss
+            </Button>
           </>
         }
       >
@@ -71,7 +91,19 @@ export function SaveBanner({ draftSave: save, exportError, onLoadNewer, onSaveAs
   return null;
 }
 
-function StepBar({ tone = "neutral", icon, text, detail, action }: { tone?: "neutral" | "accent" | "warn"; icon: ReactNode; text: string; detail?: string; action: ReactNode }) {
+function StepBar({
+  tone = "neutral",
+  icon,
+  text,
+  detail,
+  action,
+}: {
+  tone?: "neutral" | "accent" | "warn";
+  icon: ReactNode;
+  text: string;
+  detail?: string;
+  action: ReactNode;
+}) {
   const cls = tone === "accent" ? "border-transparent bg-accent-surface" : tone === "warn" ? "border-warn-line bg-warn-surface" : "border-line bg-subtle";
   return (
     <div role="status" className={`lx-rise mx-3 mb-1 flex items-center gap-3 rounded-xl border px-3.5 py-2.5 sm:mx-4 ${cls}`}>
@@ -98,9 +130,59 @@ interface NextStepProps {
 
 /** What to do next about the draft, shown above the message box. */
 export function NextStep({ generating, filledSoFar, interrupted, ready, hasDraft, stale, onGenerate, onStop }: NextStepProps) {
-  if (generating) return <StepBar icon={<LoaderCircle aria-hidden className="size-4 animate-spin text-accent-ink" />} text="Generating the draft" detail={`${filledSoFar} paragraphs filled so far`} action={<Button variant="secondary" onClick={onStop}>Stop</Button>} />;
-  if (interrupted) return <StepBar tone="warn" icon={<TriangleAlert aria-hidden className="size-4 text-warn" />} text="The last draft generation was interrupted" detail="Your answers are saved." action={<Button variant="primary" onClick={onGenerate}>Retry generation</Button>} />;
-  if (ready && !hasDraft) return <StepBar tone="accent" icon={<CircleCheck aria-hidden className="size-4 text-accent-ink" />} text="All details are confirmed" detail="Generate the draft to review and edit it." action={<Button variant="primary" onClick={onGenerate}>Generate draft</Button>} />;
-  if (hasDraft && stale && ready) return <StepBar icon={<Info aria-hidden className="size-4 text-ink-2" />} text="Some answers changed since the draft was made" detail="Regenerating rebuilds it from the template and replaces your edits." action={<Button variant="secondary" onClick={onGenerate}>Regenerate</Button>} />;
+  if (generating)
+    return (
+      <StepBar
+        icon={<LoaderCircle aria-hidden className="size-4 animate-spin text-accent-ink" />}
+        text="Generating the draft"
+        detail={`${filledSoFar} paragraphs filled so far`}
+        action={
+          <Button variant="secondary" onClick={onStop}>
+            Stop
+          </Button>
+        }
+      />
+    );
+  if (interrupted)
+    return (
+      <StepBar
+        tone="warn"
+        icon={<TriangleAlert aria-hidden className="size-4 text-warn" />}
+        text="The last draft generation was interrupted"
+        detail="Your answers are saved."
+        action={
+          <Button variant="primary" onClick={onGenerate}>
+            Retry generation
+          </Button>
+        }
+      />
+    );
+  if (ready && !hasDraft)
+    return (
+      <StepBar
+        tone="accent"
+        icon={<CircleCheck aria-hidden className="size-4 text-accent-ink" />}
+        text="All details are confirmed"
+        detail="Generate the draft to review and edit it."
+        action={
+          <Button variant="primary" onClick={onGenerate}>
+            Generate draft
+          </Button>
+        }
+      />
+    );
+  if (hasDraft && stale && ready)
+    return (
+      <StepBar
+        icon={<Info aria-hidden className="size-4 text-ink-2" />}
+        text="Some answers changed since the draft was made"
+        detail="Regenerating rebuilds it from the template and replaces your edits."
+        action={
+          <Button variant="secondary" onClick={onGenerate}>
+            Regenerate
+          </Button>
+        }
+      />
+    );
   return null;
 }

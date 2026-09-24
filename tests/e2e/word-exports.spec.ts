@@ -8,13 +8,36 @@ import { mkdirSync, writeFileSync } from "node:fs";
  */
 const ORIGIN = { Origin: process.env.APP_URL ?? "http://localhost:3000" };
 const OUT = "tests/output/word";
-const FIXTURES = ["synthetic-mutual-nda", "synthetic-residential-lease", "synthetic-contrat-prestation-fr", "synthetic-bilingual-lease", "synthetic-bilingual-employment", "synthetic-lettre-controles-fr", "synthetic-supply-agreement"];
+const FIXTURES = [
+  "synthetic-mutual-nda",
+  "synthetic-residential-lease",
+  "synthetic-contrat-prestation-fr",
+  "synthetic-bilingual-lease",
+  "synthetic-bilingual-employment",
+  "synthetic-lettre-controles-fr",
+  "synthetic-supply-agreement",
+];
 
-type Field = { id: string; label: string; valueType: string; status: string; displayValue: string | null; occurrences: { blockId: string; expected: string }[] };
+type Field = {
+  id: string;
+  label: string;
+  valueType: string;
+  status: string;
+  displayValue: string | null;
+  occurrences: { blockId: string; expected: string }[];
+};
 type Doc = { id: string; fieldsVersion: number; fields: Field[] };
 
 /** An answer that validates for each kind of detail (an amount without separators is unambiguous in French too); free-text answers name their field. */
-const ANSWERS: Record<string, string> = { date: "1 October 2026", money: "MUR 25000", number: "3", percentage: "8%", duration: "12 months", jurisdiction: "Mauritius", boolean: "yes" };
+const ANSWERS: Record<string, string> = {
+  date: "1 October 2026",
+  money: "MUR 25000",
+  number: "3",
+  percentage: "8%",
+  duration: "12 months",
+  jurisdiction: "Mauritius",
+  boolean: "yes",
+};
 const answer = (f: Field) => ANSWERS[f.valueType] ?? `Sample ${f.label}`;
 
 const current = async (page: Page) => (await (await page.request.get("/api/documents/current")).json()).document as Doc;
@@ -38,11 +61,20 @@ for (const name of FIXTURES) {
     await page.setInputFiles("input[type=file]", `fixtures/${name}.docx`);
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible({ timeout: 20_000 });
     let doc = await current(page);
-    for (const f of doc.fields) doc = await (await page.request.patch(`/api/documents/${doc.id}/fields`, { headers: ORIGIN, data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: answer(f) } })).json();
+    for (const f of doc.fields)
+      doc = await (
+        await page.request.patch(`/api/documents/${doc.id}/fields`, {
+          headers: ORIGIN,
+          data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: answer(f) },
+        })
+      ).json();
     expect(doc.fields.filter((f) => f.status !== "confirmed").map((f) => f.label)).toEqual([]);
 
     // The server's own output, before the editor has opened it.
-    const generated = await page.request.post(`/api/documents/${doc.id}/draft`, { headers: ORIGIN, data: { fieldsVersion: doc.fieldsVersion, requestId: crypto.randomUUID() } });
+    const generated = await page.request.post(`/api/documents/${doc.id}/draft`, {
+      headers: ORIGIN,
+      data: { fieldsVersion: doc.fieldsVersion, requestId: crypto.randomUUID() },
+    });
     expect(await generated.text()).toContain("draft_complete");
     writeFileSync(`${OUT}/${name}.filled.docx`, await (await page.request.get(`/api/documents/${doc.id}/docx?which=working`)).body());
 
@@ -70,6 +102,13 @@ for (const name of FIXTURES) {
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download .docx" }).click()]);
     await download.saveAs(`${OUT}/${name}.roundtrip.docx`);
 
-    writeFileSync(`${OUT}/${name}.json`, JSON.stringify({ fields: doc.fields.map((f) => ({ label: f.label, answer: answer(f), shown: f.displayValue, placeholders: f.occurrences.map((o) => o.expected) })) }, null, 2));
+    writeFileSync(
+      `${OUT}/${name}.json`,
+      JSON.stringify(
+        { fields: doc.fields.map((f) => ({ label: f.label, answer: answer(f), shown: f.displayValue, placeholders: f.occurrences.map((o) => o.expected) })) },
+        null,
+        2,
+      ),
+    );
   });
 }

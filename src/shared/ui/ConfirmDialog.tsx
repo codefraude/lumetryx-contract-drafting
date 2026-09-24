@@ -41,14 +41,25 @@ function ConfirmDialog({ request, onFinish }: { request: Request | null; onFinis
   }, [open]);
   const danger = request?.tone === "danger";
   return (
-    <dialog ref={ref} aria-labelledby={titleId} onClose={() => onFinish(false)} className="lx-dialog m-auto w-[min(440px,calc(100vw-32px))] rounded-card border border-line bg-raised p-0 text-ink shadow-lg">
+    <dialog
+      ref={ref}
+      aria-labelledby={titleId}
+      onClose={() => onFinish(false)}
+      className="lx-dialog m-auto w-[min(440px,calc(100vw-32px))] rounded-card border border-line bg-raised p-0 text-ink shadow-lg"
+    >
       {request && (
         <div className="p-5 sm:p-6">
-          <h2 id={titleId} className="text-[17px] font-semibold leading-snug text-ink">{request.title}</h2>
+          <h2 id={titleId} className="text-[17px] font-semibold leading-snug text-ink">
+            {request.title}
+          </h2>
           {request.body && <div className="mt-2 text-sm leading-relaxed text-ink-2">{request.body}</div>}
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="ghost" data-default={danger ? "" : undefined} onClick={() => onFinish(false)}>{request.cancel ?? "Cancel"}</Button>
-            <Button variant={danger ? "danger" : "primary"} data-default={danger ? undefined : ""} onClick={() => onFinish(true)}>{request.confirm}</Button>
+            <Button variant="ghost" data-default={danger ? "" : undefined} onClick={() => onFinish(false)}>
+              {request.cancel ?? "Cancel"}
+            </Button>
+            <Button variant={danger ? "danger" : "primary"} data-default={danger ? undefined : ""} onClick={() => onFinish(true)}>
+              {request.confirm}
+            </Button>
           </div>
         </div>
       )}

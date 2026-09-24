@@ -14,7 +14,8 @@ export const documentKeys = {
  * the end of a stream (which marks it stale). Never on focus or by polling: this tab is the writer,
  * and revision checks on the server catch other tabs. The editor keeps its own working copy.
  */
-export const documentQuery = (id: string) => queryOptions({ queryKey: documentKeys.detail(id), queryFn: ({ signal }) => fetchDocument(id, signal), staleTime: Infinity, refetchOnWindowFocus: false });
+export const documentQuery = (id: string) =>
+  queryOptions({ queryKey: documentKeys.detail(id), queryFn: ({ signal }) => fetchDocument(id, signal), staleTime: Infinity, refetchOnWindowFocus: false });
 
 export const useDocument = (id: string) => useQuery(documentQuery(id));
 
@@ -38,7 +39,8 @@ export const currentDocumentQuery = (queryClient: QueryClient) =>
   });
 
 /** Changes part of a cached view (from a streamed event); does nothing when that draft is not cached. */
-export const patchDocument = (queryClient: QueryClient, id: string, patch: (view: DocumentView) => DocumentView) => queryClient.setQueryData<DocumentView>(documentKeys.detail(id), (view) => view && patch(view));
+export const patchDocument = (queryClient: QueryClient, id: string, patch: (view: DocumentView) => DocumentView) =>
+  queryClient.setQueryData<DocumentView>(documentKeys.detail(id), (view) => view && patch(view));
 
 /** The answers' version a write is based on, read when the write starts (never from an old render). */
 export function fieldsVersionOf(queryClient: QueryClient, id: string): number {
@@ -51,7 +53,8 @@ export function fieldsVersionOf(queryClient: QueryClient, id: string): number {
 export function useCorrectField(documentId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (change: Omit<FieldCorrection, "fieldsVersion">) => correctField(documentId, { ...change, fieldsVersion: fieldsVersionOf(queryClient, documentId) }),
+    mutationFn: (change: Omit<FieldCorrection, "fieldsVersion">) =>
+      correctField(documentId, { ...change, fieldsVersion: fieldsVersionOf(queryClient, documentId) }),
     onSuccess: (view) => storeDocument(queryClient, view),
   });
 }
@@ -60,7 +63,10 @@ export function useCorrectField(documentId: string) {
  * A clause decision. The server may change the saved draft, so pending editor edits are saved first
  * (`beforeAction`), and the editor reloads only when the draft's revision actually changed.
  */
-export function useRuleAction(documentId: string, { beforeAction, onDraftReplaced }: { beforeAction(): Promise<void>; onDraftReplaced(revision: number): void }) {
+export function useRuleAction(
+  documentId: string,
+  { beforeAction, onDraftReplaced }: { beforeAction(): Promise<void>; onDraftReplaced(revision: number): void },
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ ruleId, action }: { ruleId: string; action: RuleAction }) => {

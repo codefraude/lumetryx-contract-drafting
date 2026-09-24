@@ -31,7 +31,11 @@ export async function createSession(secretHash: string): Promise<string> {
  */
 export async function findSession(id: string, secretHash: string) {
   const db = getDb();
-  const [row] = await db.select().from(sessions).where(and(eq(sessions.id, id), eq(sessions.secretHash, secretHash), gt(sessions.expiresAt, sql`now()`))).limit(1);
+  const [row] = await db
+    .select()
+    .from(sessions)
+    .where(and(eq(sessions.id, id), eq(sessions.secretHash, secretHash), gt(sessions.expiresAt, sql`now()`)))
+    .limit(1);
   if (!row) return null;
   if (Date.now() - row.lastSeenAt.getTime() < 3_600_000) return { ...row, refreshed: false };
   const [upd] = await db.update(sessions).set({ lastSeenAt: new Date(), expiresAt: retention() }).where(eq(sessions.id, id)).returning();
@@ -41,7 +45,11 @@ export async function findSession(id: string, secretHash: string) {
 export async function recordUsage(sessionId: string, input: number, output: number) {
   await getDb()
     .update(sessions)
-    .set({ aiRequests: sql`${sessions.aiRequests} + 1`, aiInputTokens: sql`${sessions.aiInputTokens} + ${input}`, aiOutputTokens: sql`${sessions.aiOutputTokens} + ${output}` })
+    .set({
+      aiRequests: sql`${sessions.aiRequests} + 1`,
+      aiInputTokens: sql`${sessions.aiInputTokens} + ${input}`,
+      aiOutputTokens: sql`${sessions.aiOutputTokens} + ${output}`,
+    })
     .where(eq(sessions.id, sessionId));
 }
 
@@ -67,8 +75,24 @@ const withState = <T extends RawSummary>(row: T) => ({ ...row, fieldState: Field
 
 export type DocumentSummary = NonNullable<Awaited<ReturnType<typeof getDocument>>>;
 
-export async function createDocument(input: { sessionId: string; filename: string; title: string; templateHash: string; originalDocx: Buffer; fieldState: FieldState; analysis: "ai" | "markers_only"; workingDocx?: Buffer | null; workingRevision?: number; draftStatus?: DraftStatus; draftFieldsVersion?: number | null; fieldsVersion?: number }) {
-  const [row] = await getDb().insert(documents).values({ ...input, expiresAt: retention() }).returning(docSummary);
+export async function createDocument(input: {
+  sessionId: string;
+  filename: string;
+  title: string;
+  templateHash: string;
+  originalDocx: Buffer;
+  fieldState: FieldState;
+  analysis: "ai" | "markers_only";
+  workingDocx?: Buffer | null;
+  workingRevision?: number;
+  draftStatus?: DraftStatus;
+  draftFieldsVersion?: number | null;
+  fieldsVersion?: number;
+}) {
+  const [row] = await getDb()
+    .insert(documents)
+    .values({ ...input, expiresAt: retention() })
+    .returning(docSummary);
   if (!row) throw new Error("The draft was not saved.");
   return withState(row);
 }
@@ -79,14 +103,31 @@ export async function getDocument(sessionId: string, documentId: string) {
 }
 
 export async function getLatestDocument(sessionId: string) {
-  const [row] = await getDb().select(docSummary).from(documents).where(and(eq(documents.sessionId, sessionId), live())).orderBy(desc(documents.savedAt)).limit(1);
+  const [row] = await getDb()
+    .select(docSummary)
+    .from(documents)
+    .where(and(eq(documents.sessionId, sessionId), live()))
+    .orderBy(desc(documents.savedAt))
+    .limit(1);
   return row ? withState(row) : null;
 }
 
 /** The saved-drafts list: metadata only, never document bytes. */
 export async function listDocuments(sessionId: string) {
   const rows = await getDb()
-    .select({ id: documents.id, title: documents.title, filename: documents.filename, templateHash: documents.templateHash, savedAt: documents.savedAt, expiresAt: documents.expiresAt, draftStatus: documents.draftStatus, draftFieldsVersion: documents.draftFieldsVersion, fieldsVersion: documents.fieldsVersion, updatedAt: documents.updatedAt, fieldState: documents.fieldState })
+    .select({
+      id: documents.id,
+      title: documents.title,
+      filename: documents.filename,
+      templateHash: documents.templateHash,
+      savedAt: documents.savedAt,
+      expiresAt: documents.expiresAt,
+      draftStatus: documents.draftStatus,
+      draftFieldsVersion: documents.draftFieldsVersion,
+      fieldsVersion: documents.fieldsVersion,
+      updatedAt: documents.updatedAt,
+      fieldState: documents.fieldState,
+    })
     .from(documents)
     .where(and(eq(documents.sessionId, sessionId), live()))
     .orderBy(desc(documents.savedAt))
@@ -96,7 +137,14 @@ export async function listDocuments(sessionId: string) {
 
 export async function getDocumentBytes(sessionId: string, documentId: string) {
   const [row] = await getDb()
-    .select({ originalDocx: documents.originalDocx, workingDocx: documents.workingDocx, workingRevision: documents.workingRevision, filename: documents.filename, title: documents.title, templateHash: documents.templateHash })
+    .select({
+      originalDocx: documents.originalDocx,
+      workingDocx: documents.workingDocx,
+      workingRevision: documents.workingRevision,
+      filename: documents.filename,
+      title: documents.title,
+      templateHash: documents.templateHash,
+    })
     .from(documents)
     .where(owned(sessionId, documentId))
     .limit(1);
@@ -154,7 +202,13 @@ export async function abandonDraft(sessionId: string, documentId: string) {
  * statement, so document and state never diverge). Guarded by the working revision; with
  * `expectedFieldsVersion`, also by the answers' version.
  */
-export async function saveWorkingDocx(sessionId: string, documentId: string, expectedRevision: number, bytes: Buffer, opts: { state?: FieldState; draftCurrent?: boolean; expectedFieldsVersion?: number } = {}) {
+export async function saveWorkingDocx(
+  sessionId: string,
+  documentId: string,
+  expectedRevision: number,
+  bytes: Buffer,
+  opts: { state?: FieldState; draftCurrent?: boolean; expectedFieldsVersion?: number } = {},
+) {
   const { state, draftCurrent = false, expectedFieldsVersion } = opts;
   const [row] = await getDb()
     .update(documents)
@@ -165,19 +219,33 @@ export async function saveWorkingDocx(sessionId: string, documentId: string, exp
       ...(state ? { fieldState: state, fieldsVersion: sql`${documents.fieldsVersion} + 1` } : {}),
       ...(state && draftCurrent ? { draftFieldsVersion: sql`${documents.fieldsVersion} + 1` } : {}),
     })
-    .where(and(owned(sessionId, documentId), eq(documents.workingRevision, expectedRevision), eq(documents.draftStatus, "ready"), ...(expectedFieldsVersion !== undefined ? [eq(documents.fieldsVersion, expectedFieldsVersion)] : [])))
+    .where(
+      and(
+        owned(sessionId, documentId),
+        eq(documents.workingRevision, expectedRevision),
+        eq(documents.draftStatus, "ready"),
+        ...(expectedFieldsVersion !== undefined ? [eq(documents.fieldsVersion, expectedFieldsVersion)] : []),
+      ),
+    )
     .returning(docSummary);
   if (!row) throw new StaleRevisionError("The draft");
   return withState(row);
 }
 
 export async function renameDocument(sessionId: string, documentId: string, title: string) {
-  const [row] = await getDb().update(documents).set({ title, ...saved() }).where(owned(sessionId, documentId)).returning({ id: documents.id });
+  const [row] = await getDb()
+    .update(documents)
+    .set({ title, ...saved() })
+    .where(owned(sessionId, documentId))
+    .returning({ id: documents.id });
   return Boolean(row);
 }
 
 export async function deleteDocument(sessionId: string, documentId: string) {
-  const [row] = await getDb().delete(documents).where(and(eq(documents.id, documentId), eq(documents.sessionId, sessionId))).returning({ id: documents.id, templateHash: documents.templateHash });
+  const [row] = await getDb()
+    .delete(documents)
+    .where(and(eq(documents.id, documentId), eq(documents.sessionId, sessionId)))
+    .returning({ id: documents.id, templateHash: documents.templateHash });
   return row ?? null;
 }
 
@@ -185,7 +253,10 @@ export async function addMessage(documentId: string, role: "user" | "assistant",
   const db = getDb();
   await db.insert(messages).values({ documentId, role, content });
   // A finalized conversation turn is part of the saved draft.
-  await db.update(documents).set({ savedAt: sql`now()`, expiresAt: retention() }).where(eq(documents.id, documentId));
+  await db
+    .update(documents)
+    .set({ savedAt: sql`now()`, expiresAt: retention() })
+    .where(eq(documents.id, documentId));
 }
 
 export async function listMessages(sessionId: string, documentId: string, limit = 200) {
@@ -200,14 +271,26 @@ export async function listMessages(sessionId: string, documentId: string, limit 
 }
 
 export async function recentMessages(documentId: string, limit: number) {
-  const rows = await getDb().select({ role: messages.role, content: messages.content }).from(messages).where(eq(messages.documentId, documentId)).orderBy(desc(messages.createdAt)).limit(limit);
+  const rows = await getDb()
+    .select({ role: messages.role, content: messages.content })
+    .from(messages)
+    .where(eq(messages.documentId, documentId))
+    .orderBy(desc(messages.createdAt))
+    .limit(limit);
   return rows.reverse();
 }
 
 /** Copies finalized messages into another draft (used when a conflicting version is saved as a new draft). */
 export async function copyMessages(fromDocumentId: string, toDocumentId: string) {
-  const rows = await getDb().select({ role: messages.role, content: messages.content, createdAt: messages.createdAt }).from(messages).where(eq(messages.documentId, fromDocumentId)).orderBy(messages.createdAt);
-  if (rows.length) await getDb().insert(messages).values(rows.map((r) => ({ ...r, documentId: toDocumentId })));
+  const rows = await getDb()
+    .select({ role: messages.role, content: messages.content, createdAt: messages.createdAt })
+    .from(messages)
+    .where(eq(messages.documentId, fromDocumentId))
+    .orderBy(messages.createdAt);
+  if (rows.length)
+    await getDb()
+      .insert(messages)
+      .values(rows.map((r) => ({ ...r, documentId: toDocumentId })));
 }
 
 /**
@@ -217,8 +300,18 @@ export async function copyMessages(fromDocumentId: string, toDocumentId: string)
  */
 export async function deleteExpired(batch = 500) {
   const db = getDb();
-  const expired = await db.select({ id: documents.id, sessionId: documents.sessionId, templateHash: documents.templateHash }).from(documents).where(lt(documents.expiresAt, sql`now()`)).limit(batch);
-  if (expired.length) await db.delete(documents).where(inArray(documents.id, expired.map((d) => d.id)));
+  const expired = await db
+    .select({ id: documents.id, sessionId: documents.sessionId, templateHash: documents.templateHash })
+    .from(documents)
+    .where(lt(documents.expiresAt, sql`now()`))
+    .limit(batch);
+  if (expired.length)
+    await db.delete(documents).where(
+      inArray(
+        documents.id,
+        expired.map((d) => d.id),
+      ),
+    );
   const gone = await db
     .delete(sessions)
     .where(and(lt(sessions.expiresAt, sql`now()`), sql`NOT EXISTS (SELECT 1 FROM ${documents} WHERE ${documents.sessionId} = ${sessions.id})`))

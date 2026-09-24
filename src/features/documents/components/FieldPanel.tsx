@@ -40,7 +40,9 @@ export const FieldPanel = memo(function FieldPanel({ documentId, fields, locked,
   const done = active.filter((f) => f.status === "confirmed").sort(byGroup);
   const rest = details.filter((f) => inactive.has(f.id) || (!f.required && f.status !== "confirmed")).sort(byGroup);
   const progress = detailProgress(fields, inactive);
-  const row = (f: Field) => <FieldRow key={`${f.id}:${f.rawValue ?? ""}:${f.required}`} documentId={documentId} f={f} inactive={inactive.has(f.id)} locked={locked} />;
+  const row = (f: Field) => (
+    <FieldRow key={`${f.id}:${f.rawValue ?? ""}:${f.required}`} documentId={documentId} f={f} inactive={inactive.has(f.id)} locked={locked} />
+  );
 
   if (!details.length)
     return (
@@ -56,11 +58,21 @@ export const FieldPanel = memo(function FieldPanel({ documentId, fields, locked,
         <p className="text-[15px] font-semibold text-ink">
           {progress.confirmed} of {progress.total} required details confirmed
         </p>
-        <p className="mt-0.5 text-[13px] text-ink-2">{locked ? "A draft exists, so change answers in the chat. The draft is then updated wherever you have not edited it yourself." : "Answer in the chat, or fill a detail in here."}</p>
+        <p className="mt-0.5 text-[13px] text-ink-2">
+          {locked
+            ? "A draft exists, so change answers in the chat. The draft is then updated wherever you have not edited it yourself."
+            : "Answer in the chat, or fill a detail in here."}
+        </p>
       </div>
-      <Section title="Still needed" count={needed.length}>{needed.map(row)}</Section>
-      <Section title="Confirmed" count={done.length}>{done.map(row)}</Section>
-      <Section title="Not needed now" count={rest.length}>{rest.map(row)}</Section>
+      <Section title="Still needed" count={needed.length}>
+        {needed.map(row)}
+      </Section>
+      <Section title="Confirmed" count={done.length}>
+        {done.map(row)}
+      </Section>
+      <Section title="Not needed now" count={rest.length}>
+        {rest.map(row)}
+      </Section>
     </div>
   );
 });

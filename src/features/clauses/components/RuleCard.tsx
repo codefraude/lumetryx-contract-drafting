@@ -62,18 +62,36 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
       <p className="mt-1 text-[13px] leading-snug text-ink-2">{r.reason}</p>
 
       {r.pending && (
-        <Callout tone="warn" icon={TriangleAlert} role="status" className="mt-3" actions={<>{btn("apply", "Remove the clause", "primary")}{btn("include", "Keep it (always include)")}</>}>
-          The answers call for {r.state === "excluded" ? "removing" : "changing"} this clause, but you edited it in the draft. Removing it keeps your edited version, which comes back if the clause is included again.
+        <Callout
+          tone="warn"
+          icon={TriangleAlert}
+          role="status"
+          className="mt-3"
+          actions={
+            <>
+              {btn("apply", "Remove the clause", "primary")}
+              {btn("include", "Keep it (always include)")}
+            </>
+          }
+        >
+          The answers call for {r.state === "excluded" ? "removing" : "changing"} this clause, but you edited it in the draft. Removing it keeps your edited
+          version, which comes back if the clause is included again.
         </Callout>
       )}
-      {r.state === "unresolved" && !r.pending && <ClauseDecision documentId={documentId} r={r} field={fields.find((f) => f.id === r.condition.fieldId)} language={language} locked={locked} />}
+      {r.state === "unresolved" && !r.pending && (
+        <ClauseDecision documentId={documentId} r={r} field={fields.find((f) => f.id === r.condition.fieldId)} language={language} locked={locked} />
+      )}
       {r.state === "proposed" && (
         <>
           {evidence && (
             <blockquote className="mt-3 border-l-2 border-line pl-3 font-serif text-[14px] italic leading-relaxed text-ink-2">
               <span className="sr-only">The template says: </span>“{evidence.length > 180 && !more ? `${evidence.slice(0, 180).trimEnd()}…` : evidence}”
               {evidence.length > 180 && (
-                <button type="button" onClick={() => setMore((m) => !m)} className="ml-1 font-sans text-[12.5px] not-italic font-medium text-accent-ink hover:underline">
+                <button
+                  type="button"
+                  onClick={() => setMore((m) => !m)}
+                  className="ml-1 font-sans text-[12.5px] not-italic font-medium text-accent-ink hover:underline"
+                >
                   {more ? "Show less" : "Show all"}
                 </button>
               )}
@@ -85,7 +103,9 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
           </div>
         </>
       )}
-      {r.hasEditedVariant && r.applied === "excluded" && <p className="mt-2.5 text-[13px] text-ink-2">Your edited version is kept and will be restored if this clause is included again.</p>}
+      {r.hasEditedVariant && r.applied === "excluded" && (
+        <p className="mt-2.5 text-[13px] text-ink-2">Your edited version is kept and will be restored if this clause is included again.</p>
+      )}
 
       {r.confirmed && !r.dismissed && !r.pending && (
         <div className="-ml-2 mt-2 flex flex-wrap gap-1">
@@ -99,7 +119,11 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
           )}
         </div>
       )}
-      {err && <p role="alert" className="mt-2 text-[13px] text-danger">{err}</p>}
+      {err && (
+        <p role="alert" className="mt-2 text-[13px] text-danger">
+          {err}
+        </p>
+      )}
     </li>
   );
 }

@@ -63,11 +63,35 @@ export function parseDate(input: string): NormalizeResult {
   }
 }
 
-const UNAMBIGUOUS: Record<string, string> = { mur: "MUR", usd: "USD", "us$": "USD", "€": "EUR", eur: "EUR", euro: "EUR", euros: "EUR", "£": "GBP", gbp: "GBP", zar: "ZAR", inr: "INR", aud: "AUD", cad: "CAD", sgd: "SGD", pkr: "PKR" };
+const UNAMBIGUOUS: Record<string, string> = {
+  mur: "MUR",
+  usd: "USD",
+  us$: "USD",
+  "€": "EUR",
+  eur: "EUR",
+  euro: "EUR",
+  euros: "EUR",
+  "£": "GBP",
+  gbp: "GBP",
+  zar: "ZAR",
+  inr: "INR",
+  aud: "AUD",
+  cad: "CAD",
+  sgd: "SGD",
+  pkr: "PKR",
+};
 /** Symbols shared by several currencies: resolved only by an explicit hint, never guessed. */
 const RUPEES = { display: "Rs", candidates: ["MUR", "INR", "PKR", "LKR", "NPR"] };
 const DOLLARS = { display: "$", candidates: ["USD", "AUD", "CAD", "SGD", "NZD"] };
-const AMBIGUOUS: Record<string, { display: string; candidates: string[] }> = { rs: RUPEES, "rs.": RUPEES, "₨": RUPEES, rupees: RUPEES, roupies: RUPEES, $: DOLLARS, dollars: DOLLARS };
+const AMBIGUOUS: Record<string, { display: string; candidates: string[] }> = {
+  rs: RUPEES,
+  "rs.": RUPEES,
+  "₨": RUPEES,
+  rupees: RUPEES,
+  roupies: RUPEES,
+  $: DOLLARS,
+  dollars: DOLLARS,
+};
 const DISPLAY: Record<string, string> = { MUR: "Rs", INR: "Rs", PKR: "Rs", LKR: "Rs", NPR: "Rs" };
 
 /**
@@ -96,16 +120,33 @@ export function parseMoney(input: string, currencyHint?: string | null, lang: La
   if (amb) {
     display = amb.display;
     code = hint && amb.candidates.includes(hint) ? hint : null;
-    if (!code) return { status: "needs_clarification", displayValue: null, normalized: { kind: "money", amount, currency: "XXX" }, note: `“${amb.display}” is used by several currencies (${amb.candidates.join(", ")}). Which one is it?` };
+    if (!code)
+      return {
+        status: "needs_clarification",
+        displayValue: null,
+        normalized: { kind: "money", amount, currency: "XXX" },
+        note: `“${amb.display}” is used by several currencies (${amb.candidates.join(", ")}). Which one is it?`,
+      };
   }
   if (!symbol && hint && /^[A-Z]{3}$/.test(hint)) {
     code = hint;
     display = DISPLAY[hint] ?? hint;
   }
-  if (!code) return { status: "needs_clarification", displayValue: null, normalized: { kind: "money", amount, currency: "XXX" }, note: `Which currency is ${amount} in?` };
+  if (!code)
+    return {
+      status: "needs_clarification",
+      displayValue: null,
+      normalized: { kind: "money", amount, currency: "XXX" },
+      note: `Which currency is ${amount} in?`,
+    };
   // Every path that sets a code also sets how it is written.
   const shown = display ?? code;
-  return { status: "confirmed", displayValue: formatMoney(amount, shown, "en"), normalized: { kind: "money", amount, currency: code, ...(shown !== code ? { symbol: shown } : {}) }, note: null };
+  return {
+    status: "confirmed",
+    displayValue: formatMoney(amount, shown, "en"),
+    normalized: { kind: "money", amount, currency: code, ...(shown !== code ? { symbol: shown } : {}) },
+    note: null,
+  };
 }
 
 /** Infers a currency only when the template itself names one unambiguously. */
@@ -122,7 +163,13 @@ export function templateCurrencyHint(allText: string): string | null {
 export function parseBoolean(input: string): NormalizeResult {
   const s = input.trim().toLowerCase();
   const val = /^(yes|y|true|oui|vrai|affirmative|correct|exact)\b/.test(s) ? true : /^(no|n|false|non|faux|negative)\b/.test(s) ? false : null;
-  if (val === null) return { status: "needs_clarification", displayValue: null, normalized: null, note: `Please answer yes or no (oui ou non) — “${input}” doesn't settle it.` };
+  if (val === null)
+    return {
+      status: "needs_clarification",
+      displayValue: null,
+      normalized: null,
+      note: `Please answer yes or no (oui ou non) — “${input}” doesn't settle it.`,
+    };
   return { status: "confirmed", displayValue: formatBoolean(val, "en"), normalized: { kind: "boolean", value: val }, note: null };
 }
 

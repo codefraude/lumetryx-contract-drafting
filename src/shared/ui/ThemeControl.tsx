@@ -33,7 +33,11 @@ export function ThemeControl({ className = "" }: { className?: string }) {
   return (
     <fieldset className={`relative inline-grid shrink-0 grid-cols-3 rounded-control border border-line bg-subtle p-0.5 ${className}`}>
       <legend className="sr-only">Colour theme</legend>
-      <span aria-hidden className="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc((100%-4px)/3)] rounded-[8px] bg-surface shadow-sm ring-1 ring-line transition-transform duration-200 ease-(--ease-out) dark:bg-raised" style={{ transform: `translateX(${index * 100}%)` }} />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc((100%-4px)/3)] rounded-[8px] bg-surface shadow-sm ring-1 ring-line transition-transform duration-200 ease-(--ease-out) dark:bg-raised"
+        style={{ transform: `translateX(${index * 100}%)` }}
+      />
       {OPTIONS.map(({ value, label, Icon }) => (
         <label
           key={value}

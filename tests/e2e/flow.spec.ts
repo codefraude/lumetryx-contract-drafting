@@ -7,7 +7,17 @@ import { readFileSync } from "node:fs";
  * streamed draft → real editor edits → immediate download → inspect the DOCX package.
  */
 const ORIGIN = { Origin: process.env.APP_URL ?? "http://localhost:3000" };
-const VALUES: Record<string, string> = { "Tenant name": "John Smith", "Landlord name": "Ravi Ramdin", Address: "12 Royal Road, Curepipe", "Property address": "4 Sea View Lane, Flic en Flac", "Start date": "1 October 2026", "Monthly rent": "MUR 25,000", "Deposit amount": "MUR 50,000", "Interest rate": "8%", "Reference number": "LX-7 & Co" };
+const VALUES: Record<string, string> = {
+  "Tenant name": "John Smith",
+  "Landlord name": "Ravi Ramdin",
+  Address: "12 Royal Road, Curepipe",
+  "Property address": "4 Sea View Lane, Flic en Flac",
+  "Start date": "1 October 2026",
+  "Monthly rent": "MUR 25,000",
+  "Deposit amount": "MUR 50,000",
+  "Interest rate": "8%",
+  "Reference number": "LX-7 & Co",
+};
 
 type Doc = { id: string; fieldsVersion: number; fields: { id: string; label: string }[] };
 
@@ -17,7 +27,12 @@ async function uploadAndFill(page: Page) {
   await expect(page.getByText(/still needed/)).toBeVisible({ timeout: 20_000 });
   let doc = (await (await page.request.get("/api/documents/current")).json()).document as Doc;
   for (const f of doc.fields) {
-    doc = await (await page.request.patch(`/api/documents/${doc.id}/fields`, { headers: ORIGIN, data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: VALUES[f.label] ?? "30 September 2027" } })).json();
+    doc = await (
+      await page.request.patch(`/api/documents/${doc.id}/fields`, {
+        headers: ORIGIN,
+        data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: VALUES[f.label] ?? "30 September 2027" },
+      })
+    ).json();
   }
   await page.reload();
   return doc;
@@ -48,13 +63,23 @@ async function clickEndOf(page: Page, text: string, exact = false) {
 async function paragraphs(zipBytes: Buffer) {
   const zip = await JSZip.loadAsync(zipBytes);
   const xml = await zip.file("word/document.xml")!.async("string");
-  const paras = [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)].map((m) => ({ xml: m[0], text: [...m[0].matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)].map((t) => t[1]).join("") }));
+  const paras = [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)].map((m) => ({
+    xml: m[0],
+    text: [...m[0].matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)].map((t) => t[1]).join(""),
+  }));
   return { zip, xml, paras };
 }
 
 test("progressive draft, real edits and immediate download preserve structure", async ({ page }) => {
   const external: string[] = [];
-  page.on("request", (r) => !r.url().startsWith(process.env.APP_URL ?? "http://localhost:3000") && !r.url().startsWith("data:") && !r.url().startsWith("blob:") && external.push(r.url()));
+  page.on(
+    "request",
+    (r) =>
+      !r.url().startsWith(process.env.APP_URL ?? "http://localhost:3000") &&
+      !r.url().startsWith("data:") &&
+      !r.url().startsWith("blob:") &&
+      external.push(r.url()),
+  );
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
 
@@ -144,7 +169,11 @@ for (const vp of [
     await settle(page);
     await page.screenshot({ path: `tests/output/e2e-document-${vp.name}.png` });
     // Narrow screens scale the page to the width of its canvas: the whole page shows and nothing scrolls sideways.
-    const canvas = await stage(page).evaluate((el) => { let c = el.parentElement; while (c && getComputedStyle(c).overflowX !== "auto") c = c.parentElement; return c ? { client: c.clientWidth, scroll: c.scrollWidth } : null; });
+    const canvas = await stage(page).evaluate((el) => {
+      let c = el.parentElement;
+      while (c && getComputedStyle(c).overflowX !== "auto") c = c.parentElement;
+      return c ? { client: c.clientWidth, scroll: c.scrollWidth } : null;
+    });
     expect(canvas, "the document sits in its own scrollable canvas").not.toBeNull();
     expect(canvas!.scroll).toBeLessThanOrEqual(canvas!.client + 1);
     const sheet = (await stage(page).locator(".superdoc-page").first().boundingBox())!;

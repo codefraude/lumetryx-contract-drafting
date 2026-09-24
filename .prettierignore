@@ -1,0 +1,11 @@
+.next
+node_modules
+drizzle
+fixtures
+public
+tests/output
+test-results
+playwright-report
+spike
+.remember
+next-env.d.ts

@@ -4,13 +4,22 @@ import type { ChatLanguage, DocLanguage, Lang } from "@/features/documents/contr
  * Deterministic language detection for English/French contract text. It counts common function
  * words and accented words; short or balanced text is reported as "unknown" rather than guessed.
  */
-const EN = new Set("the and of to in is are shall be by for with this that any or as on at from which will may not its their such each all under between hereby agreement party parties tenant landlord employee employer company services provider client date".split(" "));
-const FR = new Set("le la les des du de et est sont une un pour dans par sur au aux que qui ne pas avec ce cette ces ses son sa leur être sera présent présente contrat bailleur locataire salarié salariée employeur société entre conformément ainsi tout toute chaque lors dont ou où prestataire parties partie date".split(" "));
+const EN = new Set(
+  "the and of to in is are shall be by for with this that any or as on at from which will may not its their such each all under between hereby agreement party parties tenant landlord employee employer company services provider client date".split(
+    " ",
+  ),
+);
+const FR = new Set(
+  "le la les des du de et est sont une un pour dans par sur au aux que qui ne pas avec ce cette ces ses son sa leur être sera présent présente contrat bailleur locataire salarié salariée employeur société entre conformément ainsi tout toute chaque lors dont ou où prestataire parties partie date".split(
+    " ",
+  ),
+);
 // Words present in both sets carry no signal.
-for (const w of [...EN]) if (FR.has(w)) {
-  EN.delete(w);
-  FR.delete(w);
-}
+for (const w of [...EN])
+  if (FR.has(w)) {
+    EN.delete(w);
+    FR.delete(w);
+  }
 const ACCENTED = /[éèêëàâçùûüîïôœ]/i;
 
 export interface LangScore {
@@ -119,7 +128,8 @@ export function formatAmount(amount: string, lang: "en" | "fr"): string {
 }
 
 /** English: "EUR 1,250.50"; French: "1 250,50 EUR" (non-breaking spaces). */
-export const formatMoney = (amount: string, symbol: string, lang: "en" | "fr") => (lang === "fr" ? `${formatAmount(amount, "fr")}${NBSP}${symbol}` : `${symbol} ${formatAmount(amount, "en")}`);
+export const formatMoney = (amount: string, symbol: string, lang: "en" | "fr") =>
+  lang === "fr" ? `${formatAmount(amount, "fr")}${NBSP}${symbol}` : `${symbol} ${formatAmount(amount, "en")}`;
 
 export type AmountParse = { ok: true; amount: string } | { ok: false; ambiguous: boolean; note: string };
 
