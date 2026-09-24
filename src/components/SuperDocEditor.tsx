@@ -179,8 +179,9 @@ export const SuperDocEditor = memo(forwardRef<EditorHandle, Props>(function Supe
       <div className="relative min-h-0 flex-1">
         {/* The desk around the page: it scrolls on its own, so a narrow screen keeps the true page size. */}
         <div className="lx-doc h-full overflow-auto overscroll-contain bg-canvas px-2 py-5 sm:px-6 sm:py-8">
-          {/* Shrink-to-fit, so the page is centred on the desk; a page wider than the screen scrolls in the canvas. */}
-          <div ref={host} className="mx-auto w-fit" />
+          {/* Shrink-to-fit once pages exist, so the page is centred on the desk (a wider page scrolls in the canvas).
+              Full width while opening: the host is still empty, and SuperDoc's loading card takes its width from it. */}
+          <div ref={host} className={`mx-auto ${readyId === loadId ? "w-fit" : "w-full"}`} />
         </div>
         {readyId !== loadId && !failed && (
           <div className="absolute inset-0">
