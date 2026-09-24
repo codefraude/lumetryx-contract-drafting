@@ -171,6 +171,15 @@ describe("guided conversation", () => {
     await expect(chatTurn(s, d.id, { message: "hi", fieldsVersion: d.fieldsVersion - 1 }, () => undefined, new AbortController().signal)).rejects.toBeInstanceOf(repo.StaleRevisionError);
   });
 
+  it("keeps the answers of a turn whose reply fails, and says so", async () => {
+    const s = await newSession();
+    const d = await createFromUpload(s, "lease.docx", lease);
+    setModelForTests(mockModel({ object: () => ({ clauseBlockIds: [], updates: [u("tenant_name", "John Smith")] }), failStream: true }));
+    await expect(say(s, d.id, "The tenant is John Smith.", { updates: [] })).rejects.toMatchObject({ code: "unavailable", message: expect.stringContaining("Your answers were saved") });
+    setModelForTests(model);
+    expect(await field(s.id, d.id, "tenant_name")).toMatchObject({ status: "confirmed", displayValue: "John Smith" });
+  });
+
   it("stores a message once when it is retried after a failed turn", async () => {
     const s = await newSession();
     const d = await createFromUpload(s, "lease.docx", lease);

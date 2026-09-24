@@ -2,6 +2,7 @@
  * TEST DOUBLES — the mocked language model and in-memory KV store below are used only by
  * automated tests. They never run in the application and prove nothing about live Gemini.
  */
+import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import type { KeyValueStore } from "@/server/cache/redis";
 
@@ -16,6 +17,8 @@ export interface MockScript {
   /** Reply text, streamed in several chunks. */
   reply?: (prompt: string) => string;
   failGenerate?: boolean;
+  /** The reply call fails the way an overloaded Gemini does (503), after the answers were extracted. */
+  failStream?: boolean;
 }
 
 const promptText = (opts: { prompt: unknown }) => JSON.stringify(opts.prompt);
@@ -33,6 +36,7 @@ export function mockModel(script: MockScript) {
       };
     },
     doStream: async (opts) => {
+      if (script.failStream) throw new APICallError({ message: "This model is currently experiencing high demand.", url: "https://mock.invalid", requestBodyValues: {}, statusCode: 503, isRetryable: false });
       const text = script.reply?.(promptText(opts)) ?? "Thanks. Who is the landlord, and are they an individual or a company?";
       const chunks = text.match(/.{1,12}/gs) ?? [text];
       return {

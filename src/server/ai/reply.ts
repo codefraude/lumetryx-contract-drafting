@@ -21,7 +21,7 @@ export function clauseContext(blocks: Block[], ids: string[]): string {
       if (chunk.length >= 8 || !b.numbering || b.numbering.ilvl <= lvl) break;
       chunk.push(b.text);
     }
-    parts.push(`[${id}] ${chunk.join("\n")}`);
+    parts.push(chunk.join("\n"));
   }
   return parts.join("\n\n");
 }
@@ -63,8 +63,11 @@ export function replyPrompt(fields: Field[], changed: string[], clauseText: stri
     .join("\n\n");
 }
 
+/** The streamed reply. A failure inside the stream only ends it, so `failure()` says what went wrong. */
 export function streamReply(model: LanguageModel, prompt: string, abortSignal?: AbortSignal) {
-  return streamText({ model, system: REPLY_SYSTEM, prompt, maxOutputTokens: 700, maxRetries: 2, abortSignal, providerOptions: providerOptions() });
+  let failure: unknown = null;
+  const stream = streamText({ model, system: REPLY_SYSTEM, prompt, maxOutputTokens: 700, maxRetries: 2, abortSignal, providerOptions: providerOptions(), onError: ({ error }) => void (failure = error) });
+  return { stream, failure: () => failure };
 }
 
 /** The analysis' own wording of a field's question, in the conversation language. */

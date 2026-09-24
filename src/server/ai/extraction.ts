@@ -26,6 +26,7 @@ export const Extraction = z.object({
 export type Extraction = z.infer<typeof Extraction>;
 
 const squash = (s: string) => s.toLowerCase().replace(/[\s,]+/g, " ").trim();
+const DATE_IN_FIGURES = /\b\d{1,2}[/.-]\d{1,2}[/.-]\d{4}\b/g;
 
 const CURRENCY_WORDS: Record<string, RegExp> = {
   MUR: /\bmur\b|mauritian|mauritius|mauricienne?s?\b/i,
@@ -71,9 +72,12 @@ export function applyExtraction(fields: Field[], extraction: Extraction, userMes
     }
     const userCurrency = u.currency && CURRENCY_WORDS[u.currency.toUpperCase()]?.test(userMessage) ? u.currency.toUpperCase() : null;
     const hint = userCurrency ?? templateCurrency ?? (confirmedCurrency?.kind === "money" ? confirmedCurrency.currency : null);
-    const r = normalizeValue(f.valueType, u.value, { currencyHint: hint, lang });
-    if (f.rawValue === u.value && f.status === r.status) continue;
-    Object.assign(f, { rawValue: u.value, status: r.status, displayValue: r.displayValue, normalized: r.normalized, note: r.note });
+    // A date the user wrote in figures is checked as written: the model must not settle 03/04/2026 by itself.
+    const figures = f.valueType === "date" ? [...u.evidence.matchAll(DATE_IN_FIGURES)].map(([d]) => d) : [];
+    const value = figures.length === 1 ? (figures[0] ?? u.value) : u.value;
+    const r = normalizeValue(f.valueType, value, { currencyHint: hint, lang });
+    if (f.rawValue === value && f.status === r.status) continue;
+    Object.assign(f, { rawValue: value, status: r.status, displayValue: r.displayValue, normalized: r.normalized, note: r.note });
     changed.add(f.id);
   }
   for (const issue of chronologyIssues(next)) {

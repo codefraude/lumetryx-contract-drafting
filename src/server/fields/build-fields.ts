@@ -2,7 +2,7 @@ import { FieldGroup, ValueType, type Field, type Occurrence } from "@/features/d
 import { parseConditionMarkers } from "@/server/clauses/condition-markers";
 import { validateProposal } from "@/server/clauses/proposals";
 import type { Block } from "@/server/docx/blocks";
-import { normalizeKey, type MarkerOccurrence } from "@/server/docx/detect";
+import { humanize, normalizeKey, type MarkerOccurrence } from "@/server/docx/detect";
 import { detectLanguage, stripAccents } from "./lang";
 import type { Rule } from "./state";
 import type { TemplateAnalysis } from "./template-analysis";
@@ -13,6 +13,9 @@ const slug = (s: string) => stripAccents(s).toLowerCase().replace(/[^a-z0-9]+/g,
  * Deterministic fallback typing for markers the model did not describe (English and French
  * wording). Whole words only: “employer” must not match the French “loyer” (rent).
  */
+/** The model sometimes copies the marker as the label (“{{tenant_name}}”, “LANDLORD NAME”); the lawyer sees a readable name. */
+const readableLabel = (label: string) => (/^\s*(\{\{.*\}\}|\[.*\])\s*$|_|^[^a-z]*$/.test(label) ? humanize(label.replace(/[{}[\]]/g, "")) : label);
+
 export function guessType(label: string): { valueType: ValueType; group: FieldGroup } {
   const l = stripAccents(label.toLowerCase());
   const has = (words: string) => new RegExp(`\\b(${words})`).test(l);
@@ -109,7 +112,7 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
     const ctxBlock = blockById.get(first.blockId);
     fields.push({
       id: uniqueId(af.id),
-      label: af.label,
+      label: readableLabel(af.label),
       question: af.question,
       ...(af.questionFr ? { questionFr: af.questionFr } : {}),
       valueType: af.valueType,

@@ -5,7 +5,7 @@ import type { FieldCorrection } from "@/features/documents/contracts/requests";
 import type { EventPayload } from "@/features/documents/contracts/stream-events";
 import { applyExtraction, extract } from "@/server/ai/extraction";
 import { languageSwitchMessage } from "@/server/ai/interview-messages";
-import { AiError, assertBudget, currentModel, trackUsage, type SessionUsage } from "@/server/ai/model";
+import { AiError, assertBudget, classifyAiError, currentModel, trackUsage, type SessionUsage } from "@/server/ai/model";
 import { clauseContext, replyPrompt, streamReply } from "@/server/ai/reply";
 import { inactiveFields } from "@/server/clauses/evaluation";
 import * as repo from "@/server/db/repo";
@@ -96,17 +96,21 @@ export async function chatTurn(session: SessionUsage, documentId: string, input:
   // Stage 2: stream the user-facing reply. Earlier answers stay saved if this fails.
   const clauseText = clauseContext(blocks, extraction.clauseBlockIds);
   const inactive = inactiveFields({ rules: state.rules, fields });
-  const result = streamReply(m, replyPrompt(fields, applied.changed, clauseText, input.message, history, lang, inactive), signal);
+  const reply = streamReply(m, replyPrompt(fields, applied.changed, clauseText, input.message, history, lang, inactive), signal);
   let text = "";
   try {
-    for await (const delta of result.textStream) {
+    for await (const delta of reply.stream.textStream) {
       text += delta;
       emit({ type: "assistant_delta", text: delta });
     }
-    const finish = await result.finishReason;
+    const finish = await reply.stream.finishReason;
     if (finish === "length") text += "…";
+  } catch (err) {
+    // The stream reports "no output" when the call behind it failed; that failure is the one to classify.
+    const cause = classifyAiError(reply.failure() ?? err);
+    throw applied.changed.length && cause.retryable && cause.code !== "aborted" ? new AiError(cause.code, `${cause.message} Your answers were saved.`, true) : cause;
   } finally {
-    await trackUsage(session.id, await Promise.resolve(result.usage).catch(() => undefined));
+    await trackUsage(session.id, await Promise.resolve(reply.stream.usage).catch(() => undefined));
   }
   if (!text.trim()) throw new AiError("invalid_output", "The assistant returned an empty reply. Your answers were saved; please retry.", true);
   await repo.addMessage(documentId, "assistant", text);

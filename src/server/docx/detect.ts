@@ -39,7 +39,7 @@ export const normalizeKey = (raw: string): string =>
     .trim();
 
 /** Readable label that keeps the template's own spelling and accents. */
-const humanize = (raw: string): string => {
+export const humanize = (raw: string): string => {
   const s = raw.trim().replace(/[_\s]+/g, " ").toLowerCase();
   return s.charAt(0).toUpperCase() + s.slice(1);
 };

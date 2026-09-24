@@ -21,7 +21,7 @@ export const providerOptions = () => ({
 
 export class AiError extends Error {
   constructor(
-    readonly code: "invalid_key" | "quota" | "model_unavailable" | "truncated" | "invalid_output" | "budget" | "provider" | "not_configured" | "aborted",
+    readonly code: "invalid_key" | "quota" | "model_unavailable" | "unavailable" | "truncated" | "invalid_output" | "budget" | "provider" | "not_configured" | "aborted",
     message: string,
     readonly retryable: boolean,
   ) {
@@ -42,7 +42,7 @@ export function classifyAiError(err: unknown): AiError {
     if (s === 401 || s === 403 || /API key not valid|API_KEY_INVALID/i.test(call.message)) return new AiError("invalid_key", "The AI service rejected the API key. Check GEMINI_API_KEY.", false);
     if (s === 429) return new AiError("quota", "The AI service quota or rate limit was reached. Please wait a minute and retry.", true);
     if (s === 404) return new AiError("model_unavailable", `The model "${modelId()}" is not available for this key. Check GEMINI_MODEL.`, false);
-    if (s >= 500) return new AiError("provider", "The AI service is temporarily unavailable. Please retry.", true);
+    if (s >= 500) return new AiError("unavailable", "The AI service is temporarily unavailable. Please retry.", true);
   }
   // Unrecognised failures are logged (never shown raw to the user) so they can be diagnosed.
   console.error("[ai] unclassified error", err instanceof Error ? `${err.name}: ${err.message}` : err);

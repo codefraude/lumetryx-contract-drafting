@@ -21,7 +21,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:cleanup": "tsx --conditions=react-server scripts/cleanup.ts",
-    "smoke:gemini": "tsx scripts/gemini-smoke.ts"
+    "smoke:gemini": "tsx scripts/gemini-smoke.ts",
+    "eval:conversation": "tsx scripts/eval-conversation.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "4.0.77",

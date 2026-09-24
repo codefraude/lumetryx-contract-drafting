@@ -102,6 +102,16 @@ describe("filling", () => {
     expect(await pkg.zip.file(header)!.async("string")).toContain("LX-2026-001");
   });
 
+  it("turns labels that copy the marker into readable names", async () => {
+    const blocks = await indexBlocks(await loadDocxPackage(fixture("synthetic-residential-lease")));
+    const ai = (id: string, label: string, key: string) => ({ id, label, question: "?", valueType: "text" as const, group: "parties" as const, required: true, markerKeys: [key], implicit: [] });
+    const { fields } = buildFields(blocks, detectMarkers(blocks), {
+      notFields: [],
+      fields: [ai("tenant_name", "{{tenant_name}}", "k:tenant name"), ai("landlord_name", "LANDLORD NAME", "k:landlord name"), ai("start_date", "start_date", "k:start date"), ai("monthly_rent", "Monthly rent / Loyer mensuel", "k:monthly rent")],
+    });
+    expect(Object.fromEntries(fields.map((f) => [f.id, f.label]))).toMatchObject({ tenant_name: "Tenant name", landlord_name: "Landlord name", start_date: "Start date", monthly_rent: "Monthly rent / Loyer mensuel" });
+  });
+
   it("applies multiple edits in one paragraph in a safe order and reports final anchors", async () => {
     const pkg = await loadDocxPackage(fixture("synthetic-residential-lease"));
     const blocks = await indexBlocks(pkg);
