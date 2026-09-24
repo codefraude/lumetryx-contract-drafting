@@ -5,7 +5,7 @@ import { recordUsage } from "../db/repo";
 import { env, requireEnv } from "../server/env";
 
 /** Bump when prompts or schemas change so cached analyses are not reused. */
-export const PROMPT_VERSION = "p4";
+export const PROMPT_VERSION = "p5";
 
 export function geminiModel(): LanguageModel {
   const apiKey = requireEnv("GEMINI_API_KEY", "the AI assistant");

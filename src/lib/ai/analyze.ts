@@ -6,17 +6,19 @@ import type { Block } from "../docx/ooxml";
 import { TemplateAnalysis } from "../fields/build";
 import { AiError, PROMPT_VERSION, SAFETY_RULES, providerOptions, untrusted } from "./model";
 
-export const PARSER_VERSION = "x3";
+export const PARSER_VERSION = "x4";
 const ANALYSIS_TTL_SECONDS = 60 * 60 * 24;
 
 export const analysisCacheKey = (sessionId: string, templateHash: string, model: string) => `lx:analysis:${sessionId}:${templateHash}:${PARSER_VERSION}:${PROMPT_VERSION}:${model}`;
 
 const SYSTEM = `You analyse contract templates (English, French or both) for a lawyer's drafting assistant.
 Identify every piece of information the lawyer must supply to complete the contract.
-- Group markers that mean the same thing under one field (e.g. {{tenant_name}} and [TENANT NAME]), including across languages (e.g. [TENANT NAME] and [NOM DU LOCATAIRE], landlord/bailleur, start date/date de début) — but only when they refer to the same value. Two different parties are never merged because both are names. Never merge markers with different meanings.
+- Group markers that mean the same thing under one field (e.g. {{tenant_name}} and [TENANT NAME]), including across languages (e.g. [TENANT NAME] and [NOM DU LOCATAIRE], landlord/bailleur, start date/date de début) — but only when exactly the same value is written at each place. Two different parties are never merged because both are names, and the lines of one address (street, then postcode and town) are separate fields. Never merge markers with different meanings.
 - ids are English snake_case whatever the template language; labels use the template's own wording; give each question in English (question) and French (questionFr).
+- Every label is different. When the template uses the same wording for different information (e.g. "Adresse postale" for the sender and for the recipient), say whose it is, e.g. "Adresse postale (expéditeur)" and "Adresse postale (destinataire)".
+- Markers of kind control are Word content controls showing placeholder text (their text is the placeholder, their title names the control). A placeholder that names what to enter ("Votre nom", "Date", "Nom du destinataire") is a field. A placeholder that is sample wording to keep or rewrite (part of a sentence, a closing such as "Cordialement", a label such as "Pièce jointe") goes in notFields.
 - Put markers that are ordinary contract text (citations, cross-references, defined terms) in notFields.
-- Find IMPLICIT gaps: places where information is plainly missing but there is no marker (e.g. "the Tenant, of" followed by nothing, "a deposit of" with no amount). For each, give the block id and a verbatim quote of the text immediately BEFORE the gap, copied exactly, unique within that block.
+- Find IMPLICIT gaps: places where information is plainly missing but there is no marker (e.g. "the Tenant, of" followed by nothing, "a deposit of" with no amount). For each, give the block id and a verbatim quote, copied exactly, unique within that block: either the text immediately BEFORE the gap (replace: false), or, when the template writes placeholder wording where the value goes (e.g. a line that only reads "Nom du destinataire", or "Dear Client Name,"), that placeholder wording itself (replace: true) so that the value replaces it. A caption followed by a blank ("Date:") stays: replace: false.
 - Do not invent fields for content that is already complete. Signature blanks are not fields.
 - Questions must be plain language a lawyer would ask a client, e.g. "Who is the landlord, and are they an individual or a company?"
 - groups: parties, subject (property/services), dates, money, other.
@@ -25,7 +27,7 @@ Identify every piece of information the lawyer must supply to complete the contr
 ${SAFETY_RULES}`;
 
 function buildPrompt(blocks: Block[], markers: MarkerOccurrence[], conditions: string[]): string {
-  const markerLines = [...new Map(markers.map((m) => [m.key, m])).values()].map((m) => `${m.key} | ${m.marker} | ${m.text} | ${m.context.replace(/\s+/g, " ")}`);
+  const markerLines = [...new Map(markers.map((m) => [m.key, m])).values()].map((m) => `${m.key} | ${m.marker} | ${m.text} | ${m.context.replace(/\s+/g, " ")}${m.title ? ` (control title: ${m.title})` : ""}`);
   const blockLines = blocks.filter((b) => b.text.trim()).map((b) => `${b.id} | ${b.partKind}/${b.kind} | ${b.text.replace(/\s+/g, " ")}`);
   return `${untrusted("template", `MARKERS (key | kind | text | context):\n${markerLines.join("\n")}\n\nCONDITIONS (from [[IF …]] markers):\n${conditions.join("\n") || "none"}\n\nBLOCKS (id | location | text):\n${blockLines.join("\n")}`)}\n\nReturn the analysis.`;
 }

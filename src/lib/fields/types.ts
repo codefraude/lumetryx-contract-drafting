@@ -24,10 +24,10 @@ export const Occurrence = z.object({
   blockId: z.string(),
   start: z.number().int().nonnegative(),
   end: z.number().int().nonnegative(),
-  /** Exact template text at [start,end) — the marker, or "" for an insertion point. */
+  /** Exact template text at [start,end) — the marker or placeholder, or "" for an insertion point. */
   expected: z.string(),
   mode: z.enum(["replace", "insert"]),
-  marker: z.enum(["brace", "bracket", "underscore", "implicit"]),
+  marker: z.enum(["brace", "bracket", "underscore", "control", "implicit"]),
   /** Language of the surrounding paragraph; decides how dates and amounts are rendered here. */
   lang: Lang.default("unknown"),
 });

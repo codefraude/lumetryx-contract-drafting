@@ -84,6 +84,7 @@ export function applyExtraction(fields: Field[], extraction: Extraction, userMes
 
 const EXTRACT_SYSTEM = `You extract contract field values from a lawyer's chat message. Messages may be in English, French or a mix; fields may have been asked in another language than the answer.
 - Only extract values the user actually stated in their LATEST message. Never guess, infer or invent names, addresses, dates, amounts, numbers or registration details.
+- A relative date the user states ("today", "aujourd'hui", "tomorrow", "demain") is worked out from TODAY and written in full, e.g. "24 September 2026".
 - Keep names, addresses and identifiers exactly as written, with their accents. Do not translate them.
 - For boolean (yes/no) fields put "yes" or "no" in value only if the user clearly answered; "I don't know" or "maybe" is not an answer. Never infer a yes/no answer from a job title or other facts.
 - For amounts keep the digits and separators exactly as written (e.g. "1 250,50 EUR").
@@ -113,8 +114,15 @@ export interface TurnInput {
   abortSignal?: AbortSignal;
 }
 
+/** The server's calendar date. ponytail: send the browser's date instead if users work in another time zone than the server. */
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 export async function extract(input: TurnInput) {
-  const prompt = `FIELDS (id | label | type | status | context):\n${input.fields.map(fieldLine).join("\n")}\n\n${untrusted("template", `CLAUSE OUTLINE (id | start of text):\n${outline(input.blocks)}`)}\n\nRECENT CONVERSATION:\n${input.history
+  // Without today's date the model answered "take today's date" with a date of its own invention.
+  const prompt = `TODAY: ${today()}\n\nFIELDS (id | label | type | status | context):\n${input.fields.map(fieldLine).join("\n")}\n\n${untrusted("template", `CLAUSE OUTLINE (id | start of text):\n${outline(input.blocks)}`)}\n\nRECENT CONVERSATION:\n${input.history
     .slice(-6)
     .map((m) => `${m.role}: ${m.content.slice(0, 600)}`)
     .join("\n")}\n\n${untrusted("user_message", input.userMessage)}`;
@@ -160,12 +168,13 @@ const REPLY_SYSTEM = `You are a careful, friendly drafting assistant helping a l
 Style: plain language, concise (under 120 words unless explaining a clause), no JSON, no markdown headings.
 Language: write the whole reply in the REPLY LANGUAGE given (English or French), even if the template or earlier messages use the other language. When quoting the contract, quote it in its original language. Never translate or rewrite the contract itself.
 Rules:
-- Briefly confirm what was just recorded (use the recorded values exactly; never add details that are not recorded).
+- Briefly confirm what was just recorded: only the items in JUST RECORDED, with their values exactly. Never say that anything else was recorded.
 - If any field NEEDS CLARIFICATION, ask about it first using its note.
-- Then ask for the next outstanding information, grouping related items into one natural question (at most 3 items). Ask whether a party is an individual or a company when that matters.
+- Then ask for the items in NEXT TO ASK in one natural question, using the suggested wording when there is one.
+- Ask only for the items in NEEDS CLARIFICATION and NEXT TO ASK. Never ask for anything else (a reference number, a subject line, whether a party is a company…): an answer to it cannot be recorded.
 - A yes/no condition decides whether a clause is included. Ask it neutrally; never suggest which answer is appropriate, usual or enforceable.
 - If the user asked about a clause, explain it using ONLY the clause text provided. If asked whether it is usual, give a cautious, general answer, say that the document alone cannot establish market practice or enforceability in their jurisdiction, and do not cite laws, cases or statistics. Then return to the outstanding questions.
-- If nothing required is outstanding, say the draft is ready to generate with the "Generate draft" button.
+- Say that the draft is ready to generate with the "Generate draft" button only when READY TO GENERATE is yes. Otherwise never say that it is ready or that nothing is missing.
 - Never claim to have verified a company, a registry or the law.
 ${SAFETY_RULES}`;
 
@@ -173,13 +182,17 @@ export function replyPrompt(fields: Field[], changed: string[], clauseText: stri
   const outstanding = outstandingFields(fields, inactive);
   const nextGroup = GROUP_ORDER.find((g) => outstanding.some((f) => f.group === g && f.status === "missing"));
   const clarify = outstanding.filter((f) => f.status === "needs_clarification");
-  const next = outstanding.filter((f) => f.status === "missing" && f.group === nextGroup).slice(0, 4);
+  const next = outstanding.filter((f) => f.status === "missing" && f.group === nextGroup).slice(0, 3);
+  // Named, not counted: given only a number, the model made up questions to fill it and took the
+  // list for done when two fields had similar names.
+  const later = outstanding.filter((f) => !clarify.includes(f) && !next.includes(f));
   return [
     `JUST RECORDED: ${changed.length ? fields.filter((f) => changed.includes(f.id) && f.status === "confirmed").map((f) => `${f.label} = ${f.displayValue}`).join("; ") || "nothing confirmed" : "nothing"}`,
     `NEEDS CLARIFICATION: ${clarify.map((f) => `${f.label}: ${f.note ?? "unclear"}`).join("; ") || "none"}`,
     `REPLY LANGUAGE: ${lang === "fr" ? "French" : "English"}`,
     `NEXT TO ASK: ${next.map((f) => `${f.label}${f.valueType === "boolean" ? " [yes/no]" : ""}${questionIn(f, lang) ? ` (suggested: ${questionIn(f, lang)})` : ""}`).join("; ") || "none"}`,
-    `REMAINING AFTER THAT: ${outstanding.length - clarify.length - next.length}`,
+    `STILL NEEDED LATER (do not ask yet): ${later.map((f) => f.label).join("; ") || "none"}`,
+    `READY TO GENERATE: ${outstanding.length ? "no" : "yes"}`,
     clauseText ? untrusted("clause", clauseText) : "",
     `RECENT CONVERSATION:\n${history.slice(-4).map((m) => `${m.role}: ${m.content.slice(0, 400)}`).join("\n")}`,
     untrusted("user_message", userMessage),

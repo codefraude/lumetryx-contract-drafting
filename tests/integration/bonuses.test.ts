@@ -5,6 +5,7 @@
 process.env.DATABASE_URL ??= "postgres://postgres:postgres@localhost:5432/lumetryx_test";
 
 import { readFileSync } from "node:fs";
+import JSZip from "jszip";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
@@ -321,5 +322,29 @@ describe("saved drafts", () => {
     expect((await svc.listDrafts(s.id)).length).toBe(1);
     expect((await svc.compare(s.id, d.id, null)).source).toBe("preview");
     await svc.deleteDraft(s.id, d.id);
+  });
+});
+
+describe("Word content controls", () => {
+  it("writes a chat answer given after drafting into its placeholder box, which then stops being a placeholder", async () => {
+    analysis = { notFields: [], fields: [] }; // every placeholder box becomes its own field
+    const s = await newSession();
+    let d = await svc.createFromUpload(s, "lettre.docx", new Uint8Array(readFileSync("fixtures/synthetic-lettre-controles-fr.docx")));
+    const titre = d.fields.find((x) => x.label === "Titre")!;
+    for (const field of d.fields) {
+      d = await svc.correctField(s.id, d.id, field.id === titre.id ? { fieldsVersion: d.fieldsVersion, fieldId: field.id, required: false } : { fieldsVersion: d.fieldsVersion, fieldId: field.id, value: field.valueType === "date" ? "24 septembre 2026" : `Valeur ${field.id}` });
+    }
+    expect((await generate(s.id, d.id)).some((e) => e.type === "draft_complete")).toBe(true);
+    expect(await bodyText((await svc.readDocx(s.id, d.id, "working")).bytes)).toContain("Titre"); // still the placeholder
+
+    const events = await say(s, d.id, "Le titre est Responsable des sinistres.", { updates: [u(titre.id, "Responsable des sinistres")] });
+    expect(events.find((e) => e.type === "draft_patch")).toMatchObject({ applied: [titre.id], conflicts: [] });
+    const working = (await svc.readDocx(s.id, d.id, "working")).bytes;
+    const lines = (await bodyText(working)).split("\n");
+    expect(lines).toContain("Responsable des sinistres");
+    expect(lines).not.toContain("Titre");
+    const xml = await (await JSZip.loadAsync(working)).file("word/document.xml")!.async("string");
+    const at = xml.indexOf("Responsable des sinistres");
+    expect(xml.slice(xml.lastIndexOf("<w:sdt>", at), at)).not.toContain("showingPlcHdr");
   });
 });

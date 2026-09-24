@@ -91,7 +91,7 @@ A `Field` is:
 - `status`: `missing` | `needs_clarification` | `confirmed`;
 - the user's `rawValue`, the `displayValue` written into the document, a `normalized` value (ISO date-only, or an exact decimal string plus ISO currency), and a `note` explaining why clarification is needed.
 
-An **occurrence anchor** is `part#paragraphOrdinal` + `[start,end)` + `expected` text, and supports `replace` or `insert` (for implicit gaps).
+An **occurrence anchor** is `part#paragraphOrdinal` + `[start,end)` + `expected` text, and supports `replace` (a marker, a placeholder box or placeholder wording) or `insert` (a gap after a caption).
 
 After drafting, `draftAnchors` record where each value now sits, so later answer changes can be applied safely.
 
@@ -152,12 +152,13 @@ Checked on the synthetic fixtures:
 | Legal multilevel numbering (1 / 1.1 / 1.1.1) | Real `numPr`, never flattened. Outdenting in the editor renumbers correctly (3.1.1 → 3.2, the next clause 3.2 → 3.3) |
 | Bullets, tables | Table cell edits round-trip |
 | Margins, sections, headers/footers | Header placeholders are filled; `pgMar` and header/footer refs survive |
+| Word content controls (placeholder boxes) | A filled box stops showing its placeholder and loses Word's grey *Placeholder Text* style; its data binding is removed, or Word would refill it from the empty bound property. Unanswered boxes and sample-text boxes are left as they are, and the boxes survive the editor's own save |
 
 **Observed changes and losses:**
 - **Empty parts removed:** SuperDoc's export dropped the *empty* `footnotes.xml`/`endnotes.xml` parts and their relationships, consistently (no dangling references). Non-empty footnotes were not tested.
 - **Formatting of a split placeholder:** when a placeholder spans runs with different formatting, the value takes the first run's formatting.
 - **Pagination:** Word, LibreOffice and SuperDoc lay text out slightly differently, so page breaks can differ. Pixel-identical rendering is not claimed.
-- **Not tested:** images, text boxes, content controls, fields such as TOC or cross-references, tracked changes and comments in templates. Text inside text boxes is indexed as separate paragraphs, but no fixture contains one.
+- **Not tested:** images, text boxes, fields such as TOC or cross-references, tracked changes and comments in templates. Text inside text boxes is indexed as separate paragraphs, but no fixture contains one.
 - **Microsoft Word:** not verified — see the manual checklist below.
 
 ## Conversation and Gemini usage
@@ -167,8 +168,9 @@ Checked on the synthetic fixtures:
 - **Why the AI SDK:** one integration path, the Vercel AI SDK 7 with `@ai-sdk/google`. Its `Output.object` gives schema-validated structured output, and `streamText` gives the reply stream.
 
 **Template analysis (once per session and template, cached).**
-- Markers are detected locally first: `{{x}}`, `[X]`, `____`; signature blanks are excluded.
-- The model receives *compact* markers and indexed blocks (id + text, not XML). It groups synonyms, discards non-fields, and proposes *implicit* gaps (e.g. "the Tenant, of" with nothing after it) as a **verbatim quote** that must occur exactly once in the named block. Unverifiable claims are dropped.
+- Markers are detected locally first: `{{x}}`, `[X]`, `____`, and Word content controls that still show their placeholder text ("Votre nom"). Signature blanks are excluded. Boxes bound to the same data, which Word keeps identical, are one field. A box of more than 12 words, or of the same kind (same title) as one, is the template's sample wording; galleries, pictures and check boxes are never fields.
+- The model receives *compact* markers and indexed blocks (id + text, not XML). It groups synonyms, discards non-fields, and proposes *implicit* gaps as a **verbatim quote** that must occur exactly once in the named block: either the text before the gap ("the Tenant, of" with nothing after it; the value goes after it) or placeholder wording that stands where the value goes (a line reading "Nom du destinataire"; the value replaces it). Unverifiable claims, and places that overlap a marker or another answer, are dropped.
+- Every field has its own label: the model qualifies same-worded blanks ("Adresse postale (expéditeur)"), and a label still shared gets a number.
 - Any marker the model doesn't account for still becomes a field, so nothing is silently lost.
 - Oversized templates (more than 2,500 paragraphs or 120k characters) are rejected, never truncated.
 - One schema-repair retry at most. Truncation (`finishReason: length`) is detected and nothing is committed.
@@ -178,6 +180,11 @@ Checked on the synthetic fixtures:
 - **Groupings silently dropped.** Gemini returns marker keys without their `k:` prefix, so every grouping was rejected and each marker became its own field. Keys are now resolved against the real markers.
 
 Neither defect showed up with the mocked model. The SDK's `RetryError` is also unwrapped now, so a lasting 5xx says "temporarily unavailable" instead of a generic failure, and unclassified AI errors are logged on the server.
+
+**Three defects found with a Word letter template whose blanks are all content controls, and fixed:**
+- **Values written next to the placeholder.** The boxes were not recognised, so the model could only point at the text before a gap, and the value was inserted after the placeholder ("Votre nom Camille Martin"). Placeholder boxes are now markers and are replaced, and the model can mark plain placeholder wording to be replaced.
+- **A detail never asked.** Two fields were both called "Adresse postale", and the reply was told only how many details remained. Once one address was answered it took the other for done and said the draft was ready; it also asked for things that are not fields (a subject line, a reference number). Labels are now distinct, the reply gets the remaining details by name and a `READY TO GENERATE` flag, and it may ask only for listed details.
+- **An invented date.** "Take today's date" was recorded as a date the model made up. The extraction now receives today's date.
 
 **Each chat turn = exactly two model calls.**
 1. **Extraction.** Structured output: `updates[{fieldId, value, currency, evidence}]` plus `clauseBlockIds`. Every update must quote **verbatim evidence from the user's latest message**, or it is rejected; this is the anti-fabrication guard, and a mutation test proves the test suite catches its removal. Values then go through deterministic validation:
@@ -190,7 +197,7 @@ Neither defect showed up with the mocked model. The SDK's `RetryError` is also u
 2. **Reply** (`streamText`). It receives only:
    - what was just recorded;
    - what needs clarification;
-   - the next group of up to four questions;
+   - the next group of up to three questions, the other details still needed by name, and whether the draft is ready to generate (it may say so only then);
    - the relevant clause text with its sub-clauses, for "what does this mean / is this usual";
    - the last four messages.
 
@@ -365,19 +372,21 @@ Labels: **mocked** = the language model is a test double; **live** = real Gemini
 | Evidence | Result |
 | --- | --- |
 | `npm run typecheck`, `npm run lint`, `npm run build` | Pass (strict, no `any`, 0 lint errors) |
-| Unit tests (29). *Interface:* reply formatting (paragraphs, lists, bold, amounts left alone) and theme resolution. *Core:* package validation, indexing and numbering labels, split runs, escaping, headers, safe edit order, stale anchors, dates/money, SSE decoding. *Bonuses:* EN/FR detection, French dates/amounts and separator ambiguity, per-occurrence rendering, accented and run-split French markers, unprefixed model keys, the rule grammar with rejected nesting/unpaired/inline/table markers, yes/no/unknown evaluation, inactive fields, model-proposed rules, exclusion and restoration on a real DOCX (renumbered and dangling references, untouched `numbering.xml`, idempotence), confirmation before removing an edited clause and restoration of the edited variant, answering into a restored clause, and the diff (word level, accents/amounts, repeated paragraphs, table cells, bold and list level, run-split noise, reverting, no markup in the DOCX) | Pass |
-| Integration tests (21, real PostgreSQL, **mocked** model). *Interface:* a message retried after a failed turn is stored once. *Core:* the original 12. *Bonuses:* bilingual lease answered in French, then switched to English with no model call and nothing re-asked; export with per-language dates/amounts and untouched clause wording; separator ambiguity; conditional yes/no/unknown, overrides and restore-once; edited clause confirmation and restore; drafts list/rename/copy/delete with cache invalidation; another identity denied on every operation; resume with zero model calls and no duplicate messages; interrupted generation; stale second-tab save; comparing unsaved content without saving it; expiry and cleanup; Redis outage | Pass |
-| Mutation checks. *Core:* removing the evidence guard or session scoping makes tests fail. *Bonuses:* forcing English rendering, and disabling inactive-field logic, each fail a test. *Interface:* disabling the retry de-duplication fails its test | Confirmed |
+| Unit tests (36). *Placeholder boxes:* detection, one field for bound boxes in body and header, sample wording and galleries left alone, the box title as the label of Word's generic prompt, replacement in body and header with the placeholder flag, binding and grey style cleared, unanswered boxes kept; placeholder wording replaced and overlapping places refused; distinct labels; the reply prompt names the details left, asks at most three, and says when the draft is ready. *Interface:* reply formatting (paragraphs, lists, bold, amounts left alone) and theme resolution. *Core:* package validation, indexing and numbering labels, split runs, escaping, headers, safe edit order, stale anchors, dates/money, SSE decoding. *Bonuses:* EN/FR detection, French dates/amounts and separator ambiguity, per-occurrence rendering, accented and run-split French markers, unprefixed model keys, the rule grammar with rejected nesting/unpaired/inline/table markers, yes/no/unknown evaluation, inactive fields, model-proposed rules, exclusion and restoration on a real DOCX (renumbered and dangling references, untouched `numbering.xml`, idempotence), confirmation before removing an edited clause and restoration of the edited variant, answering into a restored clause, and the diff (word level, accents/amounts, repeated paragraphs, table cells, bold and list level, run-split noise, reverting, no markup in the DOCX) | Pass |
+| Integration tests (22, real PostgreSQL, **mocked** model). *Placeholder boxes:* a chat answer given after drafting replaces its box in the working draft. *Interface:* a message retried after a failed turn is stored once. *Core:* the original 12. *Bonuses:* bilingual lease answered in French, then switched to English with no model call and nothing re-asked; export with per-language dates/amounts and untouched clause wording; separator ambiguity; conditional yes/no/unknown, overrides and restore-once; edited clause confirmation and restore; drafts list/rename/copy/delete with cache invalidation; another identity denied on every operation; resume with zero model calls and no duplicate messages; interrupted generation; stale second-tab save; comparing unsaved content without saving it; expiry and cleanup; Redis outage | Pass |
+| Mutation checks. *Core:* removing the evidence guard or session scoping makes tests fail. *Bonuses:* forcing English rendering, and disabling inactive-field logic, each fail a test. *Interface:* disabling the retry de-duplication fails its test. *Placeholder boxes:* keeping the binding or the grey style, finding no boxes, dropping the sample-title rule, label numbering or replace mode, giving the reply a count instead of names, or asking four at once: each fails a test (8 of 8) | Confirmed |
 | HTTP smoke test on the production build (`tests/smoke/http-smoke.mjs`, markers-only) | *Core:* fake file 422, cross-origin 403, no cookie 401, stale save 409, `no-store`, attachment headers, incremental SSE (27 chunks, first block at 33 ms). *Bonuses:* another session gets 404 on every route, including resume, rename, language, delete, compare, copy and clause actions; cross-origin delete 403; no-cookie drafts list empty |
 | **Browser** E2E (`flow.spec.ts`): heading, italic paragraph, table cell, list level, bold and undo edits; immediate download; XML inspection; no off-origin requests; mobile 390 px and tablet 820 px, including Compare and the Saved drafts drawer, without horizontal overflow | 4/4 pass |
+| **Browser** E2E (`controls.spec.ts`): a letter whose blanks are placeholder boxes, answered in the Details panel → draft → an edit in the editor → immediate download. Every answer is where its placeholder was, in the body and the header, no placeholder wording is left, and filled boxes are neither placeholders nor bound after the editor's own export | 1/1 pass |
 | **Browser** E2E (`theme.spec.ts`): system theme applied before the first paint; explicit choice survives a reload and ignores OS changes; System follows them; no hydration warnings. In a workspace, switching theme keeps unsaved input and the editor instance, fetches and saves nothing, keeps the page white, and the exported `document.xml` is identical in both themes | 2/2 pass |
 | **Browser** E2E (`chat.spec.ts`), with the chat **stream stubbed in the browser** (it says nothing about the model): working indicator, inline failure, retry without a duplicate message, "details updated", list formatting; a reader who scrolled up is not moved, and Jump to latest works | 2/2 pass |
 | Scripted interface checks (run for this change, not committed as tests): contrast of every visible interface string in both themes across upload, chat, details, clauses, compare, drawer, menu and dialog states (all at least 4.5:1, or 3:1 for large text, after two fixes; disabled controls included); keyboard (tab arrows, Home/End, dialog focus trap and return, menu focus and Escape); reduced motion; widths 360, 390, 768, 820, 1024, 1366 and 1600 px and a 844 × 390 landscape phone, with no horizontal page overflow; the dev server shows no hydration or script warnings in either theme | Pass |
 | **Browser + live** E2E (`bonuses.spec.ts`), the integrated scenario from the brief. Steps: bilingual employment template answered in French → non-compete included → table-cell and paragraph edits → Compare shows the unsaved edits → Save now → browser closed and reopened with the same profile → resumed → chat switched to English → "not senior" through the live model → confirmation because the clause was edited → removed → Compare shows "Excluded: Employee is senior = No" → export. Checks on the exported DOCX: clause gone, edit gone with it, table edit kept, per-language dates, "clause 3" renumbered, no `[[` markers, no diff markup, numbering definitions intact | Pass on the build before the interface redesign (2 of 2 runs). **Not re-run on the redesigned interface:** from about 19:10 to 20:05 (UTC+4) on 23 September 2026, Gemini answered every call, including `npm run smoke:gemini`, with 503 "This model is currently experiencing high demand". The app fell back to markers-only mode and said so. The spec is updated for the new labels and dialogs; the chat surface itself is covered by `chat.spec.ts` with a stubbed stream |
 | Live Gemini: `npm run smoke:gemini`; analysis of the bilingual template merges each EN/FR pair (10 fields, none rejected, on repeated runs) | Pass |
+| Live Gemini on a real Word letter template with content controls (the reporter's own file, not committed): 10 fields with distinct labels, each replacing its box, the closing and attachment boxes kept as text. A replay of the reporter's conversation with the new prompts asked for every field, including the sender's address skipped before, asked for nothing else, recorded "take today's date" as the current date, and said the draft was ready only after the last answer | Pass (24 September 2026) |
 
 **Not verified (be aware):**
-- **Microsoft Word:** no output of this version has been opened in Word. **LibreOffice is not installed in this environment**, so the earlier LibreOffice renders were not repeated for the new fixtures. The only rendering checked is SuperDoc's, in the browser.
+- **Microsoft Word:** no output of this version has been opened in Word. That Word shows a filled content control as ordinary text follows from the file format (placeholder flag and binding removed); it was not observed. **LibreOffice is not installed in this environment**, so the earlier LibreOffice renders were not repeated for the new fixtures. The only rendering checked is SuperDoc's, in the browser.
 - **Live model breadth:** the live model ran one full scenario plus smoke checks. There is no evaluation set of messy answers, and the model's *proposals* of conditional clauses from ordinary wording were validated only with a mock; the fixtures contain no such wording.
 - **Neon and Upstash under load:** Neon was migrated and serves the dev app, and Upstash answered a ping. Locks and rate limits against Upstash were not load-tested; the test server ran without Redis.
 - **Other toolbar actions:** italic, underline, bullet/numbered list toggles, table insert, zoom and the heading-style picker were not individually exercised.
@@ -400,6 +409,8 @@ Labels: **mocked** = the language model is a test double; **live** = real Gemini
 ## Known limitations and trade-offs
 
 - **Implicit fields:** these depend on the model. Without AI only explicit markers are found, and English/French equivalents are **not** merged (safe, but you are asked twice). Underscore blanks are always offered as low-confidence fields, and the user can dismiss them ("Not a field").
+- **Placeholder boxes without AI:** in markers-only mode, a short box of sample wording that shares no title with the letter body (e.g. "Cordialement") becomes a field; it can be dismissed ("Not a field"). A box of more than 12 words, one holding several paragraphs or a line break, and galleries stay as they are.
+- **Relative dates:** "today" is the server's calendar date, so near midnight a user in another time zone can get the neighbouring day.
 - **Language detection** is a word/accent scorer for English and French only. Short or balanced paragraphs are `unknown`; there, values are rendered in the template's dominant language (English if mixed).
 - **Clause references:** only plain-text "clause/article/section/paragraph N" references are kept in line. References to other instruments ("section 3 of the Companies Act") are skipped. Word REF fields that point into a removed clause are reported, not rewritten.
 - **Moved paragraphs:** a paragraph cut and pasted in the editor gets a new identity, so answers there become conflicts and the comparison shows it as removed plus added.
@@ -419,6 +430,6 @@ Labels: **mocked** = the language model is a test double; **live** = real Gemini
 
 1. Run the employer's templates and **Microsoft Word** checks, plus a live Gemini evaluation set (messy answers, corrections, prompt-injection templates), and tune prompts and thinking level with measured token costs.
 2. Commercial-licence decision on SuperDoc, or evaluate an alternative editor, re-using the same OOXML filling layer.
-3. Fixtures with images, text boxes, content controls and footnotes, plus Word-rendered visual diffs in CI.
+3. Fixtures with images, text boxes and footnotes, plus Word-rendered visual diffs in CI.
 4. A "Retry AI analysis" action for drafts created while the model was unavailable, and a live evaluation set for French/mixed answers and rule proposals.
 5. Object storage for DOCX bytes, a scheduled retention job, and observability for token spend.

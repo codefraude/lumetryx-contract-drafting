@@ -17,7 +17,7 @@ const EXAMPLES: { file: string; title: string; language: string; conditional?: b
 ];
 
 const STEPS = [
-  { title: "Upload your template", text: "A Word .docx with blanks such as [NAME], {{date}} or a line of underscores." },
+  { title: "Upload your template", text: "A Word .docx with blanks such as [NAME], {{date}}, a line of underscores or Word placeholder boxes." },
   { title: "Complete the details", text: "Answer the assistant in English or French, or fill the details in yourself." },
   { title: "Review and download", text: "Edit the draft, compare it with the template, and download it as .docx." },
 ];

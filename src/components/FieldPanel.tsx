@@ -153,7 +153,7 @@ export const FieldPanel = memo(function FieldPanel({ fields, locked, inactive, o
     return (
       <div className="p-5">
         <Callout icon={CircleDashed} title="No fields were found in this template">
-          Mark the blanks in Word as [NAME], {"{{name}}"} or a line of underscores, then upload the template again.
+          Mark the blanks in Word as [NAME], {"{{name}}"}, a line of underscores or a placeholder box (content control), then upload the template again.
         </Callout>
       </div>
     );

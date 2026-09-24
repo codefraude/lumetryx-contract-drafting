@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { detectMarkers } from "@/lib/docx/detect";
 import { AnchorConflictError, applyTextEdits, fillAndRender, indexBlocks } from "@/lib/docx/ooxml";
 import { DocxValidationError, loadDocxPackage, serializePackage } from "@/lib/docx/package";
-import { buildFields, draftEdits } from "@/lib/fields/build";
+import { buildFields, draftEdits, type TemplateAnalysis } from "@/lib/fields/build";
 
 const fixture = (name: string) => new Uint8Array(readFileSync(`fixtures/${name}.docx`));
 
@@ -87,7 +87,7 @@ describe("filling", () => {
       notFields: [],
       fields: [
         { id: "reference", label: "Reference", question: "?", valueType: "text", group: "other", required: true, markerKeys: ["k:reference number"], implicit: [] },
-        { id: "bogus", label: "Bogus", question: "?", valueType: "text", group: "other", required: true, markerKeys: [], implicit: [{ blockId: intro.id, quote: "text that does not exist" }] },
+        { id: "bogus", label: "Bogus", question: "?", valueType: "text", group: "other", required: true, markerKeys: [], implicit: [{ blockId: intro.id, quote: "text that does not exist", replace: false }] },
       ],
     });
     expect(fields.find((f) => f.id === "bogus")).toBeUndefined();
@@ -129,5 +129,108 @@ describe("filling", () => {
     for await (const ev of fillAndRender(pkg, [])) order.push(ev.type);
     expect(order.at(-1)).toBe("done");
     expect(order.filter((t) => t === "block").length).toBeGreaterThan(10);
+  });
+});
+
+describe("Word content controls (placeholder boxes)", () => {
+  const letter = async () => {
+    const pkg = await loadDocxPackage(fixture("synthetic-lettre-controles-fr"));
+    const blocks = await indexBlocks(pkg);
+    return { pkg, blocks, markers: detectMarkers(blocks) };
+  };
+
+  it("finds the boxes, groups those Word keeps identical, and leaves sample wording and galleries alone", async () => {
+    const { markers } = await letter();
+    const byText = (t: string) => markers.filter((m) => m.text === t);
+    expect(markers.every((m) => m.marker === "control")).toBe(true);
+    // Bound to the same document property: one field, in the body and in the header.
+    expect(new Set(byText("Nom du destinataire").map((m) => m.key)).size).toBe(1);
+    expect(byText("Nom du destinataire").map((m) => m.blockId)).toContain("word/header1.xml#0");
+    expect(new Set(byText("Votre nom").map((m) => m.key)).size).toBe(1);
+    // The same wording for two different people is never merged.
+    expect(new Set(byText("Adresse postale").map((m) => m.key)).size).toBe(2);
+    // A sentence of the letter, a short piece of it in a box of the same kind, and a
+    // table-of-contents gallery are not blanks.
+    expect(markers.some((m) => m.text.startsWith("J’ai été très surpris"))).toBe(false);
+    expect(markers.some((m) => m.text === "pourcent !" || m.text.startsWith(", je conteste"))).toBe(false);
+    expect(markers.some((m) => m.text.startsWith("Aucune entrée"))).toBe(false);
+    // Word's generic prompt says nothing about the value; the box's title does.
+    expect(byText("Cliquez ou appuyez ici pour entrer du texte.")[0]!.labelHint).toBe("Numéro de police");
+  });
+
+  it("replaces each placeholder with its answer and turns the box into ordinary content", async () => {
+    const { pkg, blocks, markers } = await letter();
+    const { fields } = buildFields(blocks, markers, null);
+    const answer = (label: string, value: string) => Object.assign(fields.find((f) => f.label === label)!, { status: "confirmed", rawValue: value, displayValue: value, normalized: { kind: "text", value } });
+    answer("Votre nom", "Camille Martin");
+    answer("Adresse postale", "12 rue des Lilas");
+    answer("Adresse postale (2)", "1 place de la Bourse");
+    answer("Nom du destinataire", "Jeanne Dupont");
+    answer("Compagnie d’assurance", "Assurances & Fils");
+    answer("Numéro de police", "POL-778");
+    Object.assign(fields.find((f) => f.label === "Date")!, { status: "confirmed", rawValue: "24/09/2026", displayValue: "24 September 2026", normalized: { kind: "date", iso: "2026-09-24" } });
+    await applyTextEdits(pkg, draftEdits(fields, "fr"));
+    const after = await indexBlocks(pkg);
+    const text = (id: string) => after.find((b) => b.id === id)!.text;
+    // The value takes the placeholder's place; the placeholder wording is gone.
+    expect(text("word/document.xml#0")).toBe("Camille Martin");
+    expect(text("word/document.xml#1")).toBe("12 rue des Lilas");
+    expect(text("word/document.xml#8")).toBe("1 place de la Bourse");
+    expect(text("word/document.xml#10")).toBe("Cher/Chère Jeanne Dupont :");
+    expect(text("word/document.xml#12")).toContain("longue date de Assurances & Fils, je conteste");
+    expect(text("word/document.xml#13")).toBe("Numéro de police : POL-778");
+    expect(text("word/document.xml#16")).toBe("Camille Martin");
+    expect(text("word/header1.xml#0")).toBe("Jeanne Dupont");
+    expect(text("word/header1.xml#1")).toBe("24 septembre 2026");
+
+    const bytes = await serializePackage(pkg);
+    const xml = await partXml(bytes, "word/document.xml");
+    const box = (value: string, part = xml) => part.slice(part.lastIndexOf("<w:sdt>", part.indexOf(value)), part.indexOf("</w:sdt>", part.indexOf(value)));
+    for (const v of ["Camille Martin", "12 rue des Lilas", "Jeanne Dupont", "Assurances &amp; Fils", "POL-778"]) {
+      expect(box(v), v).not.toContain("showingPlcHdr");
+      // Kept, Word would replace the value with the (empty) bound document property on opening.
+      expect(box(v), v).not.toContain("dataBinding");
+    }
+    expect(box("Jeanne Dupont", await partXml(bytes, "word/header1.xml"))).not.toContain("showingPlcHdr");
+    expect(box("POL-778")).not.toContain("Textedelespacerserv"); // no grey placeholder formatting on the answer
+    expect(xml).toMatch(/Rfrencelgre"\/><\/w:rPr><w:t[^>]*>Assurances &amp; Fils</); // the template's own formatting stays
+    // Unanswered boxes still show their placeholder, and are found again for a later answer.
+    expect(box("Cordialement")).toContain("showingPlcHdr");
+    const again = detectMarkers(after).map((m) => m.text);
+    expect(again).toContain("Cordialement");
+    expect(again).not.toContain("Votre nom");
+  });
+
+  it("gives two blanks with the same wording different names", async () => {
+    const { blocks, markers } = await letter();
+    const labels = buildFields(blocks, markers, null).fields.map((f) => f.label);
+    expect(labels).toEqual(expect.arrayContaining(["Adresse postale", "Adresse postale (2)", "Ville, rue et code postal", "Ville, rue et code postal (2)"]));
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+});
+
+describe("placeholder wording without markers", () => {
+  it("replaces the wording the analysis points to, and never lets two answers share a place", async () => {
+    const pkg = await loadDocxPackage(fixture("synthetic-residential-lease"));
+    const blocks = await indexBlocks(pkg);
+    const use = blocks.find((b) => b.text.startsWith("The Premises shall be used"))!;
+    const late = blocks.find((b) => b.text.startsWith("Late payments"))!;
+    const f = (id: string, implicit: TemplateAnalysis["fields"][number]["implicit"]) => ({ id, label: id, question: "?", valueType: "text" as const, group: "other" as const, required: true, markerKeys: [], implicit });
+    const { fields, rejected } = buildFields(blocks, detectMarkers(blocks), {
+      notFields: [],
+      fields: [
+        f("use", [{ blockId: use.id, quote: "a private residence", replace: true }]),
+        f("overlap", [{ blockId: use.id, quote: "private residence", replace: true }]),
+        f("on_marker", [{ blockId: late.id, quote: "[INTEREST RATE] per annum", replace: true }]),
+      ],
+    });
+    const ids = fields.map((x) => x.id);
+    expect(ids).toContain("use");
+    expect(ids).not.toContain("overlap"); // its place is already the answer to "use"
+    expect(ids).not.toContain("on_marker"); // the marker is the field
+    expect(rejected.some((r) => r.startsWith("overlapping place"))).toBe(true);
+    Object.assign(fields.find((x) => x.id === "use")!, { status: "confirmed", displayValue: "a holiday home" });
+    await applyTextEdits(pkg, draftEdits(fields, "en"));
+    expect((await indexBlocks(pkg)).find((b) => b.id === use.id)!.text).toBe("The Premises shall be used only as a holiday home.");
   });
 });

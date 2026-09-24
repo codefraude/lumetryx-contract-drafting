@@ -20,7 +20,13 @@ export const TemplateAnalysis = z.object({
       required: z.boolean(),
       markerKeys: z.array(z.string()).describe("Keys of the detected markers that mean this same thing"),
       implicit: z
-        .array(z.object({ blockId: z.string(), quote: z.string().min(3).max(160).describe("Verbatim text immediately BEFORE the missing information") }))
+        .array(
+          z.object({
+            blockId: z.string(),
+            quote: z.string().min(3).max(160).describe("Verbatim text: the placeholder wording itself when replace is true, else the text immediately BEFORE the missing information"),
+            replace: z.boolean().describe("true when the quote is placeholder wording that stands where the value goes and must be replaced by it; false when the value goes right after the quote"),
+          }),
+        )
         .describe("Places where information is missing but no marker exists"),
     }),
   ),
@@ -104,6 +110,8 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
   // real markers (never invent one). Underscore keys are positional and must match exactly.
   const resolveKey = (key: string) => (byKey.has(key) ? key : byKey.has(`k:${normalizeKey(key.replace(/^k:/, ""))}`) ? `k:${normalizeKey(key.replace(/^k:/, ""))}` : key);
   const notFields = new Set((analysis?.notFields ?? []).map(resolveKey));
+  /** Places given to implicit values so far; two answers never share or overlap one. */
+  const taken: Occurrence[] = [];
 
   for (const af of (analysis?.fields ?? []).slice(0, 80)) {
     const occurrences: Occurrence[] = [];
@@ -124,10 +132,22 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
         rejected.push(`unverifiable quote in ${imp.blockId}: ${imp.quote}`);
         continue;
       }
-      const pos = at + imp.quote.length;
-      // Don't insert where a marker already sits — that marker is the field.
-      if (markers.some((m) => m.blockId === block.id && m.start <= pos + 1 && m.end >= pos)) continue;
-      occurrences.push({ blockId: block.id, start: pos, end: pos, expected: "", mode: "insert", marker: "implicit", lang: langOf.get(block.id) ?? "unknown" });
+      // Placeholder wording (e.g. a line reading “Nom du destinataire”) is replaced by the value;
+      // otherwise the value goes right after the quote. A placeholder is short and on one line.
+      if (imp.replace && (imp.quote.length > 80 || /[\t\n]/.test(imp.quote))) {
+        rejected.push(`not a placeholder in ${imp.blockId}: ${imp.quote}`);
+        continue;
+      }
+      const [start, end] = imp.replace ? [at, at + imp.quote.length] : [at + imp.quote.length, at + imp.quote.length];
+      // Don't write where a marker already sits (or right before one) — that marker is the field.
+      if (markers.some((m) => m.blockId === block.id && m.start <= end + 1 && m.end >= start)) continue;
+      if (taken.some((t) => t.blockId === block.id && start < t.end && t.start < end)) {
+        rejected.push(`overlapping place in ${imp.blockId}: ${imp.quote}`);
+        continue;
+      }
+      const o: Occurrence = { blockId: block.id, start, end, expected: imp.replace ? imp.quote : "", mode: imp.replace ? "replace" : "insert", marker: "implicit", lang: langOf.get(block.id) ?? "unknown" };
+      taken.push(o);
+      occurrences.push(o);
     }
     if (!occurrences.length) continue;
     const first = occurrences[0]!;
@@ -192,21 +212,30 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
     ids.add(cf.id);
     fields.push({ ...cf, ...(q ? { question: q.question, ...(q.questionFr ? { questionFr: q.questionFr } : {}) } : {}) });
   }
-  const taken = new Set(rules.flatMap((r) => [...r.blockIds, ...r.markerBlockIds]));
+  const inRules = new Set(rules.flatMap((r) => [...r.blockIds, ...r.markerBlockIds]));
   for (const p of (analysis?.proposedRules ?? []).slice(0, 10)) {
-    const v = validateProposal({ ...p, questionFr: p.questionFr ?? null } as RuleProposal, blocks, taken);
+    const v = validateProposal({ ...p, questionFr: p.questionFr ?? null } as RuleProposal, blocks, inRules);
     if (typeof v === "string") {
       rejected.push(v);
       continue;
     }
     if (rules.some((r) => r.id === v.rule.id)) continue;
     rules.push(v.rule);
-    v.rule.blockIds.forEach((id) => taken.add(id));
+    v.rule.blockIds.forEach((id) => inRules.add(id));
     // Its yes/no answer exists from the start but is only asked once the user confirms the rule.
     if (!ids.has(v.field.id)) {
       ids.add(v.field.id);
       fields.push(v.field);
     }
+  }
+  // Two answers never share a name (a template may say “Adresse postale” for two parties), or
+  // neither the assistant nor the lawyer could tell which one is meant.
+  const seen = new Map<string, number>();
+  for (const f of fields) {
+    const k = f.label.trim().toLowerCase();
+    const n = (seen.get(k) ?? 0) + 1;
+    seen.set(k, n);
+    if (n > 1) f.label = `${f.label.slice(0, 114)} (${n})`;
   }
   return { fields, rules, ruleIssues: parsed.issues, rejected };
 }

@@ -1,18 +1,20 @@
 import type { Block } from "./ooxml";
 
-export type MarkerKind = "brace" | "bracket" | "underscore";
+export type MarkerKind = "brace" | "bracket" | "underscore" | "control";
 
 export interface MarkerOccurrence {
   blockId: string;
   start: number;
   end: number;
-  /** Exact source text, e.g. "{{tenant_name}}". */
+  /** Exact source text, e.g. "{{tenant_name}}", or the placeholder text of a Word content control. */
   text: string;
   marker: MarkerKind;
-  /** Grouping key for identical markers; underscore blanks are keyed by position (never auto-merged). */
+  /** Grouping key for identical markers; underscore blanks and unbound controls are keyed by position (never auto-merged). */
   key: string;
   labelHint: string;
   context: string;
+  /** Title of a content control, shown to the analysis only. */
+  title?: string;
 }
 
 // Letters may be accented (French templates: {{nom_du_client}}, [date de début]).
@@ -50,12 +52,22 @@ function underscoreLabel(text: string, start: number): string {
   return before ? `Blank after “${before}”` : "Blank";
 }
 
+/** A placeholder this long is sample wording the template offers (e.g. a paragraph of a letter), not a blank. */
+const MAX_PLACEHOLDER_WORDS = 12;
+/** Word's generic prompts say nothing about the value; the control's title does. */
+const GENERIC_PROMPT = /click or tap|click here|enter (any )?(text|a date)|choose an item|cliquez|appuyez ici|entrer (du texte|une date)|choisissez un élément/i;
+
 /**
- * Finds explicitly marked fields. Contextual/implicit fields (no marker) are left to the
+ * Finds explicitly marked fields: {{…}}, […], lines of underscores and Word content controls that
+ * still show their placeholder text. Contextual/implicit fields (no marker) are left to the
  * bounded AI analysis, which must cite a verbatim quote that is validated against these blocks.
  */
 export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
   const out: MarkerOccurrence[] = [];
+  const bindings = new Map<string, number>();
+  // Boxes share a title when they hold the same kind of content: when some of them hold sample
+  // paragraphs (Word's letters title them all “Enter the body of the letter”), the short ones are sample wording too.
+  const sampleTitles = new Set(blocks.flatMap((b) => (b.placeholders ?? []).filter((ph) => ph.title && b.text.slice(ph.start, ph.end).trim().split(/\s+/).length > MAX_PLACEHOLDER_WORDS).map((ph) => ph.title!)));
   for (const b of blocks) {
     const controls = [...b.text.matchAll(CONTROL)].map((m) => [m.index, m.index + m[0].length] as const);
     const inControl = (i: number) => controls.some(([s, e]) => i >= s && i < e);
@@ -77,6 +89,21 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
       // Signature lines are meant to stay blank for wet/e-signature; they are not interview fields.
       if (SIGNATURE_CONTEXT.test(text.slice(Math.max(0, start - 50), start))) continue;
       out.push({ blockId: b.id, start, end: start + m[0].length, text: m[0], marker: "underscore", key: `u:${b.id}:${start}`, labelHint: underscoreLabel(text, start), context: contextOf(text, start, start + m[0].length) });
+    }
+    const marked = out.filter((m) => m.blockId === b.id);
+    for (const ph of b.placeholders ?? []) {
+      const raw = text.slice(ph.start, ph.end);
+      const value = raw.trim();
+      const start = ph.start + raw.indexOf(value);
+      const end = start + value.length;
+      // A marker typed inside the placeholder is the blank; a line break cannot be replaced by one value.
+      if (!value || /[\t\n]/.test(value) || value.split(/\s+/).length > MAX_PLACEHOLDER_WORDS || (ph.title && sampleTitles.has(ph.title)) || marked.some((m) => m.start < end && m.end > start)) continue;
+      // Controls bound to the same data always show the same value in Word: one field.
+      if (ph.binding && !bindings.has(ph.binding)) bindings.set(ph.binding, bindings.size + 1);
+      const key = ph.binding ? `c:bound${bindings.get(ph.binding)}` : `c:${b.id}:${start}`;
+      const title = ph.title?.replace(/\s*:\s*$/, "").trim() || undefined;
+      const label = GENERIC_PROMPT.test(value) && title ? title : value.replace(/\s*:\s*$/, "");
+      out.push({ blockId: b.id, start, end, text: value, marker: "control", key, labelHint: label.charAt(0).toUpperCase() + label.slice(1), context: contextOf(text, start, end), ...(title ? { title } : {}) });
     }
   }
   return out;
