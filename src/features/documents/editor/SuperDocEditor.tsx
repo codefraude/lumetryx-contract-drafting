@@ -32,6 +32,8 @@ interface Props {
 type SuperDocInstance = import("superdoc").SuperDoc;
 
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+/** Narrower than this, a page no longer fits at its true size: it is scaled down to the width of the desk. */
+const FIT_WIDTH = "(max-width: 899px)";
 
 /** Memoised with stable callbacks from the parent, so streamed chat updates never re-render the editor. */
 export const SuperDocEditor = memo(forwardRef<EditorHandle, Props>(function SuperDocEditor({ documentId, filename, source, loadKey, onStatus, onSaved }, ref) {
@@ -49,6 +51,7 @@ export const SuperDocEditor = memo(forwardRef<EditorHandle, Props>(function Supe
   const loadId = `${loadKey}:${attempt}`;
   const [readyId, setReadyId] = useState<string | null>(null);
   const [failure, setFailure] = useState<{ id: string; message: string } | null>(null);
+  const [fit, setFit] = useState(false);
 
   useImperativeHandle(ref, () => ({
     async flush() {
@@ -89,6 +92,7 @@ export const SuperDocEditor = memo(forwardRef<EditorHandle, Props>(function Supe
           selector: host.current,
           document: new File([loaded.blob], filename, { type: DOCX }),
           documentMode: editable ? "editing" : "viewing",
+          zoom: { mode: window.matchMedia(FIT_WIDTH).matches ? "fit-width" : "manual", fitWidth: { max: 100 } },
           // SuperDoc sends a document-open event to its own endpoint by default; client documents stay private.
           telemetry: { enabled: false },
           // Editor chrome (toolbar, menus, loader) in the app font; document text keeps its own fonts.
@@ -126,6 +130,19 @@ export const SuperDocEditor = memo(forwardRef<EditorHandle, Props>(function Supe
     };
   }, [documentId, filename, source, loadId, editable]);
 
+  // Rotating a tablet or resizing a window across the breakpoint switches between fitting and the true size.
+  useEffect(() => {
+    const narrow = window.matchMedia(FIT_WIDTH);
+    const apply = () => {
+      setFit(narrow.matches);
+      if (narrow.matches) sd.current?.setZoomMode("fit-width");
+      else sd.current?.setZoom(100);
+    };
+    apply();
+    narrow.addEventListener("change", apply);
+    return () => narrow.removeEventListener("change", apply);
+  }, []);
+
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (saver.current?.hasPendingChanges()) e.preventDefault();
@@ -148,11 +165,11 @@ export const SuperDocEditor = memo(forwardRef<EditorHandle, Props>(function Supe
     <div className="flex h-full min-h-0 flex-col">
       <div ref={toolbar} className={editable ? "shrink-0 overflow-x-auto border-b border-line bg-surface" : "hidden"} aria-label="Formatting toolbar" />
       <div className="relative min-h-0 flex-1">
-        {/* The desk around the page: it scrolls on its own, so a narrow screen keeps the true page size. */}
+        {/* The desk around the page. It scrolls on its own; on narrow screens the page is scaled to its width. */}
         <div className="lx-doc h-full overflow-auto overscroll-contain bg-canvas px-2 py-5 sm:px-6 sm:py-8">
-          {/* Shrink-to-fit once pages exist, so the page is centred on the desk (a wider page scrolls in the canvas).
-              Full width while opening: the host is still empty, and SuperDoc's loading card takes its width from it. */}
-          <div ref={host} className={`mx-auto ${readyId === loadId ? "w-fit" : "w-full"}`} />
+          {/* Shrink-to-fit once pages exist, so the page is centred on the desk. Full width while opening (the host is
+              still empty and SuperDoc's loading card takes its width from it) and when fitting (the fit measures it). */}
+          <div ref={host} className={`mx-auto ${fit ? "lx-fit w-full" : readyId === loadId ? "w-fit" : "w-full"}`} />
         </div>
         {readyId !== loadId && !failed && (
           <div className="absolute inset-0">

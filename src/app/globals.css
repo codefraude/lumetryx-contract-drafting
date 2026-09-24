@@ -241,6 +241,12 @@
   color: var(--lx-ink-3);
 }
 
+/* Fitting a page to a narrow desk (lx-fit): SuperDoc's layers are a flex item whose default min-width:auto
+   keeps the page's own width, so the scaled page would sit off-centre in a box wider than the screen. */
+.lx-fit .superdoc__layers {
+  min-width: 0;
+}
+
 /* ---------- Motion ---------- */
 @keyframes lx-rise {
   from {

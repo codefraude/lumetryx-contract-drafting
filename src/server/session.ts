@@ -40,7 +40,8 @@ export function assertSameOrigin(req: Request): void {
 const cookieOptions = () => ({
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: env().NODE_ENV === "production",
+  // Secure whenever the app is served over HTTPS; Safari refuses Secure cookies on http://localhost.
+  secure: new URL(env().APP_URL).protocol === "https:",
   path: "/",
   // Same lifetime as the database expiry, which slides with activity (see repo.findSession).
   maxAge: env().DRAFT_RETENTION_DAYS * 86_400,

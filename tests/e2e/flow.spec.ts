@@ -143,10 +143,18 @@ for (const vp of [
     await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
     await settle(page);
     await page.screenshot({ path: `tests/output/e2e-document-${vp.name}.png` });
-    // Narrow screens keep the true page size and scroll deliberately inside the canvas, never the page body.
+    // Narrow screens scale the page to the width of its canvas: the whole page shows and nothing scrolls sideways.
     const canvas = await stage(page).evaluate((el) => { let c = el.parentElement; while (c && getComputedStyle(c).overflowX !== "auto") c = c.parentElement; return c ? { client: c.clientWidth, scroll: c.scrollWidth } : null; });
-    expect(canvas, "the document sits in its own horizontally scrollable canvas").not.toBeNull();
-    if (vp.width < 816) expect(canvas!.scroll).toBeGreaterThan(canvas!.client);
+    expect(canvas, "the document sits in its own scrollable canvas").not.toBeNull();
+    expect(canvas!.scroll).toBeLessThanOrEqual(canvas!.client + 1);
+    const sheet = (await stage(page).locator(".superdoc-page").first().boundingBox())!;
+    expect(sheet.x).toBeGreaterThanOrEqual(0);
+    expect(sheet.x + sheet.width).toBeLessThanOrEqual(vp.width + 1);
+    // The scaled page is edited where it is tapped.
+    await clickEndOf(page, "Premises", true);
+    await clickEndOf(page, "Premises", true);
+    await page.keyboard.type(" OK");
+    await expect(stage(page).getByText("Premises OK").first()).toBeVisible();
     await tabs.getByRole("button", { name: "Chat" }).click();
     await expect(page.locator("#composer")).toBeVisible();
     await page.screenshot({ path: `tests/output/e2e-chat-${vp.name}.png` });
