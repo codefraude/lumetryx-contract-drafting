@@ -41,14 +41,14 @@ export function classifyAiError(err: unknown): AiError {
   if (call) {
     const s = call.statusCode ?? 0;
     if (s === 401 || s === 403 || /API key not valid|API_KEY_INVALID/i.test(call.message))
-      return new AiError("invalid_key", "The AI service rejected the API key. Check GEMINI_API_KEY.", false);
-    if (s === 429) return new AiError("quota", "The AI service quota or rate limit was reached. Please wait a minute and retry.", true);
+      return new AiError("invalid_key", "Gemini rejected the API key. Check GEMINI_API_KEY.", false);
+    if (s === 429) return new AiError("quota", "Gemini's usage limit for this key was reached. Wait a minute, then retry.", true);
     if (s === 404) return new AiError("model_unavailable", `The model "${modelId()}" is not available for this key. Check GEMINI_MODEL.`, false);
-    if (s >= 500) return new AiError("unavailable", "The AI service is temporarily unavailable. Please retry.", true);
+    if (s >= 500) return new AiError("unavailable", "Gemini is overloaded or down right now and did not reply. Wait a few seconds, then retry.", true);
   }
   // Unrecognised failures are logged (never shown raw to the user) so they can be diagnosed.
   console.error("[ai] unclassified error", err instanceof Error ? `${err.name}: ${err.message}` : err);
-  return new AiError("provider", "The AI request failed. Please retry.", true);
+  return new AiError("provider", "The request to Gemini failed. Retry in a moment.", true);
 }
 
 export interface SessionUsage {
@@ -63,7 +63,7 @@ export function assertBudget(s: SessionUsage): void {
   if (s.aiRequests >= e.AI_MAX_REQUESTS_PER_SESSION || s.aiInputTokens + s.aiOutputTokens >= e.AI_MAX_TOKENS_PER_SESSION) {
     throw new AiError(
       "budget",
-      "This session has reached its AI usage limit. Fill the remaining fields in the field panel, or start a new session later.",
+      "This browser session has used its AI allowance, so the assistant cannot reply. Before a draft exists you can still fill in details under Details; afterwards, edit the draft in the document.",
       false,
     );
   }

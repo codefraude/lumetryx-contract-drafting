@@ -56,7 +56,7 @@ export function parseDate(input: string): NormalizeResult {
     if (mdy) return ok(iso(y, a, b));
     return invalid();
   }
-  return bad(`I couldn't read “${input}” as a date. Please give it like 1 October 2026 or 1 octobre 2026.`);
+  return bad(`“${input}” could not be read as a date. Write it like 1 October 2026 or 1 octobre 2026.`);
 
   function ok(isoDate: string): NormalizeResult {
     return { status: "confirmed", displayValue: formatLongDate(isoDate), normalized: { kind: "date", iso: isoDate }, note: null };
@@ -168,7 +168,7 @@ export function parseBoolean(input: string): NormalizeResult {
       status: "needs_clarification",
       displayValue: null,
       normalized: null,
-      note: `Please answer yes or no (oui ou non) — “${input}” doesn't settle it.`,
+      note: `Answer yes or no (oui ou non): “${input}” does not settle it.`,
     };
   return { status: "confirmed", displayValue: formatBoolean(val, "en"), normalized: { kind: "boolean", value: val }, note: null };
 }

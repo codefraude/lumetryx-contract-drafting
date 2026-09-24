@@ -164,13 +164,14 @@ export async function extract(input: TurnInput) {
       if (!NoObjectGeneratedError.isInstance(err) || err.finishReason === "length") throw err;
       result = await run("\n\nReturn valid JSON matching the schema.");
     }
-    if (result.finishReason === "length") throw new AiError("truncated", "The AI response was cut off; your answer was not saved. Please retry.", true);
+    if (result.finishReason === "length")
+      throw new AiError("truncated", "Gemini's response was cut off, so your answer was not saved. Retry, or send a shorter message.", true);
     return { extraction: result.output, usage: result.usage };
   } catch (err) {
     if (NoObjectGeneratedError.isInstance(err))
       throw new AiError(
         err.finishReason === "length" ? "truncated" : "invalid_output",
-        "I couldn't process that answer reliably; nothing was saved. Please retry.",
+        "That answer could not be read reliably, so nothing was saved. Retry, or rephrase it.",
         true,
       );
     throw err;

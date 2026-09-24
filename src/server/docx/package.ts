@@ -82,7 +82,10 @@ export async function loadDocxPackage(bytes: Uint8Array): Promise<DocxPackage> {
     throw new DocxValidationError("too_large", `Files up to ${DOCX_LIMITS.maxCompressedBytes / 1024 / 1024} MB are supported.`);
   }
   if (bytes.byteLength >= 8 && bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0) {
-    throw new DocxValidationError("encrypted", "This looks like a password-protected or legacy .doc file. Please upload an unencrypted .docx.");
+    throw new DocxValidationError(
+      "encrypted",
+      "This looks like a password-protected or legacy .doc file. Save it in Word as an unencrypted .docx, then upload that copy.",
+    );
   }
   if (bytes.byteLength < 4 || bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
     throw new DocxValidationError("not_zip", "This file is not a Word .docx document.");

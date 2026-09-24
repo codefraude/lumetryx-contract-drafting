@@ -41,7 +41,14 @@ test("thinking, inline failure, retry without a duplicate message, acknowledgeme
     await new Promise((r) => setTimeout(r, 700));
     const events =
       calls === 1
-        ? [{ type: "error", code: "unavailable", message: "The AI service is temporarily unavailable. Please retry.", retryable: true }]
+        ? [
+            {
+              type: "error",
+              code: "unavailable",
+              message: "Gemini is overloaded or down right now and did not reply. Wait a few seconds, then retry.",
+              retryable: true,
+            },
+          ]
         : [
             { type: "fields_updated", fields, fieldsVersion, changed: [fields[0]!.id] },
             { type: "assistant_delta", text: LONG.slice(0, 40) },
@@ -54,7 +61,7 @@ test("thinking, inline failure, retry without a duplicate message, acknowledgeme
   await page.locator("#composer").press("Enter");
   await expect(page.getByText("The assistant is working on a reply")).toBeAttached();
   await expect(page.locator("#composer"), "the sent message leaves the box").toHaveValue("");
-  const failure = page.getByRole("alert").filter({ hasText: "temporarily unavailable" });
+  const failure = page.getByRole("alert").filter({ hasText: "Gemini is overloaded" });
   await expect(failure).toBeVisible();
 
   await failure.getByRole("button", { name: "Retry" }).click();

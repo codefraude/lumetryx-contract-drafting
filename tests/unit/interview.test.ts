@@ -82,7 +82,7 @@ describe("messy answers found by the live evaluation", () => {
     expect(clauseContext([clause], [clause.id])).toBe("Late payments attract interest.");
   });
 
-  it("reports an overloaded model as temporarily unavailable, not as an internal error", () => {
+  it("reports an overloaded model as unavailable, not as an internal error", () => {
     const overload = new APICallError({
       message: "This model is currently experiencing high demand.",
       url: "https://mock.invalid",
@@ -95,7 +95,7 @@ describe("messy answers found by the live evaluation", () => {
       status: 502,
       code: "unavailable",
       retryable: true,
-      message: "The AI service is temporarily unavailable. Please retry.",
+      message: "Gemini is overloaded or down right now and did not reply. Wait a few seconds, then retry.",
     });
   });
 });

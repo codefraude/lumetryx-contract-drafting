@@ -45,7 +45,7 @@ export function errorBody(err: unknown): ErrorBody {
   const ai = classifyAiError(err);
   if (ai.code !== "provider") return errorBody(ai);
   console.error("[unhandled]", err);
-  return { status: 500, code: "internal", message: "Something went wrong. Please retry.", retryable: true };
+  return { status: 500, code: "internal", message: "Something went wrong on the server. Retry in a moment.", retryable: true };
 }
 
 export function jsonError(err: unknown): Response {

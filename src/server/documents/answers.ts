@@ -146,7 +146,7 @@ export async function chatTurn(
   } finally {
     await trackUsage(session.id, await Promise.resolve(reply.stream.usage).catch(() => undefined));
   }
-  if (!text.trim()) throw new AiError("invalid_output", "The assistant returned an empty reply. Your answers were saved; please retry.", true);
+  if (!text.trim()) throw new AiError("invalid_output", "The assistant returned an empty reply. Your answers were saved; retry to get a reply.", true);
   await repo.addMessage(documentId, "assistant", text);
   emit({ type: "assistant_done", text });
 }
