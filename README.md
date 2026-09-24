@@ -40,7 +40,8 @@ npm run dev                      # http://localhost:3000
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` / `npm run build` / `npm start` | Develop / production build / serve the build |
-| `npm run typecheck` / `npm run lint` | Strict TypeScript / ESLint (Next.js + typescript-eslint, no `any`) |
+| `npm run typecheck` / `npm run lint` | Strict TypeScript / ESLint: Next.js and typescript-eslint rules, no `any`, no type or non-null assertions, and the import rules between layers ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)) |
+| `npm run check:cycles` | Import-cycle check (separate from lint: it resolves every import and takes about two minutes) |
 | `npm test` | Unit + integration tests (Vitest). Integration tests need a **local** PostgreSQL: `DATABASE_URL=postgres://postgres:postgres@localhost:5432/lumetryx_test` (they drop and recreate the schema of that database). |
 | `npm run test:e2e` | Browser tests (Playwright) against a running server (`APP_URL`, default `http://localhost:3000`): the core flow, themes, and the chat surface (with its stream stubbed). Set `CHROMIUM_PATH` if Playwright's browser download is unavailable. The integrated bonus scenario (`tests/e2e/bonuses.spec.ts`) needs a server with a live Gemini key and runs only with `E2E_LIVE_AI=1`. |
 | `npm run db:generate` / `npm run db:migrate` | Drizzle migrations (`drizzle/0000_init.sql` is committed) |
@@ -57,27 +58,35 @@ npm run dev                      # http://localhost:3000
 ## Architecture
 
 ```
-src/lib/docx/      OOXML package validation, paragraph indexing, stable w14:paraIds, marker detection, run-aware filling,
-                   whole-clause cut/restore and clause-reference tracking (structure.ts)
-src/lib/fields/    Typed field model (Zod), deterministic validation (dates, money, yes/no, chronology), field building,
-                   language detection and per-language rendering (lang.ts), conditional-clause rules (rules.ts)
-src/lib/draft.ts   Draft generation, and updating an edited draft for new answers and clause decisions
-src/lib/diff.ts    Read-only template-to-draft comparison
-src/lib/ai/        Gemini via Vercel AI SDK: template analysis, two-stage interview (validated extraction → streamed reply)
-src/lib/db/        Drizzle schema + session-scoped repository (Neon in hosted envs, local pg for tests)
-src/lib/cache/     Upstash Redis: cache, request locks, rate limits, with explicit fallback policy
-src/lib/server/    Env validation, anonymous sessions, HTTP/SSE helpers, service layer (orchestration)
-src/lib/events.ts  Typed SSE protocol shared by server and client (validated both sides)
-src/app/api/…      Thin route handlers (Node runtime)
-src/components/    Upload screen, workspace and its header, chat, details, clauses, compare, saved drafts, streamed draft preview,
-                   SuperDoc editor wrapper, theme control, shared primitives (ui.tsx)
-src/lib/client/    Browser API client, theme store (theme.ts), reply formatting (format.ts)
+src/app/                   Page, root layout, query provider, thin API route handlers (Node runtime)
+src/features/documents/    The core: zod contracts (fields, views, requests, SSE events), what is still needed (progress.ts),
+                           API + TanStack queries, SuperDoc wrapper + save coordinator, upload, details, streamed preview
+src/features/chat/         Conversation: turn streaming (use-chat-turn.ts), messages, composer, reply formatting
+src/features/clauses/      Conditional clauses panel and attention rules
+src/features/comparison/   Template-to-draft comparison (query + panel)
+src/features/drafts/       Saved drafts: list query, rename/delete, drawer
+src/features/workspace/    Composes the page: upload or one open draft, status, notices, download, session loss
+src/shared/ui/             Design-system primitives (buttons, status, tabs, popover, dialog, theme control)
+src/lib/                   Browser helpers: validated HTTP, SSE client, query client, theme store
+src/server/documents/      Use cases called by the routes (upload, answers, drafting, comparison, drafts, views)
+src/server/docx/           OOXML package validation, paragraph indexing, stable w14:paraIds, marker detection,
+                           run-aware filling, whole-clause cut/restore, clause-reference tracking
+src/server/fields/         Field building, deterministic validation (dates, money, yes/no), language detection and rendering
+src/server/clauses/        Conditional-clause grammar, evaluation, validation of model proposals
+src/server/draft/          Draft generation, and updating an edited draft for new answers and clause decisions
+src/server/diff/           Read-only template-to-draft comparison
+src/server/ai/             Gemini via Vercel AI SDK: template analysis, two-stage interview (validated extraction → streamed reply)
+src/server/db/, cache/     Drizzle schema + session-scoped repository; Upstash cache, locks and rate limits with a fallback policy
+src/server/http/, session  JSON/SSE responses and error mapping; anonymous sessions and origin checks; env validation
 ```
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the import rules between these folders, who owns which state, and the TanStack Query conventions. [docs/AUDIT.md](docs/AUDIT.md) records every file.
 
 The boundaries are the point:
 - **Document code** knows nothing about AI.
 - **AI code** never touches XML. It proposes *field values*, which pass deterministic validation before anything is committed.
-- **Routes** only authenticate, validate input and call the service layer.
+- **Routes** only authenticate, validate input and call a use case in `src/server/documents/`.
+- **Browser code** never imports server code, and every response is validated against its contract before the UI sees it.
 
 That layering also makes the whole workflow testable without Next.js.
 
@@ -338,12 +347,13 @@ The comparison shows:
 
 ## Streaming
 
-A typed SSE protocol (`src/lib/events.ts`):
+A typed SSE protocol (`src/features/documents/contracts/stream-events.ts`, encoded by `src/server/http/sse.ts`, decoded by `src/lib/sse.ts`):
 - **Event types:** `fields_updated`, `assistant_delta`, `assistant_done`, `draft_patch`, `draft_started`, `draft_block_ready`, `draft_complete`, `error`.
 - **Delivery guarantees:** every event carries a request id and sequence number. The decoder handles frames and multi-byte UTF-8 split across chunks (unit-tested). The client ignores events from any other request.
 - **Draft generation:** fills and yields **paragraph by paragraph** in document order (`fillAndRender`), yielding to the event loop between blocks. Over HTTP, against the production build, the lease produced 19 separate network chunks, the first block at ~19 ms and completion at ~76 ms. Filling is deterministic and fast, and it is deliberately not slowed down.
 - **Preview vs editor:** the preview is rendered from those same filled OOXML blocks. When `draft_complete` arrives, SuperDoc opens the persisted bytes of exactly that revision, and editing is enabled only then.
 - **Cancellation:** cancelling mid-draft restores the previous state and never marks a partial draft complete (integration-tested).
+- **Switching drafts mid-stream:** a reply or generation still streaming when another draft is opened finishes on the server for its own draft. Its events never reach the draft opened meanwhile (browser-tested).
 
 ## Persistence, sessions, caching
 
@@ -371,12 +381,13 @@ Labels: **mocked** = the language model is a test double; **live** = real Gemini
 
 | Evidence | Result |
 | --- | --- |
-| `npm run typecheck`, `npm run lint`, `npm run build` | Pass (strict, no `any`, 0 lint errors) |
-| Unit tests (36). *Placeholder boxes:* detection, one field for bound boxes in body and header, sample wording and galleries left alone, the box title as the label of Word's generic prompt, replacement in body and header with the placeholder flag, binding and grey style cleared, unanswered boxes kept; placeholder wording replaced and overlapping places refused; distinct labels; the reply prompt names the details left, asks at most three, and says when the draft is ready. *Interface:* reply formatting (paragraphs, lists, bold, amounts left alone) and theme resolution. *Core:* package validation, indexing and numbering labels, split runs, escaping, headers, safe edit order, stale anchors, dates/money, SSE decoding. *Bonuses:* EN/FR detection, French dates/amounts and separator ambiguity, per-occurrence rendering, accented and run-split French markers, unprefixed model keys, the rule grammar with rejected nesting/unpaired/inline/table markers, yes/no/unknown evaluation, inactive fields, model-proposed rules, exclusion and restoration on a real DOCX (renumbered and dangling references, untouched `numbering.xml`, idempotence), confirmation before removing an edited clause and restoration of the edited variant, answering into a restored clause, and the diff (word level, accents/amounts, repeated paragraphs, table cells, bold and list level, run-split noise, reverting, no markup in the DOCX) | Pass |
+| `npm run typecheck`, `npm run lint`, `npm run check:cycles`, `npm run build` | Pass (strict, no `any` or assertions, layer rules respected, no import cycles). The refactor's own checks are listed in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#verification) |
+| Unit tests (45). *Refactor:* the save coordinator (edits coalesced, no false "saved" after an edit made during a save, a conflict keeps the edits, the maximum wait), and the workspace status (details and clause decisions counted apart, ready state, save state, export warnings). *Placeholder boxes:* detection, one field for bound boxes in body and header, sample wording and galleries left alone, the box title as the label of Word's generic prompt, replacement in body and header with the placeholder flag, binding and grey style cleared, unanswered boxes kept; placeholder wording replaced and overlapping places refused; distinct labels; the reply prompt names the details left, asks at most three, and says when the draft is ready. *Interface:* reply formatting (paragraphs, lists, bold, amounts left alone) and theme resolution. *Core:* package validation, indexing and numbering labels, split runs, escaping, headers, safe edit order, stale anchors, dates/money, SSE decoding (including a malformed frame). *Bonuses:* EN/FR detection, French dates/amounts and separator ambiguity, per-occurrence rendering, accented and run-split French markers, unprefixed model keys, the rule grammar with rejected nesting/unpaired/inline/table markers, yes/no/unknown evaluation, inactive fields, model-proposed rules, exclusion and restoration on a real DOCX (renumbered and dangling references, untouched `numbering.xml`, idempotence), confirmation before removing an edited clause and restoration of the edited variant, answering into a restored clause, and the diff (word level, accents/amounts, repeated paragraphs, table cells, bold and list level, run-split noise, reverting, no markup in the DOCX) | Pass |
 | Integration tests (22, real PostgreSQL, **mocked** model). *Placeholder boxes:* a chat answer given after drafting replaces its box in the working draft. *Interface:* a message retried after a failed turn is stored once. *Core:* the original 12. *Bonuses:* bilingual lease answered in French, then switched to English with no model call and nothing re-asked; export with per-language dates/amounts and untouched clause wording; separator ambiguity; conditional yes/no/unknown, overrides and restore-once; edited clause confirmation and restore; drafts list/rename/copy/delete with cache invalidation; another identity denied on every operation; resume with zero model calls and no duplicate messages; interrupted generation; stale second-tab save; comparing unsaved content without saving it; expiry and cleanup; Redis outage | Pass |
 | Mutation checks. *Core:* removing the evidence guard or session scoping makes tests fail. *Bonuses:* forcing English rendering, and disabling inactive-field logic, each fail a test. *Interface:* disabling the retry de-duplication fails its test. *Placeholder boxes:* keeping the binding or the grey style, finding no boxes, dropping the sample-title rule, label numbering or replace mode, giving the reply a count instead of names, or asking four at once: each fails a test (8 of 8) | Confirmed |
 | HTTP smoke test on the production build (`tests/smoke/http-smoke.mjs`, markers-only) | *Core:* fake file 422, cross-origin 403, no cookie 401, stale save 409, `no-store`, attachment headers, incremental SSE (27 chunks, first block at 33 ms). *Bonuses:* another session gets 404 on every route, including resume, rename, language, delete, compare, copy and clause actions; cross-origin delete 403; no-cookie drafts list empty |
 | **Browser** E2E (`flow.spec.ts`): heading, italic paragraph, table cell, list level, bold and undo edits; immediate download; XML inspection; no off-origin requests; mobile 390 px and tablet 820 px, including Compare and the Saved drafts drawer, without horizontal overflow | 4/4 pass |
+| **Browser** E2E (`drafts.spec.ts`), markers-only, written before the client refactor: open another draft, rename the open one and delete another; a second tab's stale save is detected and the newer version loads; a reply that finishes after switching drafts leaves the draft opened meanwhile untouched; a lost session returns to the upload screen and the previous session's drafts are never shown | 4/4 pass |
 | **Browser** E2E (`controls.spec.ts`): a letter whose blanks are placeholder boxes, answered in the Details panel → draft → an edit in the editor → immediate download. Every answer is where its placeholder was, in the body and the header, no placeholder wording is left, and filled boxes are neither placeholders nor bound after the editor's own export | 1/1 pass |
 | **Browser** E2E (`theme.spec.ts`): system theme applied before the first paint; explicit choice survives a reload and ignores OS changes; System follows them; no hydration warnings. In a workspace, switching theme keeps unsaved input and the editor instance, fetches and saves nothing, keeps the page white, and the exported `document.xml` is identical in both themes | 2/2 pass |
 | **Browser** E2E (`chat.spec.ts`), with the chat **stream stubbed in the browser** (it says nothing about the model): working indicator, inline failure, retry without a duplicate message, "details updated", list formatting; a reader who scrolled up is not moved, and Jump to latest works | 2/2 pass |
