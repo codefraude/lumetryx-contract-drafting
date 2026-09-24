@@ -1,7 +1,7 @@
-import { DOCX_LIMITS } from "@/lib/docx/package";
-import { json, jsonError, NotFound, UUID } from "@/lib/server/http";
-import { copyDraft } from "@/lib/server/service";
-import { assertSameOrigin, requireSession } from "@/lib/server/session";
+import { copyDraft } from "@/server/documents/drafts";
+import { DOCX_LIMITS } from "@/server/docx/package";
+import { documentIdParam, json, jsonError } from "@/server/http/responses";
+import { assertSameOrigin, requireSession } from "@/server/session";
 
 export const runtime = "nodejs";
 
@@ -9,8 +9,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     assertSameOrigin(req);
-    const { id } = await params;
-    if (!UUID.test(id)) throw new NotFound();
+    const id = await documentIdParam(params);
     const session = await requireSession();
     const buf = new Uint8Array(await req.arrayBuffer());
     if (buf.byteLength > DOCX_LIMITS.maxCompressedBytes) return json({ code: "too_large", message: "The edited document is too large to save." }, 413);

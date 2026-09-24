@@ -1,8 +1,8 @@
-import { rateLimit } from "@/lib/cache/redis";
-import { DOCX_LIMITS } from "@/lib/docx/package";
-import { json, jsonError } from "@/lib/server/http";
-import { createFromUpload } from "@/lib/server/service";
-import { assertSameOrigin, getOrCreateSession } from "@/lib/server/session";
+import { assertSameOrigin, getOrCreateSession } from "@/server/session";
+import { rateLimit } from "@/server/cache/redis";
+import { DOCX_LIMITS } from "@/server/docx/package";
+import { createFromUpload } from "@/server/documents/upload";
+import { json, jsonError } from "@/server/http/responses";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;

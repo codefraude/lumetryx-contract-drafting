@@ -2,7 +2,7 @@
 
 import { ChevronDown, CircleCheck, CircleDashed, Pencil, TriangleAlert } from "lucide-react";
 import { memo, useId, useState } from "react";
-import { GROUP_ORDER, type Field } from "@/lib/fields/types";
+import { GROUP_ORDER, type Field } from "@/features/documents/contracts/fields";
 import { Button, Callout, StatusBadge, type Tone } from "./ui";
 
 const STATUS: Record<Field["status"], { label: string; tone: Tone; icon: typeof CircleCheck }> = {

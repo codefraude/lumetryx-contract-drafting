@@ -12,10 +12,11 @@ try {
   /* environment provided by the caller */
 }
 
-const { deleteExpired } = await import("../src/lib/db/repo");
-const { cacheDel } = await import("../src/lib/cache/redis");
-const { PARSER_VERSION, analysisCacheKey } = await import("../src/lib/ai/analyze");
-const { modelId } = await import("../src/lib/ai/model");
+const { deleteExpired } = await import("../src/server/db/repo");
+const { cacheDel } = await import("../src/server/cache/redis");
+const { analysisCacheKey } = await import("../src/server/ai/analyze");
+const { blocksCacheKey } = await import("../src/server/documents/access");
+const { modelId } = await import("../src/server/ai/model");
 
 const BATCH = 500;
 const MAX_BATCHES = 20;
@@ -25,7 +26,7 @@ for (let i = 0; i < MAX_BATCHES; i++) {
   const r = await deleteExpired(BATCH);
   drafts += r.documents.length;
   sessions += r.sessions;
-  await cacheDel(r.documents.flatMap((d) => [`lx:blocks:${d.sessionId}:${d.templateHash}:${PARSER_VERSION}`, analysisCacheKey(d.sessionId, d.templateHash, modelId())]));
+  await cacheDel(r.documents.flatMap((d) => [blocksCacheKey(d.sessionId, d.templateHash), analysisCacheKey(d.sessionId, d.templateHash, modelId())]));
   if (r.documents.length < BATCH) break;
 }
 console.log(`Removed ${drafts} expired draft(s) and ${sessions} expired session(s).`);

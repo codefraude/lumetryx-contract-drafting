@@ -1,10 +1,13 @@
 import { readFileSync } from "node:fs";
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
-import { detectMarkers } from "@/lib/docx/detect";
-import { AnchorConflictError, applyTextEdits, fillAndRender, indexBlocks } from "@/lib/docx/ooxml";
-import { DocxValidationError, loadDocxPackage, serializePackage } from "@/lib/docx/package";
-import { buildFields, draftEdits, type TemplateAnalysis } from "@/lib/fields/build";
+import { detectMarkers } from "@/server/docx/detect";
+import { AnchorConflictError } from "@/server/docx/edit";
+import { applyTextEdits, fillAndRender, indexBlocks } from "@/server/docx/render";
+import { DocxValidationError, loadDocxPackage, serializePackage } from "@/server/docx/package";
+import { buildFields } from "@/server/fields/build-fields";
+import { draftEdits } from "@/server/fields/draft-edits";
+import type { TemplateAnalysis } from "@/server/fields/template-analysis";
 
 const fixture = (name: string) => new Uint8Array(readFileSync(`fixtures/${name}.docx`));
 

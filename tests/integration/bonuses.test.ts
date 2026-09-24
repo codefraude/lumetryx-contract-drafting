@@ -10,15 +10,21 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { setStoreForTests } from "@/lib/cache/redis";
-import * as repo from "@/lib/db/repo";
-import { applyTextEdits, indexBlocks } from "@/lib/docx/ooxml";
-import { loadDocxPackage, serializePackage } from "@/lib/docx/package";
-import type { EventPayload } from "@/lib/events";
-import type { Extraction } from "@/lib/ai/interview";
-import type { TemplateAnalysis } from "@/lib/fields/build";
-import * as svc from "@/lib/server/service";
-import { NotFound } from "@/lib/server/http";
+import { setStoreForTests } from "@/server/cache/redis";
+import * as repo from "@/server/db/repo";
+import { applyTextEdits, indexBlocks } from "@/server/docx/render";
+import { loadDocxPackage, serializePackage } from "@/server/docx/package";
+import type { EventPayload } from "@/features/documents/contracts/stream-events";
+import type { Extraction } from "@/server/ai/extraction";
+import type { TemplateAnalysis } from "@/server/fields/template-analysis";
+import { setModelForTests } from "@/server/ai/model";
+import { chatTurn, correctField, ruleAction, setConversationLanguage } from "@/server/documents/answers";
+import { compare } from "@/server/documents/comparison";
+import { generateDraft, readDocx, saveEditorDocx } from "@/server/documents/drafting";
+import { copyDraft, deleteDraft, listDrafts, renameDraft } from "@/server/documents/drafts";
+import { createFromUpload } from "@/server/documents/upload";
+import { currentView, getView } from "@/server/documents/views";
+import { NotFound } from "@/server/http/responses";
 import { BrokenStore, MemoryStore, mockModel } from "../helpers";
 
 const lease = new Uint8Array(readFileSync("fixtures/synthetic-bilingual-lease.docx"));
@@ -79,21 +85,21 @@ async function collect(run: (emit: (e: EventPayload) => void, signal: AbortSigna
 
 async function say(session: Awaited<ReturnType<typeof newSession>>, docId: string, message: string, turn: Turn) {
   nextTurn = turn;
-  const doc = await svc.getView(session.id, docId);
-  return collect((emit, signal) => svc.chatTurn(session, docId, { message, fieldsVersion: doc.fieldsVersion }, emit, signal));
+  const doc = await getView(session.id, docId);
+  return collect((emit, signal) => chatTurn(session, docId, { message, fieldsVersion: doc.fieldsVersion }, emit, signal));
 }
 
 const bodyText = async (bytes: Uint8Array | Buffer) => (await indexBlocks(await loadDocxPackage(new Uint8Array(bytes)))).map((b) => b.text).join("\n");
 const generate = async (sid: string, docId: string) => {
-  const v = await svc.getView(sid, docId);
-  return collect((e, sig) => svc.generateDraft(sid, docId, { fieldsVersion: v.fieldsVersion }, e, sig));
+  const v = await getView(sid, docId);
+  return collect((e, sig) => generateDraft(sid, docId, { fieldsVersion: v.fieldsVersion }, e, sig));
 };
 
 beforeAll(async () => {
   pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public; DROP SCHEMA IF EXISTS drizzle CASCADE;");
   await migrate(drizzle({ client: pool }), { migrationsFolder: "drizzle" });
-  svc.setModelForTests(model);
+  setModelForTests(model);
 });
 afterAll(async () => {
   await pool.end();
@@ -107,13 +113,13 @@ beforeEach(() => {
 describe("French and bilingual templates", () => {
   it("groups EN/FR occurrences, accepts French answers, renders each occurrence in its language and keeps clause wording", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "bail.docx", lease);
+    const d = await createFromUpload(s, "bail.docx", lease);
     expect(d.language.document).toBe("mixed");
     expect(d.fields.find((x) => x.id === "tenant_name")!.occurrences.map((o) => o.lang).sort()).toEqual(["en", "fr"]);
 
     const msg = "Le locataire est Hélène Dupré-Lefèvre, le bail commence le 1er octobre 2026 et le loyer est de 1 250,50 EUR par mois.";
     await say(s, d.id, msg, { updates: [u("tenant_name", "Hélène Dupré-Lefèvre"), u("start_date", "1er octobre 2026"), u("monthly_rent", "1 250,50 EUR", "1 250,50 EUR")] });
-    const v = await svc.getView(s.id, d.id);
+    const v = await getView(s.id, d.id);
     expect(v.fields.find((x) => x.id === "monthly_rent")).toMatchObject({ status: "confirmed", normalized: { kind: "money", amount: "1250.50", currency: "EUR" } });
     expect(v.fields.find((x) => x.id === "start_date")!.normalized).toEqual({ kind: "date", iso: "2026-10-01" });
     expect(v.language.effective).toBe("fr");
@@ -122,7 +128,7 @@ describe("French and bilingual templates", () => {
 
     // Switching to English: deterministic confirmation, no model call, nothing re-asked or lost.
     const before = { ...calls };
-    const en = await svc.setConversationLanguage(s.id, d.id, { fieldsVersion: v.fieldsVersion, language: "en" });
+    const en = await setConversationLanguage(s.id, d.id, { fieldsVersion: v.fieldsVersion, language: "en" });
     expect(calls).toEqual(before);
     expect(en.messages.at(-1)!.content).toMatch(/continue in English.*3 confirmed answers are kept/);
     expect(en.fields.filter((x) => x.status === "confirmed")).toHaveLength(3);
@@ -132,7 +138,7 @@ describe("French and bilingual templates", () => {
     expect(lastReplyPrompt).toContain("REPLY LANGUAGE: English");
 
     expect((await generate(s.id, d.id)).at(-1)!.type).toBe("draft_complete");
-    const text = await bodyText((await svc.readDocx(s.id, d.id, "working")).bytes);
+    const text = await bodyText((await readDocx(s.id, d.id, "working")).bytes);
     expect(text.match(/Hélène Dupré-Lefèvre/g)).toHaveLength(2);
     expect(text).toContain("The lease commences on 1 October 2026");
     expect(text).toContain("Le bail prend effet le 1 octobre 2026");
@@ -143,9 +149,9 @@ describe("French and bilingual templates", () => {
 
   it("asks about an ambiguous separator instead of guessing, and never infers a currency from the language", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "bail.docx", lease);
+    const d = await createFromUpload(s, "bail.docx", lease);
     await say(s, d.id, "Le loyer est de 25,000", { updates: [u("monthly_rent", "25,000")] });
-    const rent = (await svc.getView(s.id, d.id)).fields.find((x) => x.id === "monthly_rent")!;
+    const rent = (await getView(s.id, d.id)).fields.find((x) => x.id === "monthly_rent")!;
     expect(rent.status).toBe("needs_clarification");
   });
 });
@@ -156,16 +162,16 @@ describe("conditional clauses", () => {
   async function setup() {
     analysis = EMPLOYMENT;
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "employment.docx", employment);
+    const d = await createFromUpload(s, "employment.docx", employment);
     return { s, d };
   }
 
   async function fillAllExcept(sid: string, docId: string, skip: (id: string) => boolean) {
     for (;;) {
-      const v = await svc.getView(sid, docId);
+      const v = await getView(sid, docId);
       const next = v.fields.find((x) => x.status !== "confirmed" && x.source !== "condition" && !skip(x.id));
       if (!next) return v;
-      await svc.correctField(sid, docId, { fieldsVersion: v.fieldsVersion, fieldId: next.id, value: next.valueType === "date" ? "1 October 2026" : next.valueType === "money" ? "EUR 1,250.50" : next.valueType === "duration" ? "12 months" : `V ${next.id}` });
+      await correctField(sid, docId, { fieldsVersion: v.fieldsVersion, fieldId: next.id, value: next.valueType === "date" ? "1 October 2026" : next.valueType === "money" ? "EUR 1,250.50" : next.valueType === "duration" ? "12 months" : `V ${next.id}` });
     }
   }
 
@@ -178,29 +184,29 @@ describe("conditional clauses", () => {
 
     // "No": the clause's own fields no longer block completion.
     await say(s, d.id, "non", { updates: [u("employee_is_senior", "no", "non")] });
-    let v = await svc.getView(s.id, d.id);
+    let v = await getView(s.id, d.id);
     expect(v.rules[0]).toMatchObject({ state: "excluded", reason: "Employee is senior = No" });
     expect(v.phase).toBe("ready");
     expect((await generate(s.id, d.id)).at(-1)!.type).toBe("draft_complete");
-    let text = await bodyText((await svc.readDocx(s.id, d.id, "working")).bytes);
+    let text = await bodyText((await readDocx(s.id, d.id, "working")).bytes);
     expect(text).not.toContain("Non-competition");
     expect(text).not.toMatch(/\[\[/);
 
     // "Yes" after drafting: the clause comes back (from the template), exactly once.
     const ev = await say(s, d.id, "Actually yes, he is senior", { updates: [u("employee_is_senior", "yes", "yes")] });
     expect(ev.find((e) => e.type === "draft_patch")).toMatchObject({ clauseChanges: [{ action: "include" }] });
-    text = await bodyText((await svc.readDocx(s.id, d.id, "working")).bytes);
+    text = await bodyText((await readDocx(s.id, d.id, "working")).bytes);
     expect(text.match(/Non-competition/g)).toHaveLength(1);
-    v = await svc.getView(s.id, d.id);
+    v = await getView(s.id, d.id);
     expect(v.inactiveFieldIds).not.toContain("restricted_area");
     expect(v.rules[0]!.applied).toBe("included");
 
     // An explicit override is persisted and visible, and wins over the condition.
-    v = await svc.ruleAction(s.id, d.id, { fieldsVersion: v.fieldsVersion, ruleId: "clause_employee_is_senior", action: "exclude" });
+    v = await ruleAction(s.id, d.id, { fieldsVersion: v.fieldsVersion, ruleId: "clause_employee_is_senior", action: "exclude" });
     expect(v.rules[0]).toMatchObject({ override: "exclude", state: "excluded", applied: "excluded" });
-    v = await svc.ruleAction(s.id, d.id, { fieldsVersion: v.fieldsVersion, ruleId: "clause_employee_is_senior", action: "clear_override" });
+    v = await ruleAction(s.id, d.id, { fieldsVersion: v.fieldsVersion, ruleId: "clause_employee_is_senior", action: "clear_override" });
     expect(v.rules[0]).toMatchObject({ override: null, state: "included", applied: "included" });
-    expect((await bodyText((await svc.readDocx(s.id, d.id, "working")).bytes)).match(/Non-competition/g)).toHaveLength(1);
+    expect((await bodyText((await readDocx(s.id, d.id, "working")).bytes)).match(/Non-competition/g)).toHaveLength(1);
   });
 
   it("asks before removing a clause edited in the browser, then removes it and brings the edit back on re-include", async () => {
@@ -208,24 +214,24 @@ describe("conditional clauses", () => {
     await say(s, d.id, "oui", { updates: [u("employee_is_senior", "yes", "oui")] });
     await fillAllExcept(s.id, d.id, () => false);
     await generate(s.id, d.id);
-    const w = await svc.readDocx(s.id, d.id, "working");
+    const w = await readDocx(s.id, d.id, "working");
     const pkg = await loadDocxPackage(new Uint8Array(w.bytes));
     const b = (await indexBlocks(pkg)).find((x) => x.text.startsWith("For "))!;
     await applyTextEdits(pkg, [{ blockId: b.id, start: b.text.length, end: b.text.length, expected: "", value: " [lawyer's note]" }]);
-    await svc.saveEditorDocx(s.id, d.id, w.workingRevision, await serializePackage(pkg));
+    await saveEditorDocx(s.id, d.id, w.workingRevision, await serializePackage(pkg));
 
     const ev = await say(s, d.id, "non finalement", { updates: [u("employee_is_senior", "no", "non")] });
     expect(ev.find((e) => e.type === "draft_patch")).toMatchObject({ needsConfirmation: [{ ruleId: "clause_employee_is_senior" }] });
-    let v = await svc.getView(s.id, d.id);
+    let v = await getView(s.id, d.id);
     expect(v.rules[0]).toMatchObject({ pending: true, applied: "included" });
-    expect(await bodyText((await svc.readDocx(s.id, d.id, "working")).bytes)).toContain("[lawyer's note]");
+    expect(await bodyText((await readDocx(s.id, d.id, "working")).bytes)).toContain("[lawyer's note]");
 
-    v = await svc.ruleAction(s.id, d.id, { fieldsVersion: v.fieldsVersion, ruleId: "clause_employee_is_senior", action: "apply" });
+    v = await ruleAction(s.id, d.id, { fieldsVersion: v.fieldsVersion, ruleId: "clause_employee_is_senior", action: "apply" });
     expect(v.rules[0]).toMatchObject({ pending: false, applied: "excluded", hasEditedVariant: true });
-    expect(await bodyText((await svc.readDocx(s.id, d.id, "working")).bytes)).not.toContain("[lawyer's note]");
+    expect(await bodyText((await readDocx(s.id, d.id, "working")).bytes)).not.toContain("[lawyer's note]");
 
     await say(s, d.id, "oui", { updates: [u("employee_is_senior", "yes", "oui")] });
-    const text = await bodyText((await svc.readDocx(s.id, d.id, "working")).bytes);
+    const text = await bodyText((await readDocx(s.id, d.id, "working")).bytes);
     expect(text.match(/\[lawyer's note\]/g)).toHaveLength(1);
   });
 });
@@ -234,45 +240,45 @@ describe("saved drafts", () => {
   it("lists, renames, copies and deletes only this browser's drafts; another identity sees nothing", async () => {
     const a = await newSession();
     const b = await newSession();
-    const d1 = await svc.createFromUpload(a, "Bail Dupont.docx", lease);
-    const d2 = await svc.createFromUpload(a, "employment.docx", employment);
-    expect((await svc.listDrafts(a.id)).map((x) => x.id).sort()).toEqual([d1.id, d2.id].sort());
-    expect(await svc.listDrafts(b.id)).toEqual([]);
-    expect((await svc.renameDraft(a.id, d1.id, "  Dupont lease  ")).title).toBe("Dupont lease");
+    const d1 = await createFromUpload(a, "Bail Dupont.docx", lease);
+    const d2 = await createFromUpload(a, "employment.docx", employment);
+    expect((await listDrafts(a.id)).map((x) => x.id).sort()).toEqual([d1.id, d2.id].sort());
+    expect(await listDrafts(b.id)).toEqual([]);
+    expect((await renameDraft(a.id, d1.id, "  Dupont lease  ")).title).toBe("Dupont lease");
     for (const attempt of [
-      () => svc.getView(b.id, d1.id),
-      () => svc.renameDraft(b.id, d1.id, "x"),
-      () => svc.deleteDraft(b.id, d1.id),
-      () => svc.compare(b.id, d1.id, null),
-      () => svc.copyDraft(b.id, d1.id, null),
-      () => svc.ruleAction(b.id, d2.id, { fieldsVersion: 1, ruleId: "clause_employee_is_senior", action: "include" }),
-      () => svc.setConversationLanguage(b.id, d1.id, { fieldsVersion: 1, language: "fr" }),
-      () => svc.readDocx(b.id, d1.id, "original"),
+      () => getView(b.id, d1.id),
+      () => renameDraft(b.id, d1.id, "x"),
+      () => deleteDraft(b.id, d1.id),
+      () => compare(b.id, d1.id, null),
+      () => copyDraft(b.id, d1.id, null),
+      () => ruleAction(b.id, d2.id, { fieldsVersion: 1, ruleId: "clause_employee_is_senior", action: "include" }),
+      () => setConversationLanguage(b.id, d1.id, { fieldsVersion: 1, language: "fr" }),
+      () => readDocx(b.id, d1.id, "original"),
     ]) await expect(attempt()).rejects.toBeInstanceOf(NotFound);
 
-    const copy = await svc.copyDraft(a.id, d1.id, null);
+    const copy = await copyDraft(a.id, d1.id, null);
     expect(copy.title).toBe("Dupont lease (copy)");
     expect(copy.messages.map((m) => m.content)).toEqual(d1.messages.map((m) => m.content));
-    await svc.deleteDraft(a.id, d1.id);
-    await expect(svc.getView(a.id, d1.id)).rejects.toBeInstanceOf(NotFound);
+    await deleteDraft(a.id, d1.id);
+    await expect(getView(a.id, d1.id)).rejects.toBeInstanceOf(NotFound);
     // The copy still uses the lease template, so its cached analysis is kept; deleting its last user drops it.
     const cached = (hash: string) => [...store.data.keys()].filter((k) => k.startsWith(`lx:analysis:${a.id}:${hash}`)).length;
     const leaseHash = (await repo.getDocument(a.id, copy.id))!.templateHash;
     expect(cached(leaseHash)).toBe(1);
-    await svc.deleteDraft(a.id, copy.id);
+    await deleteDraft(a.id, copy.id);
     expect(cached(leaseHash)).toBe(0);
-    await svc.deleteDraft(a.id, d2.id);
+    await deleteDraft(a.id, d2.id);
   });
 
   it("resumes without any model call, duplicate message or regeneration; loading, listing and comparing are model-free", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "bail.docx", lease);
+    const d = await createFromUpload(s, "bail.docx", lease);
     await say(s, d.id, "Tenant is Jane Doe", { updates: [u("tenant_name", "Jane Doe")] });
     const before = { ...calls };
-    const r1 = await svc.getView(s.id, d.id);
-    const r2 = await svc.currentView(s.id);
-    await svc.listDrafts(s.id);
-    await svc.compare(s.id, d.id, null);
+    const r1 = await getView(s.id, d.id);
+    const r2 = await currentView(s.id);
+    await listDrafts(s.id);
+    await compare(s.id, d.id, null);
     expect(calls).toEqual(before);
     expect(r2!.messages).toEqual(r1.messages);
     expect(r1.fields.find((x) => x.id === "tenant_name")!.displayValue).toBe("Jane Doe");
@@ -281,36 +287,36 @@ describe("saved drafts", () => {
   it("detects an interrupted generation, rejects a stale second-tab save, compares unsaved content, and never serves expired drafts", async () => {
     analysis = { notFields: [], fields: [] };
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
+    const d = await createFromUpload(s, "lease.docx", lease);
     await pool.query("UPDATE documents SET draft_status = 'generating', updated_at = now() - interval '5 minutes' WHERE id = $1", [d.id]);
-    expect((await svc.getView(s.id, d.id)).phase).toBe("interrupted");
+    expect((await getView(s.id, d.id)).phase).toBe("interrupted");
     await pool.query("UPDATE documents SET draft_status = 'none' WHERE id = $1", [d.id]);
 
-    for (const field of (await svc.getView(s.id, d.id)).fields) {
-      const v = await svc.getView(s.id, d.id);
-      await svc.correctField(s.id, d.id, { fieldsVersion: v.fieldsVersion, fieldId: field.id, value: field.valueType === "date" ? "1 October 2026" : field.valueType === "money" ? "EUR 100" : "X" });
+    for (const field of (await getView(s.id, d.id)).fields) {
+      const v = await getView(s.id, d.id);
+      await correctField(s.id, d.id, { fieldsVersion: v.fieldsVersion, fieldId: field.id, value: field.valueType === "date" ? "1 October 2026" : field.valueType === "money" ? "EUR 100" : "X" });
     }
     const before = { ...calls };
     expect((await generate(s.id, d.id)).at(-1)!.type).toBe("draft_complete");
-    const w = await svc.readDocx(s.id, d.id, "working");
-    const saved = await svc.saveEditorDocx(s.id, d.id, w.workingRevision, new Uint8Array(w.bytes));
+    const w = await readDocx(s.id, d.id, "working");
+    const saved = await saveEditorDocx(s.id, d.id, w.workingRevision, new Uint8Array(w.bytes));
     expect(saved.workingRevision).toBe(w.workingRevision + 1);
     // A second tab still holding the old revision cannot overwrite the newer save.
-    await expect(svc.saveEditorDocx(s.id, d.id, w.workingRevision, new Uint8Array(w.bytes))).rejects.toBeInstanceOf(repo.StaleRevisionError);
+    await expect(saveEditorDocx(s.id, d.id, w.workingRevision, new Uint8Array(w.bytes))).rejects.toBeInstanceOf(repo.StaleRevisionError);
 
     // Unsaved editor content can be compared without being saved.
     const pkg = await loadDocxPackage(new Uint8Array(w.bytes));
     const blk = (await indexBlocks(pkg)).find((x) => x.text.startsWith("The monthly rent"))!;
     await applyTextEdits(pkg, [{ blockId: blk.id, start: blk.text.length, end: blk.text.length, expected: "", value: " UNSAVED EDIT" }]);
-    const cmp = await svc.compare(s.id, d.id, await serializePackage(pkg));
+    const cmp = await compare(s.id, d.id, await serializePackage(pkg));
     expect(cmp.source).toBe("editor");
     expect(cmp.result.items.some((i) => i.segments.some((x) => x.op === "ins" && x.text.includes("UNSAVED EDIT")))).toBe(true);
-    expect((await svc.readDocx(s.id, d.id, "working")).workingRevision).toBe(saved.workingRevision);
+    expect((await readDocx(s.id, d.id, "working")).workingRevision).toBe(saved.workingRevision);
     expect(calls).toEqual(before); // drafting, saving and comparing never call the model
 
     await pool.query("UPDATE documents SET expires_at = now() - interval '1 minute' WHERE id = $1", [d.id]);
-    await expect(svc.getView(s.id, d.id)).rejects.toBeInstanceOf(NotFound);
-    expect(await svc.listDrafts(s.id)).toEqual([]);
+    await expect(getView(s.id, d.id)).rejects.toBeInstanceOf(NotFound);
+    expect(await listDrafts(s.id)).toEqual([]);
     const cleaned = await repo.deleteExpired(10);
     expect(cleaned.documents.map((x) => x.id)).toContain(d.id);
   });
@@ -318,10 +324,10 @@ describe("saved drafts", () => {
   it("keeps working when the cache is down", async () => {
     setStoreForTests(new BrokenStore());
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "bail.docx", lease);
-    expect((await svc.listDrafts(s.id)).length).toBe(1);
-    expect((await svc.compare(s.id, d.id, null)).source).toBe("preview");
-    await svc.deleteDraft(s.id, d.id);
+    const d = await createFromUpload(s, "bail.docx", lease);
+    expect((await listDrafts(s.id)).length).toBe(1);
+    expect((await compare(s.id, d.id, null)).source).toBe("preview");
+    await deleteDraft(s.id, d.id);
   });
 });
 
@@ -329,17 +335,17 @@ describe("Word content controls", () => {
   it("writes a chat answer given after drafting into its placeholder box, which then stops being a placeholder", async () => {
     analysis = { notFields: [], fields: [] }; // every placeholder box becomes its own field
     const s = await newSession();
-    let d = await svc.createFromUpload(s, "lettre.docx", new Uint8Array(readFileSync("fixtures/synthetic-lettre-controles-fr.docx")));
+    let d = await createFromUpload(s, "lettre.docx", new Uint8Array(readFileSync("fixtures/synthetic-lettre-controles-fr.docx")));
     const titre = d.fields.find((x) => x.label === "Titre")!;
     for (const field of d.fields) {
-      d = await svc.correctField(s.id, d.id, field.id === titre.id ? { fieldsVersion: d.fieldsVersion, fieldId: field.id, required: false } : { fieldsVersion: d.fieldsVersion, fieldId: field.id, value: field.valueType === "date" ? "24 septembre 2026" : `Valeur ${field.id}` });
+      d = await correctField(s.id, d.id, field.id === titre.id ? { fieldsVersion: d.fieldsVersion, fieldId: field.id, required: false } : { fieldsVersion: d.fieldsVersion, fieldId: field.id, value: field.valueType === "date" ? "24 septembre 2026" : `Valeur ${field.id}` });
     }
     expect((await generate(s.id, d.id)).some((e) => e.type === "draft_complete")).toBe(true);
-    expect(await bodyText((await svc.readDocx(s.id, d.id, "working")).bytes)).toContain("Titre"); // still the placeholder
+    expect(await bodyText((await readDocx(s.id, d.id, "working")).bytes)).toContain("Titre"); // still the placeholder
 
     const events = await say(s, d.id, "Le titre est Responsable des sinistres.", { updates: [u(titre.id, "Responsable des sinistres")] });
     expect(events.find((e) => e.type === "draft_patch")).toMatchObject({ applied: [titre.id], conflicts: [] });
-    const working = (await svc.readDocx(s.id, d.id, "working")).bytes;
+    const working = (await readDocx(s.id, d.id, "working")).bytes;
     const lines = (await bodyText(working)).split("\n");
     expect(lines).toContain("Responsable des sinistres");
     expect(lines).not.toContain("Titre");

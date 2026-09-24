@@ -9,15 +9,19 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { setStoreForTests } from "@/lib/cache/redis";
-import * as repo from "@/lib/db/repo";
-import { indexBlocks, applyTextEdits } from "@/lib/docx/ooxml";
-import { loadDocxPackage, serializePackage } from "@/lib/docx/package";
-import type { EventPayload } from "@/lib/events";
-import type { Extraction } from "@/lib/ai/interview";
-import type { TemplateAnalysis } from "@/lib/fields/build";
-import * as svc from "@/lib/server/service";
-import { NotFound } from "@/lib/server/http";
+import { setStoreForTests } from "@/server/cache/redis";
+import * as repo from "@/server/db/repo";
+import { indexBlocks, applyTextEdits } from "@/server/docx/render";
+import { loadDocxPackage, serializePackage } from "@/server/docx/package";
+import type { EventPayload } from "@/features/documents/contracts/stream-events";
+import type { Extraction } from "@/server/ai/extraction";
+import type { TemplateAnalysis } from "@/server/fields/template-analysis";
+import { setModelForTests } from "@/server/ai/model";
+import { chatTurn, correctField } from "@/server/documents/answers";
+import { generateDraft, readDocx, saveEditorDocx } from "@/server/documents/drafting";
+import { createFromUpload } from "@/server/documents/upload";
+import { currentView, getView } from "@/server/documents/views";
+import { NotFound } from "@/server/http/responses";
 import { BrokenStore, MemoryStore, mockModel } from "../helpers";
 
 const lease = new Uint8Array(readFileSync("fixtures/synthetic-residential-lease.docx"));
@@ -74,17 +78,17 @@ async function collect(run: (emit: (e: EventPayload) => void, signal: AbortSigna
 
 async function say(session: Awaited<ReturnType<typeof newSession>>, docId: string, message: string, turn: Turn) {
   nextTurn = turn;
-  const doc = await svc.getView(session.id, docId);
-  return collect((emit, signal) => svc.chatTurn(session, docId, { message, fieldsVersion: doc.fieldsVersion }, emit, signal));
+  const doc = await getView(session.id, docId);
+  return collect((emit, signal) => chatTurn(session, docId, { message, fieldsVersion: doc.fieldsVersion }, emit, signal));
 }
 
-const field = async (sid: string, docId: string, id: string) => (await svc.getView(sid, docId)).fields.find((f) => f.id === id)!;
+const field = async (sid: string, docId: string, id: string) => (await getView(sid, docId)).fields.find((f) => f.id === id)!;
 
 beforeAll(async () => {
   pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
   await pool.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public; DROP SCHEMA IF EXISTS drizzle CASCADE;");
   await migrate(drizzle({ client: pool }), { migrationsFolder: "drizzle" });
-  svc.setModelForTests(model);
+  setModelForTests(model);
 });
 afterAll(async () => {
   await pool.end();
@@ -98,34 +102,34 @@ describe("upload and analysis caching", () => {
   it("analyses once per session+template and reuses the cache; other sessions never share it", async () => {
     const a = await newSession();
     analysisCalls = 0;
-    const d1 = await svc.createFromUpload(a, "lease.docx", lease);
+    const d1 = await createFromUpload(a, "lease.docx", lease);
     expect(d1.analysis).toBe("ai");
     expect(d1.fields.map((f) => f.id)).toEqual(expect.arrayContaining(["tenant_name", "monthly_rent", "reference"]));
-    await svc.createFromUpload(a, "lease.docx", lease);
+    await createFromUpload(a, "lease.docx", lease);
     expect(analysisCalls).toBe(1);
-    await svc.createFromUpload(await newSession(), "lease.docx", lease);
+    await createFromUpload(await newSession(), "lease.docx", lease);
     expect(analysisCalls).toBe(2);
   });
 
   it("still works (without caching) when Redis is down", async () => {
     setStoreForTests(new BrokenStore());
-    const d = await svc.createFromUpload(await newSession(), "lease.docx", lease);
+    const d = await createFromUpload(await newSession(), "lease.docx", lease);
     expect(d.fields.length).toBeGreaterThan(5);
   });
 
   it("falls back to marker-only detection honestly when the model fails", async () => {
-    svc.setModelForTests(mockModel({ object: () => ({}), failGenerate: true }));
-    const d = await svc.createFromUpload(await newSession(), "lease.docx", lease);
+    setModelForTests(mockModel({ object: () => ({}), failGenerate: true }));
+    const d = await createFromUpload(await newSession(), "lease.docx", lease);
     expect(d.analysis).toBe("markers_only");
     expect(d.messages[0]!.content).toMatch(/AI analysis unavailable/);
-    svc.setModelForTests(model);
+    setModelForTests(model);
   });
 });
 
 describe("guided conversation", () => {
   it("fills several fields from one answer and asks about an ambiguous currency", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
+    const d = await createFromUpload(s, "lease.docx", lease);
     const msg = "The tenant is John Smith, rent is Rs 25,000 monthly, and the lease starts on 1 October 2026";
     const events = await say(s, d.id, msg, { updates: [u("tenant_name", "John Smith"), u("monthly_rent", "Rs 25,000", "Rs 25,000"), u("start_date", "1 October 2026")] });
     const types = events.map((e) => e.type);
@@ -144,7 +148,7 @@ describe("guided conversation", () => {
 
   it("flags ambiguous numeric dates and rejects values the user never wrote", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
+    const d = await createFromUpload(s, "lease.docx", lease);
     await say(s, d.id, "Starts 03/04/2026", { updates: [u("start_date", "03/04/2026"), u("landlord_name", "Invented Ltd", "Invented Ltd")] });
     expect((await field(s.id, d.id, "start_date")).status).toBe("needs_clarification");
     expect((await field(s.id, d.id, "landlord_name")).status).toBe("missing");
@@ -152,7 +156,7 @@ describe("guided conversation", () => {
 
   it("answers a clause question from the document text and keeps the interview going", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
+    const d = await createFromUpload(s, "lease.docx", lease);
     const blocks = await indexBlocks(await loadDocxPackage(lease));
     const rent = blocks.find((b) => b.text.startsWith("Rent"))!;
     await say(s, d.id, "What does the rent clause mean? Is it usual?", { updates: [], clauseBlockIds: [rent.id] });
@@ -163,19 +167,19 @@ describe("guided conversation", () => {
 
   it("rejects stale field versions and preserves answers when the reply stream fails", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
-    await expect(svc.chatTurn(s, d.id, { message: "hi", fieldsVersion: d.fieldsVersion - 1 }, () => undefined, new AbortController().signal)).rejects.toBeInstanceOf(repo.StaleRevisionError);
+    const d = await createFromUpload(s, "lease.docx", lease);
+    await expect(chatTurn(s, d.id, { message: "hi", fieldsVersion: d.fieldsVersion - 1 }, () => undefined, new AbortController().signal)).rejects.toBeInstanceOf(repo.StaleRevisionError);
   });
 
   it("stores a message once when it is retried after a failed turn", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
+    const d = await createFromUpload(s, "lease.docx", lease);
     const msg = "The tenant is John Smith.";
-    svc.setModelForTests(mockModel({ object: () => ({}), failGenerate: true }));
+    setModelForTests(mockModel({ object: () => ({}), failGenerate: true }));
     await expect(say(s, d.id, msg, { updates: [] })).rejects.toThrow();
-    svc.setModelForTests(model);
+    setModelForTests(model);
     await say(s, d.id, msg, { updates: [u("tenant_name", "John Smith")] });
-    const v = await svc.getView(s.id, d.id);
+    const v = await getView(s.id, d.id);
     expect(v.messages.filter((m) => m.role === "user").map((m) => m.content)).toEqual([msg]);
     expect(v.messages.at(-1)!.role).toBe("assistant");
     expect(v.fields.find((f) => f.id === "tenant_name")!.status).toBe("confirmed");
@@ -189,29 +193,29 @@ async function completeLease(s: Awaited<ReturnType<typeof newSession>>, docId: s
   await say(s, docId, "Starts 1 October 2026, rent MUR 25,000, deposit MUR 50,000, interest 8%, ref LX-7 & Co", {
     updates: [u("start_date", "1 October 2026"), u("monthly_rent", "MUR 25,000"), u("deposit_amount", "MUR 50,000"), u("interest_rate", "8%"), u("reference", "LX-7 & Co")],
   });
-  const view = await svc.getView(s.id, docId);
+  const view = await getView(s.id, docId);
   // The unmarked-in-analysis underscore blank becomes its own field; fill via the field panel.
   for (const f of view.fields.filter((x) => x.status !== "confirmed")) {
-    const latest = await svc.getView(s.id, docId);
-    await svc.correctField(s.id, docId, { fieldsVersion: latest.fieldsVersion, fieldId: f.id, value: "30 September 2027" });
+    const latest = await getView(s.id, docId);
+    await correctField(s.id, docId, { fieldsVersion: latest.fieldsVersion, fieldId: f.id, value: "30 September 2027" });
   }
-  return svc.getView(s.id, docId);
+  return getView(s.id, docId);
 }
 
 describe("progressive drafting, editing and export", () => {
   it("refuses an incomplete draft, then streams blocks before completion and preserves structure", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
-    const early = await collect((e, sig) => svc.generateDraft(s.id, d.id, { fieldsVersion: d.fieldsVersion }, e, sig));
+    const d = await createFromUpload(s, "lease.docx", lease);
+    const early = await collect((e, sig) => generateDraft(s.id, d.id, { fieldsVersion: d.fieldsVersion }, e, sig));
     expect(early).toEqual([expect.objectContaining({ type: "error", code: "incomplete" })]);
 
     const ready = await completeLease(s, d.id);
-    const events = await collect((e, sig) => svc.generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig));
+    const events = await collect((e, sig) => generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig));
     const types = events.map((e) => e.type);
     expect(types[0]).toBe("draft_started");
     expect(types.filter((t) => t === "draft_block_ready").length).toBeGreaterThan(10);
     expect(types.at(-1)).toBe("draft_complete");
-    const { bytes } = await svc.readDocx(s.id, d.id, "working");
+    const { bytes } = await readDocx(s.id, d.id, "working");
     const blocks = await indexBlocks(await loadDocxPackage(new Uint8Array(bytes)));
     const all = blocks.map((b) => b.text).join("\n");
     expect(all).not.toMatch(/\{\{|\[LANDLORD|\[address\]/);
@@ -222,53 +226,53 @@ describe("progressive drafting, editing and export", () => {
 
   it("applies a later correction to every untouched occurrence, and reports conflicts where the user edited", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
+    const d = await createFromUpload(s, "lease.docx", lease);
     const ready = await completeLease(s, d.id);
-    await collect((e, sig) => svc.generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig));
+    await collect((e, sig) => generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig));
 
     // Correction with no manual edits: all occurrences updated in the working draft.
     const ev = await say(s, d.id, "Actually the tenant is Jane Doe", { updates: [u("tenant_name", "Jane Doe")] });
     expect(ev.find((e) => e.type === "draft_patch")).toMatchObject({ applied: ["tenant_name"], conflicts: [] });
-    let text = (await indexBlocks(await loadDocxPackage(new Uint8Array((await svc.readDocx(s.id, d.id, "working")).bytes)))).map((b) => b.text).join("\n");
+    let text = (await indexBlocks(await loadDocxPackage(new Uint8Array((await readDocx(s.id, d.id, "working")).bytes)))).map((b) => b.text).join("\n");
     expect(text).not.toContain("John Smith");
     expect(text.match(/Jane Doe/g)).toHaveLength(2);
 
     // Simulate a browser edit that rewrites the landlord's name, saved through the editor path.
-    const w = await svc.readDocx(s.id, d.id, "working");
+    const w = await readDocx(s.id, d.id, "working");
     const pkg = await loadDocxPackage(new Uint8Array(w.bytes));
     const b = (await indexBlocks(pkg)).find((x) => x.text.includes("Ravi Ramdin"))!;
     const at = b.text.indexOf("Ravi Ramdin");
     await applyTextEdits(pkg, [{ blockId: b.id, start: at, end: at + 11, expected: "Ravi Ramdin", value: "R. Ramdin (edited)" }]);
-    await svc.saveEditorDocx(s.id, d.id, w.workingRevision, await serializePackage(pkg));
-    await expect(svc.saveEditorDocx(s.id, d.id, w.workingRevision, await serializePackage(pkg))).rejects.toBeInstanceOf(repo.StaleRevisionError);
+    await saveEditorDocx(s.id, d.id, w.workingRevision, await serializePackage(pkg));
+    await expect(saveEditorDocx(s.id, d.id, w.workingRevision, await serializePackage(pkg))).rejects.toBeInstanceOf(repo.StaleRevisionError);
 
     const ev2 = await say(s, d.id, "The landlord is Ravi Ramdin Ltd", { updates: [u("landlord_name", "Ravi Ramdin Ltd")] });
     expect(ev2.find((e) => e.type === "draft_patch")).toMatchObject({ conflicts: ["landlord_name"] });
-    text = (await indexBlocks(await loadDocxPackage(new Uint8Array((await svc.readDocx(s.id, d.id, "working")).bytes)))).map((x) => x.text).join("\n");
+    text = (await indexBlocks(await loadDocxPackage(new Uint8Array((await readDocx(s.id, d.id, "working")).bytes)))).map((x) => x.text).join("\n");
     expect(text).toContain("R. Ramdin (edited)"); // the manual edit survived
   });
 
   it("cancelling mid-stream never marks a partial draft complete", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
+    const d = await createFromUpload(s, "lease.docx", lease);
     const ready = await completeLease(s, d.id);
     const ctrl = new AbortController();
     let blocks = 0;
     await expect(
-      svc.generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, (e) => {
+      generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, (e) => {
         if (e.type === "draft_block_ready" && ++blocks === 3) ctrl.abort();
       }, ctrl.signal),
     ).rejects.toThrow(/stopped/i);
-    const after = await svc.getView(s.id, d.id);
+    const after = await getView(s.id, d.id);
     expect(after.draftStatus).toBe("none");
-    await expect(svc.readDocx(s.id, d.id, "working")).rejects.toBeInstanceOf(NotFound);
+    await expect(readDocx(s.id, d.id, "working")).rejects.toBeInstanceOf(NotFound);
   });
 
   it("deduplicates concurrent draft requests", async () => {
     const s = await newSession();
-    const d = await svc.createFromUpload(s, "lease.docx", lease);
+    const d = await createFromUpload(s, "lease.docx", lease);
     const ready = await completeLease(s, d.id);
-    const run = () => collect((e, sig) => svc.generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig));
+    const run = () => collect((e, sig) => generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig));
     const results = await Promise.allSettled([run(), run()]);
     expect(results.filter((r) => r.status === "rejected").length).toBe(1);
     expect(results.find((r) => r.status === "rejected")).toMatchObject({ reason: { name: "BusyError" } });
@@ -279,16 +283,16 @@ describe("anonymous session isolation", () => {
   it("a second session cannot read, mutate, stream or export the first session's document", async () => {
     const a = await newSession();
     const b = await newSession();
-    const d = await svc.createFromUpload(a, "lease.docx", lease);
+    const d = await createFromUpload(a, "lease.docx", lease);
     const ready = await completeLease(a, d.id);
-    await collect((e, sig) => svc.generateDraft(a.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig));
-    await expect(svc.getView(b.id, d.id)).rejects.toBeInstanceOf(NotFound);
-    await expect(svc.readDocx(b.id, d.id, "working")).rejects.toBeInstanceOf(NotFound);
-    await expect(svc.correctField(b.id, d.id, { fieldsVersion: ready.fieldsVersion + 1, fieldId: "tenant_name", value: "x" })).rejects.toBeInstanceOf(NotFound);
-    await expect(svc.chatTurn(b, d.id, { message: "hi", fieldsVersion: 1 }, () => undefined, new AbortController().signal)).rejects.toBeInstanceOf(NotFound);
-    await expect(collect((e, sig) => svc.generateDraft(b.id, d.id, { fieldsVersion: 1 }, e, sig))).rejects.toBeInstanceOf(NotFound);
-    await expect(svc.saveEditorDocx(b.id, d.id, 1, lease)).rejects.toBeInstanceOf(repo.StaleRevisionError);
-    expect((await svc.readDocx(a.id, d.id, "working")).workingRevision).toBe(1);
-    expect(await svc.currentView(b.id)).toBeNull();
+    await collect((e, sig) => generateDraft(a.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig));
+    await expect(getView(b.id, d.id)).rejects.toBeInstanceOf(NotFound);
+    await expect(readDocx(b.id, d.id, "working")).rejects.toBeInstanceOf(NotFound);
+    await expect(correctField(b.id, d.id, { fieldsVersion: ready.fieldsVersion + 1, fieldId: "tenant_name", value: "x" })).rejects.toBeInstanceOf(NotFound);
+    await expect(chatTurn(b, d.id, { message: "hi", fieldsVersion: 1 }, () => undefined, new AbortController().signal)).rejects.toBeInstanceOf(NotFound);
+    await expect(collect((e, sig) => generateDraft(b.id, d.id, { fieldsVersion: 1 }, e, sig))).rejects.toBeInstanceOf(NotFound);
+    await expect(saveEditorDocx(b.id, d.id, 1, lease)).rejects.toBeInstanceOf(repo.StaleRevisionError);
+    expect((await readDocx(a.id, d.id, "working")).workingRevision).toBe(1);
+    expect(await currentView(b.id)).toBeNull();
   });
 });

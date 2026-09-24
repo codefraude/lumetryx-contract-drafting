@@ -3,7 +3,7 @@
 import { ChevronDown, CircleCheck, CircleHelp, CircleMinus, CircleSlash, Lightbulb, TriangleAlert } from "lucide-react";
 import { memo, useId, useState } from "react";
 import type { DocumentView, RuleAction } from "@/lib/client/api";
-import type { ChatLanguage, Field } from "@/lib/fields/types";
+import type { ChatLanguage, Field } from "@/features/documents/contracts/fields";
 import { Button, Callout, StatusBadge, type Tone } from "./ui";
 
 type RuleView = DocumentView["rules"][number];

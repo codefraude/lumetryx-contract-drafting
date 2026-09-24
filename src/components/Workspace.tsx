@@ -4,8 +4,8 @@ import { CircleAlert, CircleCheck, Info, LoaderCircle, RotateCcw, TriangleAlert,
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, ApiError, streamEvents, type DocumentView, type RuleAction } from "@/lib/client/api";
-import type { DraftBlock, StreamEvent } from "@/lib/events";
-import type { ChatLanguage } from "@/lib/fields/types";
+import type { DraftBlock, StreamEvent } from "@/features/documents/contracts/stream-events";
+import type { ChatLanguage } from "@/features/documents/contracts/fields";
 import { ChatHeader, ChatPanel, type ChatError, type ChatMessage } from "./ChatPanel";
 import { ClausePanel, needsAttention } from "./ClausePanel";
 import { ComparePanel } from "./ComparePanel";

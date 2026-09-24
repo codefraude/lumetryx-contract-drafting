@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowUp, CircleAlert, CircleCheck, Info, RotateCcw } from "lucide-react";
 import { Fragment, memo, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { boldSpans, messageBlocks } from "@/lib/client/format";
-import type { ChatLanguage, DocLanguage } from "@/lib/fields/types";
+import type { ChatLanguage, DocLanguage } from "@/features/documents/contracts/fields";
 import { BrandMark, Button, IconButton } from "./ui";
 
 export interface ChatMessage {

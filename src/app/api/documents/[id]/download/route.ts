@@ -1,6 +1,6 @@
-import { jsonError, NotFound, PRIVATE_HEADERS, UUID } from "@/lib/server/http";
-import { readDocx } from "@/lib/server/service";
-import { requireSession } from "@/lib/server/session";
+import { readDocx } from "@/server/documents/drafting";
+import { documentIdParam, jsonError, PRIVATE_HEADERS } from "@/server/http/responses";
+import { requireSession } from "@/server/session";
 
 export const runtime = "nodejs";
 
@@ -8,8 +8,7 @@ const safeName = (name: string) => name.replace(/\.docx$/i, "").replace(/[^\w .-
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
-    if (!UUID.test(id)) throw new NotFound();
+    const id = await documentIdParam(params);
     const session = await requireSession();
     const { bytes, filename, workingRevision } = await readDocx(session.id, id, "working");
     const name = `${safeName(filename)} - draft.docx`;

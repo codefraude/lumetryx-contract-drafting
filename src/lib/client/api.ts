@@ -1,6 +1,9 @@
-import { SseDecoder, type StreamEvent } from "../events";
-import type { ChatLanguage } from "../fields/types";
-import type { CompareResponse, DocumentView, DraftListItem, RuleAction } from "../server/service";
+import { StreamEvent } from "@/features/documents/contracts/stream-events";
+import { postEventStream } from "@/lib/sse";
+import type { ChatLanguage } from "@/features/documents/contracts/fields";
+import type { CompareResponse } from "@/features/comparison/contracts";
+import type { DocumentView, RuleAction } from "@/features/documents/contracts/document-view";
+import type { DraftListItem } from "@/features/drafts/contracts";
 
 export type { CompareResponse, DocumentView, DraftListItem, RuleAction };
 
@@ -62,22 +65,6 @@ export const api = {
   },
 };
 
-export async function streamEvents(url: string, body: Record<string, unknown>, onEvent: (e: StreamEvent) => void, signal: AbortSignal): Promise<string> {
-  const requestId = crypto.randomUUID();
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, requestId }), signal });
-  if (!res.ok || !res.body) await parse(res);
-  const reader = res.body!.getReader();
-  const decoder = new SseDecoder();
-  let lastSeq = -1;
-  for (;;) {
-    const { done, value } = await reader.read();
-    const events = decoder.push(value ?? new Uint8Array(), done);
-    for (const e of events) {
-      if (e.requestId !== requestId || e.seq <= lastSeq) continue;
-      lastSeq = e.seq;
-      onEvent(e);
-    }
-    if (done) break;
-  }
-  return requestId;
+export async function streamEvents(url: string, body: Record<string, unknown>, onEvent: (e: StreamEvent) => void, signal: AbortSignal): Promise<void> {
+  await postEventStream(url, body, StreamEvent, onEvent, signal);
 }

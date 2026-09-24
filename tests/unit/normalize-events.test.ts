@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { encodeEvent, SseDecoder, type StreamEvent } from "@/lib/events";
-import { parseDate, parseMoney, templateCurrencyHint } from "@/lib/fields/normalize";
+import { StreamEvent } from "@/features/documents/contracts/stream-events";
+import { SseDecoder } from "@/lib/sse";
+import { encodeEvent } from "@/server/http/sse";
+import { parseDate, parseMoney, templateCurrencyHint } from "@/server/fields/normalize";
 
 describe("dates", () => {
   it("parses unambiguous forms as date-only ISO values", () => {
@@ -50,9 +52,16 @@ describe("SSE decoding", () => {
       { type: "assistant_done", requestId: "r", seq: 1, text: "done" },
     ];
     const bytes = new TextEncoder().encode(events.map(encodeEvent).join(""));
-    const d = new SseDecoder();
+    const d = new SseDecoder(StreamEvent);
     const out: StreamEvent[] = [];
     for (let i = 0; i < bytes.length; i += 7) out.push(...d.push(bytes.subarray(i, i + 7)));
     expect(out).toEqual(events);
+  });
+
+  it("drops a malformed or unknown frame and keeps reading the stream", () => {
+    const good = encodeEvent({ type: "assistant_done", requestId: "r", seq: 2, text: "ok" });
+    const d = new SseDecoder(StreamEvent);
+    const out = d.push(new TextEncoder().encode(`data: {not json\n\ndata: {"type":"unknown"}\n\n${good}`), true);
+    expect(out).toEqual([{ type: "assistant_done", requestId: "r", seq: 2, text: "ok" }]);
   });
 });

@@ -3,7 +3,7 @@
  * automated tests. They never run in the application and prove nothing about live Gemini.
  */
 import { MockLanguageModelV4 } from "ai/test";
-import type { KeyValueStore } from "@/lib/cache/redis";
+import type { KeyValueStore } from "@/server/cache/redis";
 
 const usage = (i: number, o: number) => ({
   inputTokens: { total: i, noCache: i, cacheRead: undefined, cacheWrite: undefined },

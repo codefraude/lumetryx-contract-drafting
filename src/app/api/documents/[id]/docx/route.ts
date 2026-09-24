@@ -1,7 +1,7 @@
-import { DOCX_LIMITS } from "@/lib/docx/package";
-import { json, jsonError, NotFound, PRIVATE_HEADERS, UUID } from "@/lib/server/http";
-import { readDocx, saveEditorDocx } from "@/lib/server/service";
-import { assertSameOrigin, requireSession } from "@/lib/server/session";
+import { readDocx, saveEditorDocx } from "@/server/documents/drafting";
+import { DOCX_LIMITS } from "@/server/docx/package";
+import { documentIdParam, json, jsonError, PRIVATE_HEADERS } from "@/server/http/responses";
+import { assertSameOrigin, requireSession } from "@/server/session";
 
 export const runtime = "nodejs";
 
@@ -10,8 +10,7 @@ const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.doc
 /** Bytes for the editor: the working draft, or ?which=original for the template preview. */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
-    if (!UUID.test(id)) throw new NotFound();
+    const id = await documentIdParam(params);
     const session = await requireSession();
     const which = new URL(req.url).searchParams.get("which") === "original" ? "original" : "working";
     const { bytes, workingRevision } = await readDocx(session.id, id, which);
@@ -25,8 +24,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     assertSameOrigin(req);
-    const { id } = await params;
-    if (!UUID.test(id)) throw new NotFound();
+    const id = await documentIdParam(params);
     const session = await requireSession();
     const rev = Number(new URL(req.url).searchParams.get("rev"));
     if (!Number.isInteger(rev) || rev < 1) return json({ code: "invalid", message: "Missing revision." }, 400);

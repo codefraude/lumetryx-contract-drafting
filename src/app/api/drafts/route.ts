@@ -1,6 +1,6 @@
-import { json, jsonError } from "@/lib/server/http";
-import { listDrafts } from "@/lib/server/service";
-import { currentSession } from "@/lib/server/session";
+import { listDrafts } from "@/server/documents/drafts";
+import { json, jsonError } from "@/server/http/responses";
+import { currentSession } from "@/server/session";
 
 export const runtime = "nodejs";
 

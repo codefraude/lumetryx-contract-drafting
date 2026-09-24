@@ -1,6 +1,6 @@
 "use client";
 
-import type { DraftBlock } from "@/lib/events";
+import type { DraftBlock } from "@/features/documents/contracts/stream-events";
 
 const Runs = ({ block }: { block: DraftBlock }) => (
   <>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { replyPrompt } from "@/lib/ai/interview";
-import type { Field } from "@/lib/fields/types";
+import { replyPrompt } from "@/server/ai/reply";
+import type { Field } from "@/features/documents/contracts/fields";
 
 const field = (id: string, label: string, group: Field["group"], status: Field["status"] = "missing"): Field => ({
   id,
