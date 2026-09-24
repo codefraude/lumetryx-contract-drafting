@@ -51,3 +51,11 @@ export async function requestBlob(url: string, init: RequestInit = {}): Promise<
 }
 
 export const jsonBody = (method: "POST" | "PATCH" | "PUT", body: unknown): RequestInit => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+/** A failure as the UI shows it: what went wrong, and whether retrying can help. */
+export interface ActionFailure {
+  message: string;
+  retryable: boolean;
+}
+
+export const toFailure = (error: unknown): ActionFailure => ({ message: errorMessage(error), retryable: error instanceof ApiError ? error.retryable : true });

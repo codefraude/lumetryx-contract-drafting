@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { boldSpans, messageBlocks } from "@/lib/client/format";
-import { resolveTheme } from "@/lib/client/theme";
+import { boldSpans, messageBlocks } from "@/features/chat/format";
+import { resolveTheme } from "@/lib/theme";
 
 describe("assistant reply formatting", () => {
   it("groups paragraphs and lists, and leaves other text alone", () => {

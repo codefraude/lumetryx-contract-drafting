@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
-import { ThemeSync } from "@/components/ThemeControl";
-import { THEME_SCRIPT } from "@/lib/client/theme";
+import { ThemeSync } from "@/shared/ui/ThemeControl";
+import { Providers } from "./providers";
+import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 // Self-hosted at build time: the browser never contacts a font service.
@@ -34,7 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ThemeSync />
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

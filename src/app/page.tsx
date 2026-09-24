@@ -1,4 +1,4 @@
-import { Workspace } from "@/components/Workspace";
+import { Workspace } from "@/features/workspace/components/Workspace";
 import { DOCX_LIMITS } from "@/server/docx/package";
 
 export default function Page() {

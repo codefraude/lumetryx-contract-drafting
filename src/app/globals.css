@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Theme selection is data-driven: <html data-theme="light|dark"> is set before paint (see lib/client/theme.ts). */
+/* Theme selection is data-driven: <html data-theme="light|dark"> is set before paint (see lib/theme.ts). */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ---------- Semantic tokens ---------- */
