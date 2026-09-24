@@ -17,6 +17,8 @@ src/features/        Browser features. Each one owns its components, hooks, API 
 src/shared/ui/       Design-system primitives (Button, Status, TabBar, TabPanel, Popover, ConfirmDialog, ThemeControl, BrandMark)
 src/lib/             Framework-free browser helpers: validated HTTP, SSE client, query client, theme
 src/server/          Server only: documents (use cases), docx, fields, clauses, diff, draft, ai, db, cache, http, session, env
+scripts/             Not shipped: test fixtures (fixtures/), the Microsoft Word check (word/), the live conversation
+                     evaluation, the Gemini smoke test, expired-draft cleanup
 ```
 
 A request goes: route handler (session, origin and ownership checks, body parsed with a contract schema) → a use case in `src/server/documents/` → domain modules (`docx`, `fields`, `clauses`, `draft`, `diff`, `ai`) → `db` / `cache`. Document code never calls the model. Model code never touches XML; it proposes values that deterministic validation accepts or rejects.
@@ -99,12 +101,14 @@ This tab is the writer. Revision checks on the server catch other tabs.
 
 **Size.** Hand-written `.ts`/`.tsx` in `src/` and `scripts/`:
 
-| | Before (`fd4b280`) | After |
-| --- | --- | --- |
-| Files | 55 | 122 |
-| Lines | 8,430 | 9,484 |
-| Files ≥ 300 lines | 9 (largest: 632) | 1: `scripts/make-fixtures.ts` (421), test tooling |
-| Files 201–299 lines | 9 | 4 (largest production file: 236) |
+| | Before (`fd4b280`) | After the refactor | Now |
+| --- | --- | --- | --- |
+| Files | 55 | 122 | 132 |
+| Lines | 8,430 | 9,484 | 11,510 |
+| Files ≥ 300 lines | 9 (largest: 632) | 1: `scripts/make-fixtures.ts` (421), test tooling | 0 |
+| Files 201–299 lines | 9 | 4 (largest production file: 236) | 8 (largest: 294) |
+
+"Now" adds the work described in [After the refactor](#after-the-refactor). Prettier's line breaks lengthened some files, so `server/db/repo.ts` (320 lines after formatting) gave its session functions to `server/db/sessions.ts`. `scripts/make-fixtures.ts` was split into `scripts/fixtures/`.
 
 Files that were split:
 - `components/Workspace.tsx`: 632 lines into 11 modules across `workspace`, `chat`, `documents` and `shared/ui`
@@ -158,8 +162,18 @@ Additional checks:
 - **Bundle:** `.next/static` contains no server environment variable names, `drizzle-orm`, `@neondatabase`, `pg-protocol`, `server-only`, or server functions.
 - **Not run: live Gemini.** Model-facing code was split and moved, not rewritten. The chat path is covered by integration tests with a mocked model and by `chat.spec.ts` with a stubbed stream.
 
+## After the refactor
+
+Done the same day, after a review against the assessment rubric found gaps. The README's verification table has the results.
+
+- **Microsoft Word check** (`npm run check:word`, `scripts/word/`). Word 16 on Windows opens every template, filled draft and editor round trip, and a script compares what Word reports: styles, live numbering, fonts, spacing, emphasis, tables, headers, margins, notes, comments, tracked changes, pictures, text boxes and contents. A rich fixture (`synthetic-supply-agreement.docx`) carries the features the other fixtures lack.
+- **Live conversation evaluation** (`npm run eval:conversation`). It found four defects, fixed with tests: a date written in figures was re-read by the model, raw placeholder labels reached the lawyer, clause ids leaked into replies, and a failed reply hid the answers already saved.
+- **Narrow screens.** Below 900 px the page is scaled to the width of the screen, with no sideways scrolling.
+- **Firefox and WebKit** run the browser tests. The session cookie is `Secure` only when `APP_URL` is HTTPS, because Safari drops `Secure` cookies on `http://localhost`.
+- **Prettier** 3.9.9 (devDependency, `printWidth` 160) formats the code. `npm run format:check` verifies it.
+- **Tests:** 73 (50 unit, 23 integration).
+
 ## Exceptions
 
-- `scripts/make-fixtures.ts` (421 lines) generates the test fixtures and is not shipped. Most of it is document content, and splitting it would scatter one fixture set.
 - Tests are not held to the size and assertion rules. They cast JSON read back from the app.
 - Files under 80 lines are mostly route handlers, contracts and per-feature `api.ts` modules, which are small by nature.
