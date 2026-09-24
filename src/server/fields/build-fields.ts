@@ -161,10 +161,14 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
     });
   }
 
+  // The model may call a marker ordinary text (a citation, a cross-reference), but a {{variable}} or an
+  // ALL-CAPS [PLACEHOLDER] never is: a weaker model once dismissed one, and it went unfilled into the draft.
+  const dismissible = (m: MarkerOccurrence) => m.marker !== "brace" && !(m.marker === "bracket" && /\p{L}/u.test(m.text) && m.text === m.text.toUpperCase());
+
   // Markers the model didn't account for still become fields (never silently lost).
   for (const [key, ms] of byKey) {
     const [m] = ms;
-    if (!m || used.has(key) || notFields.has(key)) continue;
+    if (!m || used.has(key) || (notFields.has(key) && dismissible(m))) continue;
     const guess = guessType(m.labelHint);
     fields.push({
       id: uniqueId(m.marker === "underscore" ? `blank_${m.labelHint}` : m.labelHint),

@@ -82,6 +82,14 @@ describe("filling", () => {
     expect(reopened.find((b) => b.text.startsWith("Information independently"))?.numberLabel).toBe("1.1.2.");
   });
 
+  it("keeps a {{variable}} or an ALL-CAPS [PLACEHOLDER] that the model dismissed as ordinary text", async () => {
+    const blocks = await indexBlocks(await loadDocxPackage(fixture("synthetic-bilingual-employment")));
+    const markers = detectMarkers(blocks);
+    const key = (text: string) => markers.find((m) => m.text === text)!.key;
+    const { fields } = buildFields(blocks, markers, { notFields: [key("{{date_d_entree}}"), key("[NOM DU SALARIÉ]")], fields: [] });
+    for (const text of ["{{date_d_entree}}", "[NOM DU SALARIÉ]"]) expect(fields.some((f) => f.occurrences.some((o) => o.expected === text))).toBe(true);
+  });
+
   it("fills headers and inserts implicit values after verified quotes", async () => {
     const pkg = await loadDocxPackage(fixture("synthetic-residential-lease"));
     const blocks = await indexBlocks(pkg);
