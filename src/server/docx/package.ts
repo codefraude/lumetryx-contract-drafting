@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import JSZip from "jszip";
 
 export const DOCX_LIMITS = {
@@ -114,7 +115,8 @@ export async function loadDocxPackage(bytes: Uint8Array): Promise<DocxPackage> {
   } catch {
     throw new DocxValidationError("corrupt", "The Word package could not be opened.");
   }
-  const contentTypes = await zip.file("[Content_Types].xml")!.async("string");
+  const contentTypes = await zip.file("[Content_Types].xml")?.async("string");
+  if (contentTypes === undefined) throw new DocxValidationError("corrupt", "The Word package could not be opened.");
   if (/macroEnabled/i.test(contentTypes)) {
     throw new DocxValidationError("macro_enabled", "Macro-enabled documents are not supported.");
   }
@@ -129,6 +131,5 @@ export async function serializePackage(pkg: DocxPackage): Promise<Uint8Array> {
 }
 
 export async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", bytes as BufferSource);
-  return Buffer.from(digest).toString("hex");
+  return createHash("sha256").update(bytes).digest("hex");
 }

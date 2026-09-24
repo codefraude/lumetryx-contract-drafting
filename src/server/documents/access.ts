@@ -2,7 +2,7 @@ import "server-only";
 import { PARSER_VERSION } from "@/server/ai/analyze";
 import { cacheGet, cacheSet } from "@/server/cache/redis";
 import * as repo from "@/server/db/repo";
-import type { Block } from "@/server/docx/blocks";
+import { CachedBlocks, type Block } from "@/server/docx/blocks";
 import { loadDocxPackage } from "@/server/docx/package";
 import { indexBlocks } from "@/server/docx/render";
 import { NotFound } from "@/server/http/responses";
@@ -27,7 +27,7 @@ export const blocksCacheKey = (sessionId: string, templateHash: string) => `lx:b
 /** Parsed template blocks are cached per session + template hash + parser version. */
 export async function templateBlocks(sessionId: string, templateHash: string, original: Uint8Array): Promise<Block[]> {
   const key = blocksCacheKey(sessionId, templateHash);
-  const hit = await cacheGet<Block[]>(key, (raw) => raw as Block[]);
+  const hit = await cacheGet(key, (raw) => CachedBlocks.parse(raw));
   if (hit) return hit;
   const rendered = await indexBlocks(await loadDocxPackage(original));
   const blocks: Block[] = rendered.map(({ runs: _runs, numberLabel: _n, headingLevel: _h, ...b }) => b);

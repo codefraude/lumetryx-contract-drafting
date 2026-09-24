@@ -22,10 +22,12 @@ export function validateProposal(p: RuleProposal, blocks: Block[], taken: Readon
   if (from < 0 || to < from) return `proposal “${p.label}”: unknown or reversed clause boundaries`;
   const content = body.slice(from, to + 1);
   if (content.some((b) => taken.has(b.id))) return `proposal “${p.label}”: overlaps another conditional clause`;
-  const tables = new Set(content.filter((b) => b.table).map((b) => b.table!.table));
+  const tables = new Set(content.flatMap((b) => (b.table ? [b.table.table] : [])));
   for (const t of tables) {
     const cells = body.filter((b) => b.table?.table === t);
-    if (!content.includes(cells[0]!) || !content.includes(cells.at(-1)!)) return `proposal “${p.label}”: would cut through a table`;
+    const [head] = cells;
+    const tail = cells.at(-1);
+    if (!head || !tail || !content.includes(head) || !content.includes(tail)) return `proposal “${p.label}”: would cut through a table`;
   }
   const evidence = p.evidence.trim();
   if (evidence.length < 8 || !blocks.some((b) => b.text.includes(evidence))) return `proposal “${p.label}”: evidence is not verbatim template text`;

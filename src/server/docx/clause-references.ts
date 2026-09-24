@@ -46,11 +46,14 @@ export function trackReferences(template: RenderedBlock[]): TrackedReference[] {
   for (const [id, label] of labels) byLabel.set(label, [...(byLabel.get(label) ?? []), id]);
   const out: TrackedReference[] = [];
   for (const b of template) {
-    if (b.partKind !== "body" || !b.paraId) continue;
+    const { paraId } = b;
+    if (b.partKind !== "body" || !paraId) continue;
     [...b.text.matchAll(REFERENCE)].forEach((m, nth) => {
       if (EXTERNAL.test(b.text.slice(m.index + m[0].length))) return;
-      const targets = byLabel.get(m[2]!);
-      if (targets?.length === 1 && targets[0] !== b.paraId) out.push({ paraId: b.paraId!, nth, target: targets[0]!, written: m[2]! });
+      const [, , written = ""] = m;
+      const targets = byLabel.get(written);
+      const target = targets?.length === 1 ? targets[0] : undefined;
+      if (target && target !== paraId) out.push({ paraId, nth, target, written });
     });
   }
   return out;
@@ -65,7 +68,8 @@ export interface ReferenceSync {
 /** Brings every untouched reference in line with the current numbering; reports references to clauses that are gone. */
 export function syncReferences(refs: TrackedReference[], current: RenderedBlock[]): ReferenceSync {
   const labels = labelsByParaId(current);
-  const byPara = new Map(current.filter((b) => b.paraId).map((b) => [b.paraId!, b]));
+  const byPara = new Map<string, RenderedBlock>();
+  for (const b of current) if (b.paraId) byPara.set(b.paraId, b);
   const edits: TextEdit[] = [];
   const issues: string[] = [];
   const references = refs.map((r) => {
@@ -78,8 +82,9 @@ export function syncReferences(refs: TrackedReference[], current: RenderedBlock[
     }
     const next = labels.get(r.target);
     if (!next || next === r.written) return r;
-    const start = m.index + m[0].length - m[2]!.length;
-    edits.push({ blockId: b.id, start, end: start + m[2]!.length, expected: m[2]!, value: next });
+    // m[2] is r.written here (checked above).
+    const start = m.index + m[0].length - r.written.length;
+    edits.push({ blockId: b.id, start, end: start + r.written.length, expected: r.written, value: next });
     return { ...r, written: next };
   });
   return { edits, references, issues };

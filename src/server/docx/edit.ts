@@ -1,4 +1,4 @@
-import type { Element as XmlElement } from "@xmldom/xmldom";
+import { Element as XmlElement } from "@xmldom/xmldom";
 import type { ParagraphMap } from "./paragraph-text";
 import { firstChild, toggleOn, W_NS, wAttr, XML_NS } from "./xml";
 
@@ -36,11 +36,8 @@ function commitControl(sdt: XmlElement, placeholderStyles: ReadonlySet<string>):
     if (el) pr.removeChild(el);
   }
   const content = firstChild(sdt, "sdtContent");
-  const styles = content ? content.getElementsByTagNameNS(W_NS, "rStyle") : null;
-  for (let i = styles ? styles.length - 1 : -1; i >= 0; i--) {
-    const s = styles!.item(i) as XmlElement;
-    if (placeholderStyles.has(wAttr(s, "val") ?? "")) s.parentNode!.removeChild(s);
-  }
+  if (!content) return;
+  for (const s of Array.from(content.getElementsByTagNameNS(W_NS, "rStyle"))) if (placeholderStyles.has(wAttr(s, "val") ?? "")) s.parentNode?.removeChild(s);
 }
 
 // ---------- editing ----------
@@ -53,25 +50,26 @@ export function applyToParagraph(map: ParagraphMap, edit: TextEdit, placeholderS
   if (touched.some((s) => s.node === null && edit.start !== edit.end)) {
     throw new AnchorConflictError(edit, actual);
   }
-  const textSegs = touched.filter((s) => s.node !== null);
+  const textSegs = touched.flatMap((s) => (s.node ? [{ ...s, node: s.node }] : []));
   // Insertion at a point prefers the preceding run so the value inherits its formatting.
   const first = edit.start === edit.end ? (textSegs.find((s) => s.end === edit.start) ?? textSegs[0]) : textSegs[0];
-  if (!first?.node) throw new AnchorConflictError(edit, actual);
+  const doc = map.el.ownerDocument;
+  if (!first || !doc) throw new AnchorConflictError(edit, actual);
   textSegs.forEach((seg) => {
-    const node = seg.node!;
+    const { node } = seg;
     const current = node.textContent ?? "";
     const localStart = Math.max(0, edit.start - seg.start);
     const localEnd = Math.min(current.length, edit.end - seg.start);
     const next = seg === first ? current.slice(0, localStart) + value + current.slice(Math.max(localEnd, localStart)) : edit.start === edit.end ? current : current.slice(0, localStart) + current.slice(localEnd);
     while (node.firstChild) node.removeChild(node.firstChild);
-    node.appendChild(node.ownerDocument!.createTextNode(next));
+    node.appendChild(doc.createTextNode(next));
     node.setAttributeNS(XML_NS, "xml:space", "preserve");
   });
   // An identity edit only anchors a still-unanswered blank; a real value turns a placeholder into content.
   if (value === edit.expected) return;
   for (const seg of edit.start === edit.end ? [first] : textSegs) {
-    for (let n = seg.node!.parentNode; n; n = n.parentNode) {
-      if (n.nodeType === 1 && (n as XmlElement).namespaceURI === W_NS && (n as XmlElement).localName === "sdt") commitControl(n as XmlElement, placeholderStyles);
+    for (let n = seg.node.parentNode; n; n = n.parentNode) {
+      if (n instanceof XmlElement && n.namespaceURI === W_NS && n.localName === "sdt") commitControl(n, placeholderStyles);
     }
   }
 }

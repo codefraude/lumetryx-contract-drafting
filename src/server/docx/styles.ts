@@ -29,9 +29,7 @@ export async function loadContext(pkg: DocxPackage): Promise<DocContext> {
   const stylesXml = await pkg.zip.file("word/styles.xml")?.async("string");
   if (stylesXml) {
     const doc = parseXml(stylesXml);
-    const list = doc.getElementsByTagNameNS(W_NS, "style");
-    for (let i = 0; i < list.length; i++) {
-      const s = list.item(i) as XmlElement;
+    for (const s of Array.from(doc.getElementsByTagNameNS(W_NS, "style"))) {
       const id = wAttr(s, "styleId");
       if (!id) continue;
       const name = firstChild(s, "name");
@@ -52,13 +50,9 @@ export async function loadContext(pkg: DocxPackage): Promise<DocContext> {
   if (numXml) {
     const doc = parseXml(numXml);
     const abstract = new Map<string, NumberingLevel[]>();
-    const abs = doc.getElementsByTagNameNS(W_NS, "abstractNum");
-    for (let i = 0; i < abs.length; i++) {
-      const a = abs.item(i) as XmlElement;
+    for (const [i, a] of Array.from(doc.getElementsByTagNameNS(W_NS, "abstractNum")).entries()) {
       const levels: NumberingLevel[] = [];
-      const lvls = a.getElementsByTagNameNS(W_NS, "lvl");
-      for (let j = 0; j < lvls.length; j++) {
-        const l = lvls.item(j) as XmlElement;
+      for (const [j, l] of Array.from(a.getElementsByTagNameNS(W_NS, "lvl")).entries()) {
         const ilvl = Number(wAttr(l, "ilvl") ?? j);
         const fmt = firstChild(l, "numFmt");
         const text = firstChild(l, "lvlText");
@@ -67,9 +61,7 @@ export async function loadContext(pkg: DocxPackage): Promise<DocContext> {
       }
       abstract.set(wAttr(a, "abstractNumId") ?? String(i), levels);
     }
-    const nums = doc.getElementsByTagNameNS(W_NS, "num");
-    for (let i = 0; i < nums.length; i++) {
-      const n = nums.item(i) as XmlElement;
+    for (const n of Array.from(doc.getElementsByTagNameNS(W_NS, "num"))) {
       const ref = firstChild(n, "abstractNumId");
       const levels = ref ? abstract.get(wAttr(ref, "val") ?? "") : undefined;
       if (levels) numbering.set(wAttr(n, "numId") ?? "", levels);
@@ -116,7 +108,8 @@ export class NumberingCounter {
     if (!levels || !level) return null;
     const c = this.counters.get(num.numId) ?? [];
     for (let i = 0; i < num.ilvl; i++) if (c[i] === undefined) c[i] = levels[i]?.start ?? 1;
-    c[num.ilvl] = c[num.ilvl] === undefined ? level.start : c[num.ilvl]! + 1;
+    const count = c[num.ilvl];
+    c[num.ilvl] = count === undefined ? level.start : count + 1;
     c.length = num.ilvl + 1;
     this.counters.set(num.numId, c);
     if (level.fmt === "bullet") return "\u2022";

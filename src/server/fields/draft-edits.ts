@@ -46,15 +46,19 @@ export type AnchoredUpdate = { edits: AnchoredEdit[]; conflicts: string[] };
  * skipped; they are brought up to date if the clause is restored.
  */
 export function anchoredUpdates(state: FieldState, changed: Field[], currentBlocks: Block[]): AnchoredUpdate {
-  const byPara = new Map(currentBlocks.filter((b) => b.paraId).map((b) => [b.paraId!, b]));
+  const byPara = new Map<string, Block>();
+  for (const b of currentBlocks) if (b.paraId) byPara.set(b.paraId, b);
   const byId = new Map(currentBlocks.map((b) => [b.id, b]));
   const edits: AnchoredEdit[] = [];
   const conflicts: string[] = [];
   for (const f of changed) {
     const anchors = state.draftAnchors[f.id] ?? [];
-    const present = anchors.map((a, i) => ({ a, i, b: a.paraId ? byPara.get(a.paraId) : byId.get(a.blockId) })).filter((x) => x.b);
+    const present = anchors.flatMap((a, i) => {
+      const b = a.paraId ? byPara.get(a.paraId) : byId.get(a.blockId);
+      return b ? [{ a, i, b }] : [];
+    });
     if (!present.length) continue;
-    if (!present.every((x) => x.b!.text.slice(x.a.start, x.a.end) === x.a.text)) {
+    if (!present.every((x) => x.b.text.slice(x.a.start, x.a.end) === x.a.text)) {
       conflicts.push(f.id);
       continue;
     }
@@ -62,7 +66,7 @@ export function anchoredUpdates(state: FieldState, changed: Field[], currentBloc
       const v = renderAt(f, a.lang, state.language.document);
       if (v === null) continue;
       const value = a.mode === "insert" ? ` ${v}` : v;
-      if (value !== a.text) edits.push({ blockId: b!.id, start: a.start, end: a.end, expected: a.text, value, fieldId: f.id, anchor: i });
+      if (value !== a.text) edits.push({ blockId: b.id, start: a.start, end: a.end, expected: a.text, value, fieldId: f.id, anchor: i });
     }
   }
   return { edits, conflicts };

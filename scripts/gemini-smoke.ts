@@ -13,7 +13,8 @@ if (!apiKey) {
   process.exit(2);
 }
 const model = createGoogleGenerativeAI({ apiKey })(modelId);
-const providerOptions = { google: { thinkingConfig: { thinkingLevel: (process.env.GEMINI_THINKING_LEVEL ?? "minimal") as "minimal" } } };
+const thinkingLevel = z.enum(["minimal", "low", "medium", "high"]).parse(process.env.GEMINI_THINKING_LEVEL ?? "minimal");
+const providerOptions = { google: { thinkingConfig: { thinkingLevel } } };
 
 const s = await generateText({
   model,

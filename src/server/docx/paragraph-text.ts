@@ -1,4 +1,4 @@
-import type { Element as XmlElement, Node as XmlNode } from "@xmldom/xmldom";
+import { Element as XmlElement, type Node as XmlNode } from "@xmldom/xmldom";
 import type { PlaceholderSpan, RunSpan } from "./blocks";
 import { firstChild, nearestAncestor, toggleOn, W14_NS, W_NS, wAttr } from "./xml";
 
@@ -28,8 +28,8 @@ export function mapParagraph(p: XmlElement): ParagraphMap {
   let text = "";
   const walk = (node: XmlNode) => {
     for (let n = node.firstChild; n; n = n.nextSibling) {
-      if (n.nodeType !== 1) continue;
-      const el = n as XmlElement;
+      if (!(n instanceof XmlElement)) continue;
+      const el = n;
       if (el.namespaceURI === W_NS) {
         // Nested paragraphs (text boxes) are indexed as their own blocks.
         if (el.localName === "p") continue;
@@ -67,7 +67,7 @@ const NON_TEXT_CONTROLS = new Set(["docPartObj", "docPartList", "picture", "grou
 const showsPlaceholder = (sdt: XmlElement): boolean => {
   const pr = firstChild(sdt, "sdtPr");
   if (!pr || !toggleOn(firstChild(pr, "showingPlcHdr"))) return false;
-  for (let n = pr.firstChild; n; n = n.nextSibling) if (n.nodeType === 1 && NON_TEXT_CONTROLS.has((n as XmlElement).localName!)) return false;
+  for (let n = pr.firstChild; n; n = n.nextSibling) if (n instanceof XmlElement && NON_TEXT_CONTROLS.has(n.localName ?? "")) return false;
   return true;
 };
 
@@ -87,9 +87,10 @@ export function placeholderSpans(map: ParagraphMap): PlaceholderSpan[] {
   return found
     .filter((c) => !found.some((o) => o !== c && inside(c.el, o.el)))
     .map(({ el, start, end }) => {
-      const pr = firstChild(el, "sdtPr")!;
-      const bind = firstChild(pr, "dataBinding");
-      const title = firstChild(pr, "alias") ?? firstChild(pr, "tag");
+      // Every control here passed showsPlaceholder, so it has its properties.
+      const pr = firstChild(el, "sdtPr");
+      const bind = pr && firstChild(pr, "dataBinding");
+      const title = pr && (firstChild(pr, "alias") ?? firstChild(pr, "tag"));
       return { start, end, binding: bind ? `${(wAttr(bind, "storeItemID") ?? "").toUpperCase()}${wAttr(bind, "xpath") ?? ""}` : null, title: title ? (wAttr(title, "val") ?? null) : null };
     });
 }

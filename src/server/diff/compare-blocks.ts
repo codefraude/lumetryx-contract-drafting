@@ -87,10 +87,14 @@ export function compareBlocks(original: RenderedBlock[], current: RenderedBlock[
 
   const emit = (list: DiffItem[] | undefined) => list?.forEach((x) => items.push(x));
   emit(deletedAt.get(-1));
-  const oByC = new Map(pairs.map(([i, j]) => [j, i]));
+  const oByC = new Map<number, RenderedBlock>();
+  for (const [i, j] of pairs) {
+    const o = original[i];
+    if (o) oByC.set(j, o);
+  }
   current.forEach((c, j) => {
-    const i = oByC.get(j);
-    if (i === undefined) {
+    const o = oByC.get(j);
+    if (!o) {
       if (!pairedC.has(j)) {
         if (!c.text.trim()) emptyChanges.added++;
         else {
@@ -100,7 +104,6 @@ export function compareBlocks(original: RenderedBlock[], current: RenderedBlock[
       }
       return;
     }
-    const o = original[i]!;
     const segs = o.text === c.text ? [{ op: "eq" as const, text: c.text }] : diffTokens(o.text, c.text);
     const notes = [...structureNotes(o, c), ...formattingNotes(o, c, segs)];
     if (o.text !== c.text || notes.length) {

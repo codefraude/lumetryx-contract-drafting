@@ -3,7 +3,7 @@ import type { EventPayload, StreamEvent } from "@/features/documents/contracts/s
 import { errorBody, PRIVATE_HEADERS } from "./responses";
 
 /** Encodes one SSE frame. JSON never contains raw newlines, so one `data:` line suffices. */
-export const encodeEvent = (e: StreamEvent) => `event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`;
+export const encodeEvent = (e: EventPayload & Pick<StreamEvent, "requestId" | "seq">) => `event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`;
 
 /**
  * Streams typed events as SSE, numbered in order and tagged with the request id. The request's
@@ -18,8 +18,7 @@ export function sseResponse(req: Request, requestId: string, produce: (emit: (e:
       let closed = false;
       const emit = (e: EventPayload) => {
         if (closed) return;
-        // A payload plus the two protocol fields is a StreamEvent; TypeScript cannot follow a spread across a union.
-        controller.enqueue(encoder.encode(encodeEvent({ ...e, requestId, seq: seq++ } as StreamEvent)));
+        controller.enqueue(encoder.encode(encodeEvent({ ...e, requestId, seq: seq++ })));
       };
       try {
         await produce(emit, req.signal);

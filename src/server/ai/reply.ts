@@ -13,13 +13,12 @@ export function clauseContext(blocks: Block[], ids: string[]): string {
   const parts: string[] = [];
   for (const id of ids) {
     const i = body.findIndex((b) => b.id === id);
-    if (i < 0) continue;
-    const root = body[i]!;
+    const root = body[i];
+    if (!root) continue;
     const lvl = root.numbering?.ilvl ?? -1;
     const chunk = [root.text];
-    for (let j = i + 1; j < body.length && chunk.length < 8; j++) {
-      const b = body[j]!;
-      if (!b.numbering || b.numbering.ilvl <= lvl) break;
+    for (const b of body.slice(i + 1)) {
+      if (chunk.length >= 8 || !b.numbering || b.numbering.ilvl <= lvl) break;
       chunk.push(b.text);
     }
     parts.push(`[${id}] ${chunk.join("\n")}`);

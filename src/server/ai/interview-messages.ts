@@ -13,9 +13,11 @@ const joinList = (items: string[], lang: ChatLanguage = "en") => (items.length <
 
 /** Deterministic next question (no LLM call), in the conversation language. */
 function nextQuestion(out: Field[], lang: ChatLanguage): string {
-  const group = out[0]!.group;
+  const [head] = out;
+  if (!head) return "";
+  const { group } = head;
   const first = out.filter((f) => f.group === group).slice(0, 3);
-  const q = questionIn(first[0]!, lang);
+  const q = questionIn(head, lang);
   if (lang === "fr") return q ? `Commençons par ${GROUP_NAMES.fr[group]}. ${q}` : `Commençons par ${GROUP_NAMES.fr[group]} : ${joinList(first.map((f) => f.label.toLowerCase()), "fr")}.`;
   return q ? `Let's start with ${GROUP_NAMES.en[group]}. ${q}` : `Let's start with ${GROUP_NAMES.en[group]}: ${joinList(first.map((f) => f.label.toLowerCase()))}.`;
 }

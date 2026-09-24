@@ -64,7 +64,7 @@ export function assertBudget(s: SessionUsage): void {
 }
 
 export async function trackUsage(sessionId: string, usage: { inputTokens?: number | undefined; outputTokens?: number | undefined } | undefined) {
-  await recordUsage(sessionId, usage?.inputTokens ?? 0, usage?.outputTokens ?? 0).catch((e) => console.warn("[usage] not recorded", (e as Error).message));
+  await recordUsage(sessionId, usage?.inputTokens ?? 0, usage?.outputTokens ?? 0).catch((e) => console.warn("[usage] not recorded", e instanceof Error ? e.message : e));
 }
 export const untrusted = (label: string, body: string) => `<${label}>\n${body.replaceAll(`</${label}>`, "")}\n</${label}>`;
 

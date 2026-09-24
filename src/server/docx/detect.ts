@@ -67,17 +67,18 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
   const bindings = new Map<string, number>();
   // Boxes share a title when they hold the same kind of content: when some of them hold sample
   // paragraphs (Word's letters title them all “Enter the body of the letter”), the short ones are sample wording too.
-  const sampleTitles = new Set(blocks.flatMap((b) => (b.placeholders ?? []).filter((ph) => ph.title && b.text.slice(ph.start, ph.end).trim().split(/\s+/).length > MAX_PLACEHOLDER_WORDS).map((ph) => ph.title!)));
+  const sampleTitles = new Set(blocks.flatMap((b) => (b.placeholders ?? []).flatMap((ph) => (ph.title && b.text.slice(ph.start, ph.end).trim().split(/\s+/).length > MAX_PLACEHOLDER_WORDS ? [ph.title] : []))));
   for (const b of blocks) {
     const controls = [...b.text.matchAll(CONTROL)].map((m) => [m.index, m.index + m[0].length] as const);
     const inControl = (i: number) => controls.some(([s, e]) => i >= s && i < e);
     const { text } = b;
     for (const m of text.matchAll(BRACE)) {
+      const [, name = ""] = m;
       const start = m.index;
-      out.push({ blockId: b.id, start, end: start + m[0].length, text: m[0], marker: "brace", key: `k:${normalizeKey(m[1]!)}`, labelHint: humanize(m[1]!), context: contextOf(text, start, start + m[0].length) });
+      out.push({ blockId: b.id, start, end: start + m[0].length, text: m[0], marker: "brace", key: `k:${normalizeKey(name)}`, labelHint: humanize(name), context: contextOf(text, start, start + m[0].length) });
     }
     for (const m of text.matchAll(BRACKET)) {
-      const inner = m[1]!.trim();
+      const inner = (m[1] ?? "").trim();
       if (inControl(m.index) || NON_FIELD_BRACKETS.has(inner.toLowerCase())) continue;
       // A defined-term style bracket inside quotes (e.g. ["Buyer"]) is ordinary text.
       if (/^[“"]/.test(inner)) continue;

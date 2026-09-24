@@ -77,8 +77,8 @@ export function applyExtraction(fields: Field[], extraction: Extraction, userMes
     changed.add(f.id);
   }
   for (const issue of chronologyIssues(next)) {
-    const f = byId.get(issue.fieldId)!;
-    if (f.status === "confirmed") {
+    const f = byId.get(issue.fieldId);
+    if (f?.status === "confirmed") {
       f.status = "needs_clarification";
       f.note = issue.note;
       changed.add(f.id);

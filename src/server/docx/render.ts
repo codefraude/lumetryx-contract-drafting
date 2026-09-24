@@ -1,4 +1,4 @@
-import type { Document as XmlDocument, Element as XmlElement } from "@xmldom/xmldom";
+import { Element as XmlElement, type Document as XmlDocument } from "@xmldom/xmldom";
 import { assertIndexable, type Block, type BlockKind, type PartKind, type RenderedBlock } from "./blocks";
 import { AnchorConflictError, applyToParagraph, type TextEdit } from "./edit";
 import type { DocxPackage } from "./package";
@@ -23,13 +23,11 @@ function describeParagraph(p: XmlElement, ctx: DocContext): Pick<Block, "kind" |
     const indexIn = (el: XmlElement | null, name: string) => {
       if (!el?.parentNode) return 0;
       let i = 0;
-      for (let n = el.parentNode.firstChild; n && n !== el; n = n.nextSibling) if (n.nodeType === 1 && (n as XmlElement).localName === name) i++;
+      for (let n = el.parentNode.firstChild; n && n !== el; n = n.nextSibling) if (n instanceof XmlElement && n.localName === name) i++;
       return i;
     };
-    const allTables = tbl ? tbl.ownerDocument!.getElementsByTagNameNS(W_NS, "tbl") : null;
-    let tIndex = 0;
-    if (allTables && tbl) for (let i = 0; i < allTables.length; i++) if (allTables.item(i) === tbl) tIndex = i;
-    table = { table: tIndex, row: indexIn(tr, "tr"), col: indexIn(tc, "tc") };
+    const allTables = tbl?.ownerDocument ? Array.from(tbl.ownerDocument.getElementsByTagNameNS(W_NS, "tbl")) : [];
+    table = { table: tbl ? Math.max(0, allTables.indexOf(tbl)) : 0, row: indexIn(tr, "tr"), col: indexIn(tc, "tc") };
   }
   const headingLevel = style?.headingLevel ?? null;
   const kind: BlockKind = table ? "tableCell" : headingLevel ? "heading" : numbering ? "listItem" : "paragraph";
@@ -82,8 +80,12 @@ export type FillEvent = { type: "block"; block: RenderedBlock } | { type: "done"
 export async function* fillAndRender(pkg: DocxPackage, edits: TextEdit[], omit: ReadonlySet<string> = new Set()): AsyncGenerator<FillEvent> {
   const ctx = await loadContext(pkg);
   const counter = new NumberingCounter(ctx);
-  const byBlock = new Map<string, TextEdit[]>();
-  for (const e of edits) byBlock.set(e.blockId, [...(byBlock.get(e.blockId) ?? []), e]);
+  const byBlock = new Map<string, [TextEdit, ...TextEdit[]]>();
+  for (const e of edits) {
+    const same = byBlock.get(e.blockId);
+    if (same) same.push(e);
+    else byBlock.set(e.blockId, [e]);
+  }
   const parts = contentParts(pkg);
   const docs = new Map<string, XmlDocument>();
   for (const { part } of parts) {
@@ -93,14 +95,15 @@ export async function* fillAndRender(pkg: DocxPackage, edits: TextEdit[], omit: 
   // Validate every anchor before mutating anything.
   for (const [blockId, pe] of byBlock) {
     const part = blockId.slice(0, blockId.lastIndexOf("#"));
-    const p = docs.get(part) ? paragraphsOf(docs.get(part)!)[Number(blockId.slice(blockId.lastIndexOf("#") + 1))] : undefined;
-    if (!p) throw new AnchorConflictError(pe[0]!, "");
+    const doc = docs.get(part);
+    const p = doc ? paragraphsOf(doc)[Number(blockId.slice(blockId.lastIndexOf("#") + 1))] : undefined;
+    if (!p) throw new AnchorConflictError(pe[0], "");
     const text = mapParagraph(p).text;
-    const sorted = [...pe].sort((a, b) => b.start - a.start || b.end - a.end);
-    for (let i = 0; i < sorted.length; i++) {
-      const e = sorted[i]!;
+    let later: TextEdit | undefined;
+    for (const e of [...pe].sort((a, b) => b.start - a.start || b.end - a.end)) {
       if (text.slice(e.start, e.end) !== e.expected) throw new AnchorConflictError(e, text.slice(e.start, e.end));
-      if (i > 0 && e.end > sorted[i - 1]!.start) throw new Error(`Overlapping edits in ${blockId}`);
+      if (later && e.end > later.start) throw new Error(`Overlapping edits in ${blockId}`);
+      later = e;
     }
   }
   const applied: AppliedEdit[] = [];
@@ -108,8 +111,7 @@ export async function* fillAndRender(pkg: DocxPackage, edits: TextEdit[], omit: 
     const doc = docs.get(part);
     if (!doc) continue;
     const paragraphs = paragraphsOf(doc);
-    for (let ord = 0; ord < paragraphs.length; ord++) {
-      const p = paragraphs[ord]!;
+    for (const [ord, p] of paragraphs.entries()) {
       const pe = byBlock.get(`${part}#${ord}`);
       if (pe) {
         for (const e of [...pe].sort((a, b) => b.start - a.start || b.end - a.end)) applyToParagraph(mapParagraph(p), e, ctx.placeholderStyles);

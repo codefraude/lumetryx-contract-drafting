@@ -50,7 +50,8 @@ export async function ensureParaIds(pkg: DocxPackage): Promise<Map<string, strin
 
 /** Declares the w14 namespace on the part's root and marks it ignorable for older consumers, as Word does. */
 function declareW14(doc: XmlDocument): void {
-  const root = doc.documentElement!;
+  const root = doc.documentElement;
+  if (!root) return;
   const XMLNS = "http://www.w3.org/2000/xmlns/";
   if (!root.getAttribute("xmlns:w14")) root.setAttributeNS(XMLNS, "xmlns:w14", W14_NS);
   if (!root.getAttribute("xmlns:mc")) root.setAttributeNS(XMLNS, "xmlns:mc", MC_NS);

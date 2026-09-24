@@ -92,16 +92,17 @@ export const stripAccents = (s: string) => s.normalize("NFD").replace(/\p{M}/gu,
 /** Month number (1–12) for an English or French month name/abbreviation, or 0. French needs the full name or a standard abbreviation (juin/juillet share a prefix). */
 export function monthNumber(name: string): number {
   const n = stripAccents(name.toLowerCase().replace(/\.$/, ""));
-  const fr = MONTHS_FR.findIndex((m, i) => stripAccents(m) === n || stripAccents(FR_ABBR[i]!) === n);
+  const fr = MONTHS_FR.findIndex((m, i) => stripAccents(m) === n || stripAccents(FR_ABBR[i] ?? m) === n);
   if (fr >= 0) return fr + 1;
   const en = n.length >= 3 ? MONTHS_EN.findIndex((m) => m.startsWith(n)) : -1;
   return en + 1;
 }
 
 export function formatDate(iso: string, lang: "en" | "fr"): string {
-  const [y, m, d] = iso.split("-").map(Number) as [number, number, number];
+  // A normalized date is always YYYY-MM-DD.
+  const [y = 0, m = 0, d = 0] = iso.split("-").map(Number);
   if (lang === "fr") return `${d} ${MONTHS_FR[m - 1]} ${y}`;
-  const month = MONTHS_EN[m - 1]!;
+  const month = MONTHS_EN[m - 1] ?? "";
   return `${d} ${month.charAt(0).toUpperCase()}${month.slice(1)} ${y}`;
 }
 
@@ -111,10 +112,10 @@ const NBSP = " ";
 
 /** Renders an exact decimal string; no floating point is involved. */
 export function formatAmount(amount: string, lang: "en" | "fr"): string {
-  const [int, frac] = amount.split(".");
+  const [int = "", frac] = amount.split(".");
   const showFrac = frac && /[1-9]/.test(frac) ? frac.padEnd(2, "0") : "";
-  if (lang === "fr") return `${int!.replace(/\B(?=(\d{3})+(?!\d))/g, NBSP)}${showFrac ? `,${showFrac}` : ""}`;
-  return `${int!.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${showFrac ? `.${showFrac}` : ""}`;
+  if (lang === "fr") return `${int.replace(/\B(?=(\d{3})+(?!\d))/g, NBSP)}${showFrac ? `,${showFrac}` : ""}`;
+  return `${int.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${showFrac ? `.${showFrac}` : ""}`;
 }
 
 /** English: "EUR 1,250.50"; French: "1 250,50 EUR" (non-breaking spaces). */
@@ -153,7 +154,7 @@ export function parseAmount(raw: string, lang: Lang): AmountParse {
       if (!groupedOk(t, sep)) return bad(`“${raw.trim()}” is not a valid amount.`);
       amount = parts.join("");
     } else {
-      const [int, frac] = parts as [string, string];
+      const [int = "", frac = ""] = parts;
       if (!/^\d+$/.test(int) || !/^\d+$/.test(frac)) return bad(`“${raw.trim()}” is not a valid amount.`);
       if (frac.length === 3) {
         const thousands = `${int}${frac}`;

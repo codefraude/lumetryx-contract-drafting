@@ -56,7 +56,7 @@ export async function cacheGet<T>(key: string, parse: (raw: unknown) => T): Prom
     const raw = await s.get(key);
     return raw ? parse(JSON.parse(raw)) : null;
   } catch (err) {
-    console.warn(`[cache] read failed for ${key.split(":").slice(0, 2).join(":")}:…`, (err as Error).message);
+    console.warn(`[cache] read failed for ${key.split(":").slice(0, 2).join(":")}:…`, err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -69,7 +69,7 @@ export async function cacheSet(key: string, value: unknown, ttlSeconds: number):
   try {
     await s.set(key, payload, { ttlSeconds });
   } catch (err) {
-    console.warn("[cache] write failed", (err as Error).message);
+    console.warn("[cache] write failed", err instanceof Error ? err.message : err);
   }
 }
 

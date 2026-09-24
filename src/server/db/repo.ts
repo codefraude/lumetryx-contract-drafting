@@ -21,7 +21,8 @@ const owned = (sessionId: string, documentId: string) => and(eq(documents.id, do
 
 export async function createSession(secretHash: string): Promise<string> {
   const [row] = await getDb().insert(sessions).values({ secretHash, expiresAt: retention() }).returning({ id: sessions.id });
-  return row!.id;
+  if (!row) throw new Error("The session was not created.");
+  return row.id;
 }
 
 /**
@@ -68,7 +69,8 @@ export type DocumentSummary = NonNullable<Awaited<ReturnType<typeof getDocument>
 
 export async function createDocument(input: { sessionId: string; filename: string; title: string; templateHash: string; originalDocx: Buffer; fieldState: FieldState; analysis: "ai" | "markers_only"; workingDocx?: Buffer | null; workingRevision?: number; draftStatus?: DraftStatus; draftFieldsVersion?: number | null; fieldsVersion?: number }) {
   const [row] = await getDb().insert(documents).values({ ...input, expiresAt: retention() }).returning(docSummary);
-  return withState(row!);
+  if (!row) throw new Error("The draft was not saved.");
+  return withState(row);
 }
 
 export async function getDocument(sessionId: string, documentId: string) {

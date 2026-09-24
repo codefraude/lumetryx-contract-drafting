@@ -1,4 +1,4 @@
-import { DOMParser, XMLSerializer, type Document as XmlDocument, type Element as XmlElement, type Node as XmlNode } from "@xmldom/xmldom";
+import { DOMParser, Element as XmlElement, XMLSerializer, type Document as XmlDocument, type Node as XmlNode } from "@xmldom/xmldom";
 import type { PartKind } from "./blocks";
 import { DocxValidationError, type DocxPackage } from "./package";
 
@@ -20,14 +20,14 @@ export const wAttr = (el: XmlElement, name: string): string | null => el.getAttr
 
 export function firstChild(el: XmlElement, localName: string): XmlElement | null {
   for (let n = el.firstChild; n; n = n.nextSibling) {
-    if (n.nodeType === 1 && (n as XmlElement).namespaceURI === W_NS && (n as XmlElement).localName === localName) return n as XmlElement;
+    if (n instanceof XmlElement && n.namespaceURI === W_NS && n.localName === localName) return n;
   }
   return null;
 }
 
 export function nearestAncestor(node: XmlNode, localName: string): XmlElement | null {
   for (let n = node.parentNode; n; n = n.parentNode) {
-    if (n.nodeType === 1 && (n as XmlElement).namespaceURI === W_NS && (n as XmlElement).localName === localName) return n as XmlElement;
+    if (n instanceof XmlElement && n.namespaceURI === W_NS && n.localName === localName) return n;
   }
   return null;
 }
@@ -47,9 +47,4 @@ export function contentParts(pkg: DocxPackage): { part: string; kind: PartKind }
   return parts;
 }
 
-export function paragraphsOf(doc: XmlDocument | XmlElement): XmlElement[] {
-  const list = doc.getElementsByTagNameNS(W_NS, "p");
-  const out: XmlElement[] = [];
-  for (let i = 0; i < list.length; i++) out.push(list.item(i) as XmlElement);
-  return out;
-}
+export const paragraphsOf = (doc: XmlDocument | XmlElement): XmlElement[] => Array.from(doc.getElementsByTagNameNS(W_NS, "p"));

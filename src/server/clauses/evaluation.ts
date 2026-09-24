@@ -47,7 +47,7 @@ export function inactiveFields(state: Pick<FieldState, "rules" | "fields">): Set
   const evals = evaluateAll(state);
   const hidden = new Set<string>();
   for (const r of state.rules) {
-    const s = evals.get(r.id)!.state;
+    const s = evals.get(r.id)?.state;
     if (s === "excluded" || s === "unresolved") r.blockIds.forEach((id) => hidden.add(id));
   }
   const neededConditions = new Set(state.rules.filter((r) => r.confirmed && !r.dismissed && !r.override).map((r) => r.condition.fieldId));

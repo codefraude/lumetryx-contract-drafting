@@ -69,7 +69,7 @@ function parseMarker(b: Block, issues: string[]): Marker | null {
     issues.push(`${where}: NOT cannot be combined with = or IN. It was left as text.`);
     return null;
   }
-  return { block: b, kind: "start", negate: Boolean(m[1]), name: m[2]!.trim(), op, values };
+  return { block: b, kind: "start", negate: Boolean(m[1]), name: (m[2] ?? "").trim(), op, values };
 }
 
 export const clauseLabel = (blocks: Block[]) => {

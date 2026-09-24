@@ -1,6 +1,6 @@
 import { FieldGroup, ValueType, type Field, type Occurrence } from "@/features/documents/contracts/fields";
 import { parseConditionMarkers } from "@/server/clauses/condition-markers";
-import { validateProposal, type RuleProposal } from "@/server/clauses/proposals";
+import { validateProposal } from "@/server/clauses/proposals";
 import type { Block } from "@/server/docx/blocks";
 import { normalizeKey, type MarkerOccurrence } from "@/server/docx/detect";
 import { detectLanguage, stripAccents } from "./lang";
@@ -104,8 +104,8 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
       taken.push(o);
       occurrences.push(o);
     }
-    if (!occurrences.length) continue;
-    const first = occurrences[0]!;
+    const [first] = occurrences;
+    if (!first) continue;
     const ctxBlock = blockById.get(first.blockId);
     fields.push({
       id: uniqueId(af.id),
@@ -130,8 +130,8 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
 
   // Markers the model didn't account for still become fields (never silently lost).
   for (const [key, ms] of byKey) {
-    if (used.has(key) || notFields.has(key)) continue;
-    const m = ms[0]!;
+    const [m] = ms;
+    if (!m || used.has(key) || notFields.has(key)) continue;
     const guess = guessType(m.labelHint);
     fields.push({
       id: uniqueId(m.marker === "underscore" ? `blank_${m.labelHint}` : m.labelHint),
@@ -169,7 +169,7 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
   }
   const inRules = new Set(rules.flatMap((r) => [...r.blockIds, ...r.markerBlockIds]));
   for (const p of (analysis?.proposedRules ?? []).slice(0, 10)) {
-    const v = validateProposal({ ...p, questionFr: p.questionFr ?? null } as RuleProposal, blocks, inRules);
+    const v = validateProposal({ ...p, questionFr: p.questionFr ?? null }, blocks, inRules);
     if (typeof v === "string") {
       rejected.push(v);
       continue;

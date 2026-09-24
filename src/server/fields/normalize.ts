@@ -36,13 +36,13 @@ export function parseDate(input: string): NormalizeResult {
   }
   m = /^(\d{1,2}) (\p{L}+)\.? (\d{4})$/u.exec(s);
   if (m) {
-    const mo = monthNumber(m[2]!);
+    const mo = monthNumber(m[2] ?? "");
     const [d, y] = [Number(m[1]), Number(m[3])];
     return mo > 0 && isValidYmd(y, mo, d) ? ok(iso(y, mo, d)) : invalid();
   }
   m = /^(\p{L}+)\.? (\d{1,2}) (\d{4})$/u.exec(s);
   if (m) {
-    const mo = monthNumber(m[1]!);
+    const mo = monthNumber(m[1] ?? "");
     const [d, y] = [Number(m[2]), Number(m[3])];
     return mo > 0 && isValidYmd(y, mo, d) ? ok(iso(y, mo, d)) : invalid();
   }
@@ -85,7 +85,7 @@ export function parseMoney(input: string, currencyHint?: string | null, lang: La
   const m = /^([^\d\s.,]{1,8}\.?)?\s?(\d[\d,.\s  ]*\d|\d)\s?([\p{L}€£$₨]{1,9}\.?)?$/iu.exec(s);
   const unreadable = (note: string): NormalizeResult => ({ status: "needs_clarification", displayValue: null, normalized: null, note });
   if (!m) return unreadable(`I couldn't read “${input}” as an amount.`);
-  const parsed = parseAmount(m[2]!, lang);
+  const parsed = parseAmount(m[2] ?? "", lang);
   if (!parsed.ok) return unreadable(parsed.note);
   const amount = parsed.amount;
   const symbol = (m[1] ?? m[3] ?? "").toLowerCase().trim();
@@ -103,7 +103,9 @@ export function parseMoney(input: string, currencyHint?: string | null, lang: La
     display = DISPLAY[hint] ?? hint;
   }
   if (!code) return { status: "needs_clarification", displayValue: null, normalized: { kind: "money", amount, currency: "XXX" }, note: `Which currency is ${amount} in?` };
-  return { status: "confirmed", displayValue: formatMoney(amount, display!, "en"), normalized: { kind: "money", amount, currency: code, ...(display !== code ? { symbol: display! } : {}) }, note: null };
+  // Every path that sets a code also sets how it is written.
+  const shown = display ?? code;
+  return { status: "confirmed", displayValue: formatMoney(amount, shown, "en"), normalized: { kind: "money", amount, currency: code, ...(shown !== code ? { symbol: shown } : {}) }, note: null };
 }
 
 /** Infers a currency only when the template itself names one unambiguously. */
@@ -114,7 +116,7 @@ export function templateCurrencyHint(allText: string): string | null {
   if (/\bUSD\b|US dollar/i.test(allText)) found.add("USD");
   if (/\bEUR\b|\beuros?\b|€/i.test(allText)) found.add("EUR");
   if (/\bGBP\b|pounds sterling|livres? sterling|£/i.test(allText)) found.add("GBP");
-  return found.size === 1 ? [...found][0]! : null;
+  return found.size === 1 ? ([...found][0] ?? null) : null;
 }
 
 export function parseBoolean(input: string): NormalizeResult {

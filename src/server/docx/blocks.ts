@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { DOCX_LIMITS, DocxValidationError } from "./package";
 
 /** Paragraph-level view of a Word package: what the rest of the server works with instead of XML. */
@@ -43,6 +44,23 @@ export interface RenderedBlock extends Block {
   numberLabel: string | null;
   headingLevel: number | null;
 }
+
+/** Blocks as cached in Redis. The cache is outside this process, so what comes back is validated. */
+export const CachedBlocks: z.ZodType<Block[]> = z.array(
+  z.object({
+    id: z.string(),
+    part: z.string(),
+    partKind: z.enum(["body", "header", "footer"]),
+    ordinal: z.number().int(),
+    kind: z.enum(["heading", "paragraph", "listItem", "tableCell"]),
+    styleId: z.string().nullable(),
+    numbering: z.object({ numId: z.string(), ilvl: z.number().int() }).nullable(),
+    table: z.object({ table: z.number().int(), row: z.number().int(), col: z.number().int() }).nullable(),
+    text: z.string(),
+    paraId: z.string().nullable(),
+    placeholders: z.array(z.object({ start: z.number().int(), end: z.number().int(), binding: z.string().nullable(), title: z.string().nullable() })).optional(),
+  }),
+);
 
 export function assertIndexable(blocks: Block[]): void {
   const chars = blocks.reduce((n, b) => n + b.text.length, 0);

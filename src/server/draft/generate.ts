@@ -65,7 +65,8 @@ export async function* buildDraft(original: Uint8Array, state: FieldState): Asyn
   const rules: Rule[] = state.rules.map((r) => ({ ...r, paraIds: r.blockIds.map((id) => paraIds.get(id)).filter((x): x is string => Boolean(x)), removedXml: null, contentHash: null }));
   for (const r of rules) {
     for (const id of r.markerBlockIds) {
-      const loc = locateClause(bd.body, [paraIds.get(id)!]);
+      const markerPara = paraIds.get(id);
+      const loc = markerPara ? locateClause(bd.body, [markerPara]) : null;
       if (loc) cutClause(bd, loc.elements);
     }
     const keep = keepsContent(evaluateRule(r, state.fields).state);

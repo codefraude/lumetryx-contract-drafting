@@ -1,4 +1,5 @@
 import type { RenderedBlock } from "@/server/docx/blocks";
+import { lcsSteps } from "./lcs";
 
 /**
  * Pairs template blocks with draft blocks: by Word's paragraph ids (kept by the editor) first,
@@ -19,21 +20,25 @@ type Pair = [number, number];
 
 /** Longest increasing subsequence of pairs by current index: drops crossing matches (moved paragraphs become delete + add). */
 function monotonic(pairs: Pair[]): Pair[] {
-  const tails: number[] = [];
+  // tails[n]: the pair (by position k, and its current index j) ending the best run of length n + 1.
+  const tails: { k: number; j: number }[] = [];
   const prev = new Array<number>(pairs.length).fill(-1);
   pairs.forEach(([, j], k) => {
     let lo = 0;
     let hi = tails.length;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
-      if (pairs[tails[mid]!]![1] < j) lo = mid + 1;
+      if ((tails[mid]?.j ?? Infinity) < j) lo = mid + 1;
       else hi = mid;
     }
-    if (lo > 0) prev[k] = tails[lo - 1]!;
-    tails[lo] = k;
+    prev[k] = tails[lo - 1]?.k ?? -1;
+    tails[lo] = { k, j };
   });
   const out: Pair[] = [];
-  for (let k = tails.at(-1) ?? -1; k >= 0; k = prev[k]!) out.unshift(pairs[k]!);
+  for (let k = tails.at(-1)?.k ?? -1; k >= 0; k = prev[k] ?? -1) {
+    const pair = pairs[k];
+    if (pair) out.unshift(pair);
+  }
   return out;
 }
 
@@ -46,32 +51,25 @@ export function alignBlocks(o: RenderedBlock[], c: RenderedBlock[]): Pair[] {
     if (j !== undefined) byId.push([i, j]);
   });
   const anchors = monotonic(byId);
+  const end: Pair = [o.length, c.length];
   const pairs: Pair[] = [];
   let pi = 0;
   let pj = 0;
-  for (const [ai, aj] of [...anchors, [o.length, c.length] as Pair]) {
+  for (const [ai, aj] of [...anchors, end]) {
     // Fallback inside each gap: exact-text LCS first, then similar blocks in order.
-    const go = o.slice(pi, ai);
-    const gc = c.slice(pj, aj);
-    const dp: number[][] = Array.from({ length: go.length + 1 }, () => new Array<number>(gc.length + 1).fill(0));
-    for (let i = go.length - 1; i >= 0; i--) for (let j = gc.length - 1; j >= 0; j--) dp[i]![j] = go[i]!.text === gc[j]!.text ? dp[i + 1]![j + 1]! + 1 : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
-    let i = 0;
-    let j = 0;
-    const leftO: number[] = [];
-    const leftC: number[] = [];
-    while (i < go.length && j < gc.length) {
-      if (go[i]!.text === gc[j]!.text) {
-        pairs.push([pi + i++, pj + j++]);
-      } else if (dp[i + 1]![j]! >= dp[i]![j + 1]!) leftO.push(pi + i++);
-      else leftC.push(pj + j++);
+    const leftO: { i: number; block: RenderedBlock }[] = [];
+    const leftC: { j: number; block: RenderedBlock }[] = [];
+    for (const s of lcsSteps(o.slice(pi, ai), c.slice(pj, aj), (x, y) => x.text === y.text)) {
+      if (s.op === "both") pairs.push([pi + s.i, pj + s.j]);
+      else if (s.op === "a") leftO.push({ i: pi + s.i, block: s.a });
+      else leftC.push({ j: pj + s.j, block: s.b });
     }
-    while (i < go.length) leftO.push(pi + i++);
-    while (j < gc.length) leftC.push(pj + j++);
     let k = 0;
-    for (const oi of leftO) {
-      const found = leftC.findIndex((cj, idx) => idx >= k && c[cj]!.kind === o[oi]!.kind && similarity(o[oi]!.text, c[cj]!.text) >= 0.4);
-      if (found >= 0) {
-        pairs.push([oi, leftC[found]!]);
+    for (const left of leftO) {
+      const found = leftC.findIndex((right, idx) => idx >= k && right.block.kind === left.block.kind && similarity(left.block.text, right.block.text) >= 0.4);
+      const match = leftC[found];
+      if (match) {
+        pairs.push([left.i, match.j]);
         k = found + 1;
       }
     }
