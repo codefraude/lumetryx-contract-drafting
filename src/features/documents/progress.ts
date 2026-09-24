@@ -2,8 +2,8 @@ import { GROUP_ORDER, type Field } from "./contracts/fields";
 
 /**
  * What is still needed before a draft can be generated. One definition, used by the assistant's
- * questions, draft generation and the saved-drafts list on the server, and by the workspace status,
- * the chat header and the Details panel in the browser.
+ * questions, draft generation and the saved-drafts list on the server, and by the workspace status and
+ * the Details panel in the browser.
  *
  * `inactive` holds fields that only appear inside excluded or undecided clauses, and condition
  * answers no active clause depends on: they are not needed right now.

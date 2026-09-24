@@ -10,8 +10,6 @@ export type StatusTone = "busy" | "ok" | "neutral" | "warn" | "danger";
 export interface StatusLine {
   text: string;
   tone: StatusTone;
-  /** Changes when the line's meaning changes, so its icon animates once. */
-  key: string;
 }
 
 const SAVE: Record<SaveStatus, { text: string; tone: StatusTone }> = {
@@ -19,7 +17,7 @@ const SAVE: Record<SaveStatus, { text: string; tone: StatusTone }> = {
   saved: { text: "Saved", tone: "ok" },
   unsaved: { text: "Unsaved changes", tone: "neutral" },
   saving: { text: "Saving…", tone: "busy" },
-  error: { text: "Save failed", tone: "danger" },
+  error: { text: "Could not save", tone: "danger" },
   conflict: { text: "Changed in another tab", tone: "warn" },
   viewing: { text: "Template preview", tone: "neutral" },
 };
@@ -60,10 +58,10 @@ export function statusLine(
   p: DocumentProgress,
   { generating, hasDraft, save, savedAt }: { generating: boolean; hasDraft: boolean; save: SaveStatus; savedAt: string },
 ): StatusLine {
-  if (generating) return { text: "Generating the draft…", tone: "busy", key: "generating" };
-  if (hasDraft) return { text: save === "saved" ? `Saved at ${clockTime(savedAt)}` : SAVE[save].text, tone: SAVE[save].tone, key: `${save}:${savedAt}` };
+  if (generating) return { text: "Generating the draft…", tone: "busy" };
+  if (hasDraft) return { text: save === "saved" ? `Saved at ${clockTime(savedAt)}` : SAVE[save].text, tone: SAVE[save].tone };
   const need = [p.detailsLeft && count(p.detailsLeft, "detail"), p.decisions && count(p.decisions, "decision")].filter(Boolean).join(" and ");
-  return need ? { text: `${need} still needed`, tone: "neutral", key: need } : { text: "Ready to generate", tone: "ok", key: "ready" };
+  return need ? { text: `${need} still needed`, tone: "neutral" } : { text: "Ready to generate", tone: "ok" };
 }
 
 /** Issues the lawyer should see before exporting a contract that may be incomplete or broken. */

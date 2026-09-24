@@ -119,7 +119,7 @@ test("progressive draft, real edits and immediate download preserve structure", 
   await page.screenshot({ path: "tests/output/e2e-edited.png" });
 
   // Download immediately — the debounce has not fired; flush() must save first.
-  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download .docx" }).click()]);
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download Word file" }).click()]);
   expect(download.suggestedFilename()).toMatch(/draft\.docx$/);
   await download.saveAs("tests/output/e2e-download.docx");
   const bytes = readFileSync("tests/output/e2e-download.docx");

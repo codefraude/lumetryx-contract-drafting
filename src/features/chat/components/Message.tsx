@@ -2,7 +2,7 @@
 
 import { CircleCheck, Info } from "lucide-react";
 import { Fragment, memo } from "react";
-import { BrandMark } from "@/shared/ui/BrandMark";
+import { Callout, StatusText } from "@/shared/ui/Status";
 import { boldSpans, messageBlocks } from "../format";
 import type { ChatMessage } from "../use-chat-turn";
 
@@ -22,15 +22,11 @@ function Inline({ text }: { text: string }) {
   );
 }
 
-const Caret = () => <span aria-hidden className="lx-caret ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] rounded-full bg-primary" />;
-
-/** Paragraphs and lists; the streaming caret sits at the end of the last line. */
-function Rich({ text, caret }: { text: string; caret: boolean }) {
-  const blocks = messageBlocks(text);
+/** Paragraphs and lists. */
+function Rich({ text }: { text: string }) {
   return (
     <>
-      {blocks.map((b, i) => {
-        const tail = caret && i === blocks.length - 1;
+      {messageBlocks(text).map((b, i) => {
         if (b.kind === "p")
           return (
             <p key={i}>
@@ -40,7 +36,6 @@ function Rich({ text, caret }: { text: string; caret: boolean }) {
                   <Inline text={l} />
                 </Fragment>
               ))}
-              {tail && <Caret />}
             </p>
           );
         const List = b.kind === "ul" ? "ul" : "ol";
@@ -49,7 +44,6 @@ function Rich({ text, caret }: { text: string; caret: boolean }) {
             {b.items.map((it, k) => (
               <li key={k} className="pl-0.5">
                 <Inline text={it} />
-                {tail && k === b.items.length - 1 && <Caret />}
               </li>
             ))}
           </List>
@@ -74,39 +68,32 @@ function Thinking() {
 export const Message = memo(function Message({ m }: { m: ChatMessage }) {
   if (m.role === "notice")
     return (
-      <div role="note" className="lx-rise flex gap-2.5 rounded-xl border border-warn-line bg-warn-surface px-3.5 py-3 text-[13.5px] leading-relaxed text-warn">
-        <Info aria-hidden className="mt-[3px] size-4 shrink-0" />
-        <p className="min-w-0">{m.content}</p>
-      </div>
+      <Callout tone="warn" icon={Info} role="note" className="text-ui">
+        {m.content}
+      </Callout>
     );
   if (m.role === "user")
     return (
-      <div className="lx-rise flex justify-end pl-8 sm:pl-12">
-        <div className="min-w-0 whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-accent-surface px-4 py-2.5 text-[15px] leading-[1.6] text-ink">
-          <span className="sr-only">You said: </span>
-          {m.content}
-        </div>
+      <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-card border border-line bg-subtle px-3.5 py-2 text-body text-ink">
+        <span className="sr-only">You said: </span>
+        {m.content}
       </div>
     );
   return (
-    <div className="lx-rise flex gap-3">
-      <BrandMark className="mt-0.5 size-6 text-[15px]" />
-      <div className="min-w-0 flex-1">
-        <span className="sr-only">Assistant: </span>
-        {m.content ? (
-          <div className="space-y-2.5 break-words text-[15px] leading-[1.65] text-ink">
-            <Rich text={m.content} caret={Boolean(m.streaming)} />
-          </div>
-        ) : m.streaming ? (
-          <Thinking />
-        ) : null}
-        {m.updated ? (
-          <p className="lx-rise mt-2 inline-flex items-center gap-1.5 rounded-md bg-ok-surface px-2 py-1 text-[12.5px] font-medium text-ok">
-            <CircleCheck aria-hidden className="size-3.5" />
-            {m.updated} {m.updated === 1 ? "detail" : "details"} updated
-          </p>
-        ) : null}
-      </div>
+    <div className="break-words text-body leading-relaxed text-ink">
+      <span className="sr-only">Assistant: </span>
+      {m.content ? (
+        <div className="space-y-2.5">
+          <Rich text={m.content} />
+        </div>
+      ) : m.streaming ? (
+        <Thinking />
+      ) : null}
+      {m.updated ? (
+        <StatusText tone="ok" icon={CircleCheck} className="mt-2">
+          {m.updated} {m.updated === 1 ? "detail" : "details"} updated
+        </StatusText>
+      ) : null}
     </div>
   );
 });

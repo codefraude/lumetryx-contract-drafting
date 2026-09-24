@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, CircleAlert, CircleCheck, CircleSlash, Eraser, 
 import { useEffect, useRef, useState } from "react";
 import { errorMessage } from "@/lib/http";
 import { Button, IconButton } from "@/shared/ui/Button";
-import { Skeleton, StatusBadge, type Tone } from "@/shared/ui/Status";
+import { Callout, Skeleton, StatusText, type Tone } from "@/shared/ui/Status";
 import type { CompareResponse, DiffItem } from "../contracts";
 import { useComparison } from "../queries";
 import { DiffText } from "./DiffText";
@@ -12,7 +12,7 @@ import { DiffText } from "./DiffText";
 type Item = DiffItem;
 
 const TYPE: Record<Item["type"], { label: string; icon: typeof PenLine; tone: Tone }> = {
-  modified: { label: "Changed", icon: PenLine, tone: "accent" },
+  modified: { label: "Changed", icon: PenLine, tone: "neutral" },
   added: { label: "Added", icon: Plus, tone: "ok" },
   deleted: { label: "Removed", icon: Minus, tone: "danger" },
   clause_excluded: { label: "Clause excluded", icon: CircleSlash, tone: "neutral" },
@@ -76,22 +76,25 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
     el?.focus({ preventScroll: true });
   };
   const c = data?.result.counts;
-  const breakdown = c
+  const summary = c
     ? [
         [c.modified, "changed"],
         [c.added, "added"],
         [c.deleted, "removed"],
         [c.filled, c.filled === 1 ? "placeholder filled" : "placeholders filled"],
         [c.clauses, c.clauses === 1 ? "clause excluded" : "clauses excluded"],
-      ].filter(([n]) => Number(n) > 0)
-    : [];
+      ]
+        .filter(([n]) => Number(n) > 0)
+        .map(([n, label]) => `${n} ${label}`)
+        .join(", ")
+    : "";
 
   return (
-    <section aria-label="Comparison with the template" className="flex h-full min-h-0 flex-col bg-canvas">
+    <section aria-label="Comparison with the template" className="flex h-full min-h-0 flex-col bg-surface">
       <div className="shrink-0 border-b border-line bg-surface px-4 py-3 sm:px-5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="min-w-0 flex-1 basis-60" role="status" aria-live="polite">
-            <p className="text-[14.5px] font-semibold text-ink">
+            <p className="text-ui font-semibold text-ink">
               {loading
                 ? "Comparing with the template…"
                 : error
@@ -100,11 +103,16 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
                     ? `${changes.length} change${changes.length === 1 ? "" : "s"} from the template`
                     : "No differences from the template"}
             </p>
-            {data && <p className="mt-0.5 text-[12.5px] leading-snug text-ink-3">Template compared with {SOURCE[data.source]}.</p>}
+            {summary && (
+              <p role="note" aria-label="Summary" className="mt-0.5 text-meta text-ink-2">
+                {summary}.
+              </p>
+            )}
+            {data && <p className="mt-0.5 text-meta text-ink-3">Template compared with {SOURCE[data.source]}.</p>}
           </div>
           <div className="flex items-center gap-1">
             {stops.length > 0 && (
-              <span className="mr-1 text-[12.5px] tabular-nums text-ink-3">
+              <span className="mr-1 text-meta tabular-nums text-ink-3">
                 {at + 1} of {stops.length}
               </span>
             )}
@@ -129,32 +137,30 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
             </Button>
           </div>
         </div>
-        {breakdown.length > 0 && (
-          <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Summary">
-            {breakdown.map(([n, label]) => (
-              <li key={String(label)} className="rounded-md bg-subtle px-2 py-0.5 text-[12px] font-medium text-ink-2 ring-1 ring-line">
-                {n} {label}
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
 
-      <div ref={body} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5 sm:px-6">
+      {/* Positioned, so the screen-reader markers inside (absolute) are clipped here instead of growing the page. */}
+      <div ref={body} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5 sm:px-6">
         <div className="mx-auto max-w-[1040px]">
           {error && (
-            <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-danger-line bg-danger-surface px-4 py-3 text-sm text-danger">
-              <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-              <span className="min-w-0 flex-1">{error}</span>
-              <Button size="sm" variant="secondary" icon={RotateCcw} onClick={load}>
-                Retry
-              </Button>
-            </div>
+            <Callout
+              tone="danger"
+              icon={CircleAlert}
+              role="alert"
+              className="text-ui"
+              actions={
+                <Button size="sm" variant="secondary" icon={RotateCcw} onClick={load}>
+                  Retry
+                </Button>
+              }
+            >
+              {error}
+            </Callout>
           )}
           {loading && (
-            <ul aria-hidden className="space-y-3">
+            <ul aria-hidden className="divide-y divide-line">
               {[0, 1, 2].map((i) => (
-                <li key={i} className="space-y-2.5 rounded-xl border border-line bg-surface p-4">
+                <li key={i} className="space-y-2.5 px-4 py-4">
                   <Skeleton className="h-4 w-28" />
                   <Skeleton className="h-3.5 w-full" />
                   <Skeleton className="h-3.5 w-4/5" />
@@ -163,22 +169,25 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
             </ul>
           )}
           {data && !items.length && (
-            <div className="rounded-card border border-line bg-surface px-6 py-12 text-center">
-              <CircleCheck aria-hidden className="mx-auto size-8 text-ok" />
-              <p className="mt-3 text-[15px] font-semibold text-ink">The draft matches the template</p>
-              <p className="mt-1 text-sm text-ink-2">Nothing has been filled in, added or removed yet.</p>
+            <div className="py-12 text-center">
+              <CircleCheck aria-hidden className="mx-auto size-6 text-ok" />
+              <p className="mt-3 text-ui font-semibold text-ink">The draft matches the template</p>
+              <p className="mt-1 text-ui text-ink-2">Nothing has been filled in, added or removed yet.</p>
             </div>
           )}
           {items.length > 0 && wide && (
-            <div aria-hidden className="mb-2 grid grid-cols-2 gap-6 px-4 text-[12px] font-semibold text-ink-3">
+            <div aria-hidden className="mb-2 grid grid-cols-2 gap-6 px-4 text-meta font-semibold text-ink-3">
               <span>Template</span>
               <span>Draft</span>
             </div>
           )}
-          <ol className="space-y-3">
+          <ol className="divide-y divide-line">
             {items.map((item, i) => {
               const t = TYPE[item.type];
               const split = wide && item.segments.length > 0;
+              const on = i === current;
+              // The current item is a filled, outlined row, so the dividers on both sides of it give way.
+              const edge = on || (current !== undefined && i === current - 1);
               return (
                 <li
                   key={item.id}
@@ -186,14 +195,14 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
                     refs.current[i] = el;
                   }}
                   tabIndex={-1}
-                  aria-current={i === current ? "true" : undefined}
-                  className={`scroll-mt-4 rounded-xl border bg-surface px-4 py-3.5 shadow-sm outline-none transition-[border-color,box-shadow] duration-200 dark:bg-raised ${i === current ? "border-primary shadow-[0_0_0_3px_color-mix(in_srgb,var(--lx-primary)_18%,transparent)]" : "border-line"}`}
+                  aria-current={on ? "true" : undefined}
+                  className={`scroll-mt-4 px-4 py-4 ${on ? "rounded-card bg-subtle ring-1 ring-control" : ""} ${edge ? "border-transparent" : ""}`}
                 >
                   <p className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <StatusBadge tone={t.tone} icon={t.icon}>
+                    <StatusText tone={t.tone} icon={t.icon}>
                       {t.label}
-                    </StatusBadge>
-                    <span className="text-[12.5px] text-ink-3">{item.location}</span>
+                    </StatusText>
+                    <span className="text-meta text-ink-3">{item.location}</span>
                   </p>
                   {split ? (
                     <div className="grid grid-cols-2 gap-6">
@@ -210,7 +219,7 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
                     item.segments.length > 0 && <DiffText segments={item.segments} />
                   )}
                   {item.notes.map((n, k) => (
-                    <p key={k} className="mt-1.5 text-[12.5px] leading-snug text-ink-2">
+                    <p key={k} className="mt-1.5 text-meta text-ink-2">
                       {n}
                     </p>
                   ))}
@@ -219,7 +228,7 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
             })}
           </ol>
           {data && (
-            <p className="mt-6 text-[12.5px] leading-relaxed text-ink-3">
+            <p className="mt-6 max-w-[80ch] text-meta text-ink-3">
               This compares content and structure: text word by word, bold, italic and underline, paragraph styles, heading and list levels, and table cells. It
               does not compare fonts, sizes, colours, spacing or page layout, and it adds nothing to the document you edit or download.
             </p>

@@ -170,7 +170,7 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
 
   // 8. Export (the dialog listing the dangling reference is accepted) and inspect the DOCX.
   const downloading = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Download .docx" }).click();
+  await page.getByRole("button", { name: "Download Word file" }).click();
   await page.getByRole("button", { name: "Download anyway" }).click();
   const download = await downloading;
   await download.saveAs("tests/output/e2e-bonuses.docx");

@@ -191,13 +191,13 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
   };
 
   return (
-    <div className="lx-rise flex h-dvh flex-col bg-app">
+    // The shell never scrolls as a whole (not even through scrollIntoView); each pane scrolls on its own.
+    <div className="flex h-dvh flex-col overflow-clip bg-app">
       <WorkspaceHeader
         title={doc.title}
         filename={doc.filename}
         status={statusLine(progress, { generating: generation.generating, hasDraft, save: save.status, savedAt: doc.savedAt })}
         note={!hasDraft && !generation.generating ? `Answers saved at ${clockTime(doc.savedAt)}` : null}
-        step={hasDraft && !generation.generating ? 2 : progress.ready || generation.generating ? 1 : 0}
         hasDraft={hasDraft}
         canSaveNow={save.status === "unsaved" || save.status === "error"}
         saving={save.status === "saving"}
@@ -205,9 +205,10 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
         onDrafts={onShowDrafts}
         onNewTemplate={() => void newTemplate()}
         onDownload={() => void download.download(exportWarnings(doc))}
-        downloadDisabled={!hasDraft || generation.generating}
-        downloadHint={generation.generating ? "Available when the draft is ready" : !hasDraft ? "Generate the draft first" : null}
         downloading={download.downloading}
+        onGenerate={() => void startGeneration()}
+        canGenerate={progress.ready && !generation.generating}
+        generating={generation.generating}
       />
       <SaveBanner
         draftSave={hasDraft ? save : null}
@@ -243,7 +244,7 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
             failure,
             disabledReason:
               doc.analysis === "markers_only"
-                ? "The assistant is unavailable for this template. Fill the details in under Details."
+                ? `The assistant is off for this template because the AI analysis did not run. ${hasDraft ? "Edit the draft directly in the document." : "Fill in the details under Details."}`
                 : generation.generating
                   ? "Wait for the draft to finish."
                   : null,

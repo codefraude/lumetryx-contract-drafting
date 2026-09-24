@@ -82,7 +82,6 @@ describe("workspace status", () => {
     expect(statusLine(documentProgress(doc, inactive), idle)).toEqual({
       text: "1 detail and 1 decision still needed",
       tone: "neutral",
-      key: "1 detail and 1 decision",
     });
   });
 
@@ -92,7 +91,7 @@ describe("workspace status", () => {
     });
     const p = documentProgress(answered, new Set());
     expect(p).toMatchObject({ ready: true, detailsLeft: 0, decisions: 0, hasClauses: false, attention: 0 });
-    expect(statusLine(p, idle)).toEqual({ text: "Ready to generate", tone: "ok", key: "ready" });
+    expect(statusLine(p, idle)).toEqual({ text: "Ready to generate", tone: "ok" });
   });
 
   it("reports generation first, then the editor's save state once a draft exists", () => {
@@ -101,7 +100,6 @@ describe("workspace status", () => {
     expect(statusLine(p, { ...idle, hasDraft: true, save: "saved" })).toEqual({
       text: `Saved at ${clockTime(idle.savedAt)}`,
       tone: "ok",
-      key: `saved:${idle.savedAt}`,
     });
     expect(statusLine(p, { ...idle, hasDraft: true, save: "conflict" })).toMatchObject({ text: "Changed in another tab", tone: "warn" });
   });

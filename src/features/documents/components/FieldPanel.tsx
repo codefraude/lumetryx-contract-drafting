@@ -12,6 +12,8 @@ interface Props {
   fields: Field[];
   /** When a draft exists, answers change through chat so the draft is patched safely. */
   locked: boolean;
+  /** The assistant can answer for this template (its AI analysis ran). */
+  assistant: boolean;
   /** Fields only used by excluded or undecided clauses: kept, but not needed now. */
   inactive: ReadonlySet<string>;
 }
@@ -22,7 +24,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
   if (!count) return null;
   return (
     <section>
-      <h3 className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface/95 px-4 py-2 text-[12.5px] font-semibold text-ink-2 backdrop-blur-[2px] sm:px-5">
+      <h3 className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-4 py-2 text-meta font-semibold text-ink-2 sm:px-5">
         {title}
         <span className="tabular-nums text-ink-3">{count}</span>
       </h3>
@@ -32,7 +34,7 @@ function Section({ title, count, children }: { title: string; count: number; chi
 }
 
 /** Details: what is still needed first, then confirmed answers, then fields not needed now. */
-export const FieldPanel = memo(function FieldPanel({ documentId, fields, locked, inactive }: Props) {
+export const FieldPanel = memo(function FieldPanel({ documentId, fields, locked, assistant, inactive }: Props) {
   // Yes/no answers that decide clauses live under Clauses, so they are not counted twice.
   const details = fields.filter((f) => f.source !== "condition");
   const active = details.filter((f) => !inactive.has(f.id));
@@ -46,7 +48,7 @@ export const FieldPanel = memo(function FieldPanel({ documentId, fields, locked,
 
   if (!details.length)
     return (
-      <div className="p-5">
+      <div className="px-4 py-4 sm:px-5">
         <Callout icon={CircleDashed} title="No fields were found in this template">
           Mark the blanks in Word as [NAME], {"{{name}}"}, a line of underscores or a placeholder box (content control), then upload the template again.
         </Callout>
@@ -55,13 +57,17 @@ export const FieldPanel = memo(function FieldPanel({ documentId, fields, locked,
   return (
     <div>
       <div className="px-4 pb-3 pt-4 sm:px-5">
-        <p className="text-[15px] font-semibold text-ink">
+        <p className="text-ui font-semibold text-ink">
           {progress.confirmed} of {progress.total} required details confirmed
         </p>
-        <p className="mt-0.5 text-[13px] text-ink-2">
+        <p className="mt-0.5 text-meta text-ink-2">
           {locked
-            ? "A draft exists, so change answers in the chat. The draft is then updated wherever you have not edited it yourself."
-            : "Answer in the chat, or fill a detail in here."}
+            ? assistant
+              ? "A draft exists, so change answers in the chat. The draft is then updated wherever you have not edited it yourself."
+              : "A draft exists and the assistant is off for this template, so edit the text directly in the document."
+            : assistant
+              ? "Answer in the chat, or fill a detail in here."
+              : "The assistant is off for this template, so fill each detail in here."}
         </p>
       </div>
       <Section title="Still needed" count={needed.length}>

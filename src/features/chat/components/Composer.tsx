@@ -44,13 +44,13 @@ export function Composer({ busy, disabledReason, onSend, onStop, onSubmitted }: 
       }}
     >
       {disabledReason && (
-        <p className="mb-2 flex items-start gap-2 px-1 text-[13px] leading-snug text-ink-2">
+        <p className="mb-2 flex items-start gap-2 px-1 text-meta text-ink-2">
           <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
           {disabledReason}
         </p>
       )}
       <div
-        className={`flex items-end gap-2 rounded-2xl border bg-surface p-1.5 pl-3.5 shadow-sm transition-[border-color,box-shadow] duration-150 dark:bg-raised ${off ? "border-line opacity-70" : "border-control/60 focus-within:border-primary focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--lx-primary)_20%,transparent)]"}`}
+        className={`flex items-end gap-2 rounded-card border bg-surface p-1.5 pl-3.5 transition-[border-color,box-shadow] duration-150 dark:bg-raised ${off ? "border-line opacity-70" : "border-control focus-within:border-accent-ink focus-within:ring-1 focus-within:ring-accent-ink"}`}
       >
         <label htmlFor="composer" className="sr-only">
           Message the assistant
@@ -71,18 +71,18 @@ export function Composer({ busy, disabledReason, onSend, onStop, onSubmitted }: 
               void submit();
             }
           }}
-          className="max-h-[200px] min-h-10 flex-1 resize-none bg-transparent py-2 text-[15px] leading-6 text-ink outline-none placeholder:text-ink-3 disabled:cursor-not-allowed"
+          className="max-h-[200px] min-h-10 flex-1 resize-none bg-transparent py-2 text-body leading-6 text-ink outline-none placeholder:text-ink-3 disabled:cursor-not-allowed"
         />
         {busy ? (
-          <Button variant="secondary" aria-label="Stop" title="Stop" onClick={onStop} className="size-9 rounded-xl px-0! pointer-coarse:size-11">
+          <Button variant="secondary" aria-label="Stop" title="Stop" onClick={onStop} className="size-9 px-0! pointer-coarse:size-11">
             <span aria-hidden className="size-3 rounded-[3px] bg-current" />
           </Button>
         ) : (
-          <IconButton type="submit" label="Send message" icon={ArrowUp} variant="primary" disabled={!text.trim() || off} className="rounded-xl" />
+          <IconButton type="submit" label="Send message" icon={ArrowUp} variant="primary" disabled={!text.trim() || off} />
         )}
       </div>
-      <p id="composer-hint" className="mt-1.5 hidden px-1 text-[12px] text-ink-3 sm:block [@media(max-height:680px)]:hidden">
-        Enter sends, Shift+Enter adds a line. Write in English or French.
+      <p id="composer-hint" className="mt-1.5 hidden px-1 text-meta text-ink-3 sm:block [@media(max-height:680px)]:hidden">
+        <kbd>Enter</kbd> sends, <kbd>Shift</kbd>+<kbd>Enter</kbd> adds a line. Write in English or French.
       </p>
     </form>
   );

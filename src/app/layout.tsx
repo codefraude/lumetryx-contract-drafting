@@ -21,8 +21,8 @@ export const viewport: Viewport = {
   // The on-screen keyboard shrinks the layout, so the composer stays above it.
   interactiveWidget: "resizes-content",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f6f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1218" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#191918" },
   ],
 };
 

@@ -66,13 +66,12 @@ export function DocumentPane({
       aria-label="Document"
       className={`flex min-h-0 min-w-0 flex-1 flex-col max-lg:absolute max-lg:inset-0 max-lg:transition-[opacity,visibility] max-lg:duration-200 ${hidden ? "max-lg:pointer-events-none max-lg:invisible max-lg:opacity-0" : ""}`}
     >
-      <div className="flex shrink-0 items-center gap-3 border-b border-line bg-surface px-3 py-2 sm:px-4">
+      <div className="flex shrink-0 items-end gap-3 border-b border-line bg-surface px-2 sm:px-3">
         <TabBar<DocPane>
           idBase="doc"
           label="Document view"
           value={pane}
           onChange={onPane}
-          className="min-w-0 flex-1 sm:max-w-[380px]"
           items={[
             { id: "document", label: hasDraft ? "Draft" : "Template" },
             {
@@ -89,7 +88,7 @@ export function DocumentPane({
           ]}
         />
         {hasDraft && !generating && (
-          <Button size="sm" variant="ghost" icon={RotateCcw} onClick={onRegenerate} className="ml-auto">
+          <Button size="sm" variant="ghost" icon={RotateCcw} onClick={onRegenerate} className="ml-auto self-center">
             Regenerate
           </Button>
         )}

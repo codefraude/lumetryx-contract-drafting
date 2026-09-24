@@ -69,7 +69,7 @@ test("switching theme keeps the editor, unsaved input and the exported document"
       .evaluate((el) => getComputedStyle(el).backgroundColor),
     "the page stays paper",
   ).toBe("rgb(255, 255, 255)");
-  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(11, 18, 24)");
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(25, 25, 24)");
 
   // With a draft: switching theme fetches and saves nothing, and the export is identical in both themes.
   const values: Record<string, string> = {
@@ -100,7 +100,7 @@ test("switching theme keeps the editor, unsaved input and the exported document"
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
   await page.locator(".superdoc-page").first().waitFor();
   const exportXml = async () => {
-    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download .docx" }).click()]);
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download Word file" }).click()]);
     const zip = await JSZip.loadAsync(readFileSync(await download.path()));
     return zip.file("word/document.xml")!.async("string");
   };

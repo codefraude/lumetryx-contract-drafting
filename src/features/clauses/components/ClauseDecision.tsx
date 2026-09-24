@@ -30,10 +30,10 @@ export function ClauseDecision({
   const answer = (v: string) => correction.mutate({ fieldId: r.condition.fieldId, value: v });
   const yesNo = field?.valueType === "boolean" || r.condition.op === "is_true" || r.condition.op === "is_false";
   return (
-    <div className="mt-3 rounded-xl border border-warn-line bg-warn-surface/60 p-3">
-      <p className="text-[13.5px] font-medium leading-snug text-ink">{question}</p>
+    <div className="mt-3 rounded-card border border-warn-line bg-warn-surface px-3.5 py-3">
+      <p className="text-ui font-medium text-ink">{question}</p>
       {locked ? (
-        <p className="mt-1.5 text-[13px] text-ink-2">Answer in the chat, so the draft is updated safely.</p>
+        <p className="mt-1 text-meta text-ink-2">Answer in the chat, so the draft is updated safely.</p>
       ) : yesNo ? (
         <div className="mt-2.5 flex gap-2">
           <Button size="sm" variant="secondary" busy={busy === "Yes"} disabled={busy !== null} onClick={() => answer("Yes")}>
@@ -59,7 +59,7 @@ export function ClauseDecision({
             list={`${id}-o`}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="h-8 min-w-0 flex-1 rounded-control border border-control bg-surface px-2.5 text-sm text-ink outline-none focus:border-primary dark:bg-raised pointer-coarse:h-10"
+            className="h-8 min-w-0 flex-1 rounded-control border border-control bg-surface px-3 text-ui text-ink outline-none transition-[border-color,box-shadow] duration-150 focus:border-accent-ink focus:ring-1 focus:ring-accent-ink dark:bg-raised pointer-coarse:h-11"
           />
           <datalist id={`${id}-o`}>
             {r.condition.values.map((v) => (
@@ -72,7 +72,7 @@ export function ClauseDecision({
         </form>
       )}
       {err && (
-        <p role="alert" className="mt-2 text-[13px] text-danger">
+        <p role="alert" className="mt-2 text-meta text-danger">
           {err}
         </p>
       )}

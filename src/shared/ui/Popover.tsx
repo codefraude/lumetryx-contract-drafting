@@ -54,7 +54,7 @@ export function Popover({
         title={label}
         className={`grid size-9 shrink-0 place-items-center rounded-control text-ink-2 transition-colors duration-150 hover:bg-hover hover:text-ink aria-expanded:bg-hover aria-expanded:text-ink pointer-coarse:size-11 ${buttonClassName}`}
       >
-        <Icon aria-hidden className="size-[18px]" strokeWidth={2} />
+        <Icon aria-hidden className="size-[18px]" />
       </button>
       <div
         ref={panel}
@@ -80,7 +80,7 @@ export function Popover({
           el.querySelector<HTMLElement>("button:not(:disabled), a[href], input")?.focus();
           setOpen(true);
         }}
-        className={`lx-popover fixed inset-auto m-0 min-w-56 max-w-[calc(100vw-16px)] rounded-xl border border-line bg-raised p-1.5 text-ink shadow-lg ${panelClassName}`}
+        className={`lx-popover fixed inset-auto m-0 min-w-[min(14rem,calc(100vw-16px))] max-w-[calc(100vw-16px)] rounded-card border border-line bg-raised p-1 text-ink shadow-overlay ${panelClassName}`}
       >
         {children(close)}
       </div>
@@ -106,9 +106,9 @@ export function MenuItem({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors duration-150 hover:bg-hover disabled:opacity-45 pointer-coarse:py-3 ${tone === "danger" ? "text-danger" : "text-ink"}`}
+      className={`flex w-full items-center gap-2.5 rounded-control px-2.5 py-2 text-left text-ui font-medium transition-colors duration-150 hover:bg-hover focus-visible:-outline-offset-2 disabled:opacity-50 pointer-coarse:py-3 ${tone === "danger" ? "text-danger" : "text-ink"}`}
     >
-      {Icon && <Icon aria-hidden className={`size-4 shrink-0 ${tone === "danger" ? "" : "text-ink-2"}`} strokeWidth={2} />}
+      {Icon && <Icon aria-hidden className={`size-4 shrink-0 ${tone === "danger" ? "" : "text-ink-3"}`} />}
       {children}
     </button>
   );

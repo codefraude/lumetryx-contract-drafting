@@ -202,10 +202,10 @@ export const SuperDocEditor = memo(
           )}
           {failed && (
             <div className="absolute inset-0 grid place-items-center bg-canvas p-6">
-              <div role="alert" className="max-w-sm rounded-card border border-danger-line bg-surface p-5 text-center shadow-md">
+              <div role="alert" className="max-w-sm rounded-card border border-danger-line bg-surface p-5 text-center">
                 <CircleAlert aria-hidden className="mx-auto size-6 text-danger" />
-                <p className="mt-2 text-[15px] font-semibold text-ink">The document could not be opened</p>
-                <p className="mt-1 text-sm text-ink-2">{failed.message}</p>
+                <p className="mt-2 text-body font-semibold text-ink">The document could not be opened</p>
+                <p className="mt-1 text-ui text-ink-2">{failed.message}</p>
                 <Button variant="secondary" icon={RotateCcw} className="mt-4" onClick={() => setAttempt((a) => a + 1)}>
                   Try again
                 </Button>

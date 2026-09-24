@@ -99,7 +99,7 @@ for (const name of FIXTURES) {
     await page.keyboard.press("Shift+ArrowLeft");
     await page.keyboard.press("Delete");
     await expect(page.getByText("Unsaved changes")).toBeVisible();
-    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download .docx" }).click()]);
+    const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download Word file" }).click()]);
     await download.saveAs(`${OUT}/${name}.roundtrip.docx`);
 
     writeFileSync(

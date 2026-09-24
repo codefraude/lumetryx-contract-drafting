@@ -46,9 +46,9 @@ export function AssistantPane({ doc, inactive, progress, tabs, view, onView, hid
   return (
     <aside
       aria-label="Assistant and details"
-      className={`flex min-h-0 flex-col bg-surface max-lg:absolute max-lg:inset-0 max-lg:transition-[opacity,visibility] max-lg:duration-200 lg:w-[clamp(360px,30vw,430px)] lg:shrink-0 lg:border-r lg:border-line ${hidden ? "max-lg:pointer-events-none max-lg:invisible max-lg:opacity-0" : ""}`}
+      className={`flex min-h-0 flex-col bg-surface max-lg:absolute max-lg:inset-0 max-lg:transition-[opacity,visibility] max-lg:duration-200 lg:w-[clamp(380px,32vw,480px)] lg:shrink-0 lg:border-r lg:border-line ${hidden ? "max-lg:pointer-events-none max-lg:invisible max-lg:opacity-0" : ""}`}
     >
-      <div className="shrink-0 border-b border-line px-4 py-2.5 max-lg:hidden sm:px-5">
+      <div className="shrink-0 border-b border-line px-2 max-lg:hidden sm:px-3">
         <TabBar<AssistantView> idBase="assistant" label="Assistant views" value={view} onChange={onView} items={tabs} />
       </div>
       <div className="relative min-h-0 flex-1">
@@ -57,15 +57,7 @@ export function AssistantPane({ doc, inactive, progress, tabs, view, onView, hid
             messages={chat.messages}
             busy={chat.busy}
             error={chat.failure}
-            header={
-              <ChatHeader
-                language={doc.analysis === "ai" ? doc.language : null}
-                onLanguage={chat.onLanguage}
-                progress={progress}
-                onReviewDetails={() => onView("details")}
-                onReviewClauses={() => onView("clauses")}
-              />
-            }
+            header={<ChatHeader language={doc.analysis === "ai" ? doc.language : null} onLanguage={chat.onLanguage} />}
             disabledReason={chat.disabledReason}
             onSend={chat.onSend}
             onStop={chat.onStop}
@@ -74,7 +66,7 @@ export function AssistantPane({ doc, inactive, progress, tabs, view, onView, hid
           />
         </TabPanel>
         <TabPanel base="assistant" id="details" active={view === "details"} scroll>
-          <FieldPanel documentId={doc.id} fields={doc.fields} inactive={inactive} locked={hasDraft} />
+          <FieldPanel documentId={doc.id} fields={doc.fields} inactive={inactive} locked={hasDraft} assistant={doc.analysis === "ai"} />
         </TabPanel>
         {progress.hasClauses && (
           <TabPanel base="assistant" id="clauses" active={view === "clauses"} scroll>

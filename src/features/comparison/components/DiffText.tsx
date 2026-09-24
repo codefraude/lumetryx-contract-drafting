@@ -1,14 +1,14 @@
 import type { Segment } from "../contracts";
 
 const Ins = ({ text }: { text: string }) => (
-  <ins className="rounded-[3px] bg-ins-surface px-0.5 text-ins underline decoration-ins/60 decoration-[1.5px] underline-offset-[3px]">
+  <ins className="rounded-[3px] bg-ins-surface px-0.5 text-ins underline decoration-ins/60 underline-offset-[3px]">
     <span className="sr-only">[added: </span>
     {text}
     <span className="sr-only">]</span>
   </ins>
 );
 const Del = ({ text }: { text: string }) => (
-  <del className="rounded-[3px] bg-del-surface px-0.5 text-del decoration-del/70 decoration-[1.5px]">
+  <del className="rounded-[3px] bg-del-surface px-0.5 text-del line-through decoration-del/70">
     <span className="sr-only">[removed: </span>
     {text}
     <span className="sr-only">]</span>
@@ -31,9 +31,9 @@ function merge(segments: Segment[]): Segment[] {
 /** One paragraph of document text; `side` keeps only what that version contains. */
 export function DiffText({ segments, side }: { segments: Segment[]; side?: "template" | "draft" }) {
   const shown = merge(segments.filter((s) => !side || s.op === "eq" || (side === "template" ? s.op === "del" : s.op === "ins")));
-  if (!shown.length) return <p className="text-[13px] italic text-ink-3">{side === "template" ? "Not in the template" : "Not in the draft"}</p>;
+  if (!shown.length) return <p className="text-meta text-ink-3">{side === "template" ? "Not in the template" : "Not in the draft"}</p>;
   return (
-    <p className="whitespace-pre-wrap break-words font-serif text-[15px] leading-relaxed text-ink">
+    <p className="whitespace-pre-wrap break-words font-serif text-body leading-relaxed text-ink">
       {shown.map((s, i) => (s.op === "ins" ? <Ins key={i} text={s.text} /> : s.op === "del" ? <Del key={i} text={s.text} /> : <span key={i}>{s.text}</span>))}
     </p>
   );

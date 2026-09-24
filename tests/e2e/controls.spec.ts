@@ -68,7 +68,7 @@ test("placeholder boxes are replaced by the answers, before and after the editor
   await page.mouse.click(box.x + box.width - 1, box.y + box.height / 2);
   await page.keyboard.press("End");
   await page.keyboard.type(" et à bientôt");
-  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download .docx" }).click()]);
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download Word file" }).click()]);
   await download.saveAs("tests/output/e2e-controls.docx");
   const zip = await JSZip.loadAsync(readFileSync("tests/output/e2e-controls.docx"));
   const xml = await zip.file("word/document.xml")!.async("string");

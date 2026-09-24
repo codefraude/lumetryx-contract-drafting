@@ -13,18 +13,17 @@ const Runs = ({ block }: { block: DraftBlock }) => (
 );
 
 function Paragraph({ block }: { block: DraftBlock }) {
-  const cls = `block-in ${block.filled ? "rounded-sm" : ""}`;
   if (block.kind === "heading") {
     const size = block.headingLevel === 1 ? "text-2xl text-center text-[#1F3A5F]" : "text-lg";
     return (
-      <p className={`${cls} ${size} mb-2 mt-5 font-bold`}>
+      <p className={`${size} mb-2 mt-5 font-bold`}>
         <Runs block={block} />
       </p>
     );
   }
   if (block.numberLabel) {
     return (
-      <p className={`${cls} mb-1.5 flex`} style={{ paddingLeft: `${block.indentLevel * 1.6}rem` }}>
+      <p className="mb-1.5 flex" style={{ paddingLeft: `${block.indentLevel * 1.6}rem` }}>
         <span className="w-14 shrink-0 tabular-nums">{block.numberLabel}</span>
         <span>
           <Runs block={block} />
@@ -33,7 +32,7 @@ function Paragraph({ block }: { block: DraftBlock }) {
     );
   }
   return (
-    <p className={`${cls} mb-2 min-h-[1em]`}>
+    <p className="mb-2 min-h-[1em]">
       <Runs block={block} />
     </p>
   );
@@ -118,8 +117,8 @@ export function DraftPreview({ blocks, generating }: { blocks: DraftBlock[]; gen
         ))}
         {out}
         {generating && (
-          <p className="mt-4 flex items-center gap-2 font-sans text-sm text-[#4a5566]" role="status">
-            <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-[#0f766e]" />
+          <p className="mt-4 flex items-center gap-2 font-sans text-meta text-[#4f4e4a]" role="status">
+            <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-[#1d6b62]" />
             Filling the template… {body.length} paragraphs so far
           </p>
         )}

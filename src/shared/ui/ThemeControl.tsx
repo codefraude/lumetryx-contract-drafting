@@ -35,17 +35,17 @@ export function ThemeControl({ className = "" }: { className?: string }) {
       <legend className="sr-only">Colour theme</legend>
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc((100%-4px)/3)] rounded-[8px] bg-surface shadow-sm ring-1 ring-line transition-transform duration-200 ease-(--ease-out) dark:bg-raised"
+        className="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc((100%-4px)/3)] rounded-[4px] bg-surface ring-1 ring-control transition-transform duration-150 ease-(--ease-out) dark:bg-raised"
         style={{ transform: `translateX(${index * 100}%)` }}
       />
       {OPTIONS.map(({ value, label, Icon }) => (
         <label
           key={value}
           title={value === "system" ? `System (now ${resolved})` : label}
-          className="relative grid size-8 place-items-center rounded-[8px] text-ink-3 transition-colors duration-150 hover:text-ink has-checked:text-ink has-focus-visible:outline-2 has-focus-visible:outline-offset-1 has-focus-visible:outline-(--lx-focus) pointer-coarse:size-10"
+          className="relative grid size-8 place-items-center rounded-[4px] text-ink-3 transition-colors duration-150 hover:text-ink has-checked:text-ink has-focus-visible:outline-2 has-focus-visible:outline-offset-1 has-focus-visible:outline-(--lx-focus) pointer-coarse:size-11"
         >
           <input type="radio" name={name} value={value} checked={preference === value} onChange={() => setPreference(value)} className="sr-only" />
-          <Icon aria-hidden className="size-4" strokeWidth={1.9} />
+          <Icon aria-hidden className="size-4" />
           <span className="sr-only">{label}</span>
         </label>
       ))}

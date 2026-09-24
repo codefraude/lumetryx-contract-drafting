@@ -21,10 +21,10 @@ export const ClausePanel = memo(function ClausePanel({ rules, ruleIssues, struct
   const excluded = visible.filter((r) => r.state === "excluded").length;
   const attention = visible.filter(needsAttention).length;
   return (
-    <div className="space-y-4 px-4 py-4 sm:px-5">
-      <div>
-        <p className="text-[15px] font-semibold text-ink">Conditional clauses</p>
-        <p className="mt-0.5 text-[13px] text-ink-2">
+    <div>
+      <div className="px-4 pb-3 pt-4 sm:px-5">
+        <p className="text-ui font-semibold text-ink">Conditional clauses</p>
+        <p className="mt-0.5 text-meta text-ink-2">
           {visible.length
             ? `${included} included, ${excluded} excluded${attention ? `, ${attention} waiting for you` : ""}.`
             : "This template has no conditional clauses."}{" "}
@@ -32,19 +32,19 @@ export const ClausePanel = memo(function ClausePanel({ rules, ruleIssues, struct
         </p>
       </div>
       {issues.length > 0 && (
-        <div className="rounded-xl border border-warn-line bg-warn-surface text-warn">
+        <div className="mx-4 mb-4 rounded-card border border-warn-line bg-warn-surface sm:mx-5">
           <button
             type="button"
             aria-expanded={showIssues}
             onClick={() => setShowIssues((o) => !o)}
-            className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13.5px] font-semibold"
+            className="flex w-full items-center gap-2 rounded-card px-3.5 py-2.5 text-left text-ui font-semibold text-warn focus-visible:-outline-offset-2 pointer-coarse:min-h-11"
           >
             <TriangleAlert aria-hidden className="size-4 shrink-0" />
             {issues.length} {issues.length === 1 ? "problem" : "problems"} to review
-            <ChevronDown aria-hidden className={`ml-auto size-4 transition-transform duration-200 ${showIssues ? "rotate-180" : ""}`} />
+            <ChevronDown aria-hidden className={`ml-auto size-4 transition-transform duration-150 ${showIssues ? "rotate-180" : ""}`} />
           </button>
           {showIssues && (
-            <ul className="space-y-1.5 border-t border-warn-line px-3.5 py-2.5 text-[13px] leading-snug" aria-label="Problems to review">
+            <ul className="space-y-1.5 border-t border-warn-line px-3.5 py-2.5 text-meta text-ink-2" aria-label="Problems to review">
               {issues.map((m, i) => (
                 <li key={i}>{m}</li>
               ))}
@@ -53,7 +53,7 @@ export const ClausePanel = memo(function ClausePanel({ rules, ruleIssues, struct
         </div>
       )}
       {visible.length > 0 && (
-        <ul className="space-y-3">
+        <ul className="divide-y divide-line border-t border-line">
           {visible.map((r) => (
             <RuleCard key={r.id} r={r} {...rest} />
           ))}

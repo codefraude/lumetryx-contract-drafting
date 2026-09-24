@@ -12,8 +12,8 @@ export interface TabItem<T extends string> {
 }
 
 /**
- * Segmented tabs with a sliding indicator (automatic activation, arrow keys, Home/End).
- * Panels are rendered by the caller with ids `${idBase}-panel-${id}`.
+ * Tabs underlined when active (automatic activation, arrow keys, Home/End). They sit on the bottom
+ * border of their bar. Panels are rendered by the caller with ids `${idBase}-panel-${id}`.
  */
 export function TabBar<T extends string>({
   items,
@@ -50,8 +50,7 @@ export function TabBar<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className={`relative grid rounded-control border border-line bg-subtle p-0.5 ${className}`}
-      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      className={`flex min-w-0 items-stretch gap-1 ${className}`}
       onKeyDown={(e) => {
         if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
           e.preventDefault();
@@ -62,11 +61,6 @@ export function TabBar<T extends string>({
         }
       }}
     >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0.5 left-0.5 rounded-[8px] bg-surface shadow-sm ring-1 ring-line transition-transform duration-200 ease-(--ease-out) dark:bg-raised"
-        style={{ width: `calc((100% - 4px) / ${items.length})`, transform: `translateX(${index * 100}%)` }}
-      />
       {items.map((t, i) => {
         const on = t.id === value;
         return (
@@ -84,10 +78,11 @@ export function TabBar<T extends string>({
             tabIndex={on ? 0 : -1}
             disabled={t.disabled}
             onClick={() => onChange(t.id)}
-            className={`relative inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-[8px] px-2.5 text-[13.5px] font-medium transition-colors duration-150 disabled:opacity-45 pointer-coarse:h-10 ${on ? "text-ink" : "text-ink-2 hover:text-ink"}`}
+            className={`relative inline-flex h-11 min-w-0 items-center gap-1.5 px-2.5 text-ui font-medium transition-colors duration-150 focus-visible:-outline-offset-2 disabled:opacity-50 ${on ? "text-ink" : "text-ink-2 hover:text-ink"}`}
           >
             <span className="truncate">{t.label}</span>
             {t.badge}
+            <span aria-hidden className={`absolute inset-x-2.5 -bottom-px h-0.5 rounded-full ${on ? "bg-ink" : "bg-transparent"}`} />
           </button>
         );
       })}

@@ -4,6 +4,7 @@ import { ArrowDown, CircleAlert, RotateCcw } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { ActionFailure } from "@/lib/http";
 import { Button } from "@/shared/ui/Button";
+import { Callout } from "@/shared/ui/Status";
 import type { ChatMessage } from "../use-chat-turn";
 import { Composer } from "./Composer";
 import { Message } from "./Message";
@@ -63,36 +64,39 @@ export function ChatPanel({ messages, busy, error, disabledReason, onSend, onSto
           onScroll={onScroll}
           aria-label="Conversation"
           role="region"
-          className="h-full space-y-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5"
+          className="relative h-full space-y-4 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5"
         >
           {messages.map((m) => (
             <Message key={m.id} m={m} />
           ))}
           {error && (
-            <div role="alert" className="lx-rise ml-9 rounded-xl border border-danger-line bg-danger-surface px-3.5 py-3 text-sm leading-relaxed text-danger">
-              <p className="flex gap-2">
-                <CircleAlert aria-hidden className="mt-[3px] size-4 shrink-0" />
-                <span className="min-w-0">{error.message}</span>
-              </p>
-              {error.retryable && (
-                <Button size="sm" variant="secondary" icon={RotateCcw} onClick={onRetry} className="ml-6 mt-2.5">
-                  Retry
-                </Button>
-              )}
-            </div>
+            <Callout
+              tone="danger"
+              role="alert"
+              icon={CircleAlert}
+              actions={
+                error.retryable && (
+                  <Button size="sm" variant="secondary" icon={RotateCcw} onClick={onRetry}>
+                    Retry
+                  </Button>
+                )
+              }
+            >
+              {error.message}
+            </Callout>
           )}
         </div>
         {away && (
           <button
             type="button"
             onClick={jump}
-            className="lx-rise absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-line bg-raised px-3.5 py-1.5 text-[13px] font-medium text-ink shadow-md transition-colors hover:bg-hover"
+            className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-control border border-line bg-raised px-3 py-1.5 text-meta font-medium text-ink shadow-overlay transition-colors duration-150 hover:bg-hover pointer-coarse:min-h-11"
           >
             <ArrowDown aria-hidden className="size-3.5" />
             Jump to latest
             {fresh && (
               <>
-                <span aria-hidden className="size-1.5 rounded-full bg-primary" />
+                <span aria-hidden className="size-1.5 rounded-full bg-accent-ink" />
                 <span className="sr-only">(new messages)</span>
               </>
             )}

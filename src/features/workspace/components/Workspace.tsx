@@ -22,7 +22,7 @@ interface OpenDraft {
 function Splash() {
   return (
     <div className="grid min-h-dvh place-items-center">
-      <p role="status" className="lx-fade flex items-center gap-3 text-sm text-ink-2">
+      <p role="status" className="flex items-center gap-3 text-ui text-ink-2">
         <BrandMark />
         Opening your workspace…
       </p>

@@ -6,15 +6,14 @@ import type { RuleAction, RuleView } from "@/features/documents/contracts/docume
 import type { ChatLanguage, Field } from "@/features/documents/contracts/fields";
 import { errorMessage } from "@/lib/http";
 import { Button } from "@/shared/ui/Button";
-import { Callout, StatusBadge, type Tone } from "@/shared/ui/Status";
-import { needsAttention } from "../clause-status";
+import { Callout, StatusText, type Tone } from "@/shared/ui/Status";
 import { ClauseDecision } from "./ClauseDecision";
 
 const STATE: Record<RuleView["state"], { label: string; tone: Tone; icon: typeof CircleCheck }> = {
   included: { label: "Included", tone: "ok", icon: CircleCheck },
   excluded: { label: "Excluded", tone: "neutral", icon: CircleSlash },
   unresolved: { label: "Needs decision", tone: "warn", icon: CircleHelp },
-  proposed: { label: "Suggested", tone: "accent", icon: Lightbulb },
+  proposed: { label: "Suggested", tone: "neutral", icon: Lightbulb },
   dismissed: { label: "Not conditional", tone: "neutral", icon: CircleMinus },
 };
 
@@ -52,14 +51,14 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
   );
   const evidence = r.evidence ?? "";
   return (
-    <li className={`lx-fade rounded-card border bg-surface p-4 shadow-sm dark:bg-raised ${needsAttention(r) ? "border-warn-line" : "border-line"}`}>
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="min-w-0 text-[14.5px] font-semibold leading-snug text-ink">{r.label}</h3>
-        <StatusBadge tone={s.tone} icon={s.icon}>
+    <li className="px-4 py-4 sm:px-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="min-w-0 text-ui font-semibold text-ink">{r.label}</h3>
+        <StatusText tone={s.tone} icon={s.icon}>
           {s.label}
-        </StatusBadge>
+        </StatusText>
       </div>
-      <p className="mt-1 text-[13px] leading-snug text-ink-2">{r.reason}</p>
+      <p className="mt-0.5 text-meta text-ink-2">{r.reason}</p>
 
       {r.pending && (
         <Callout
@@ -84,13 +83,13 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
       {r.state === "proposed" && (
         <>
           {evidence && (
-            <blockquote className="mt-3 border-l-2 border-line pl-3 font-serif text-[14px] italic leading-relaxed text-ink-2">
+            <blockquote className="mt-3 border-l-2 border-line pl-3 font-serif text-body text-ink-2">
               <span className="sr-only">The template says: </span>“{evidence.length > 180 && !more ? `${evidence.slice(0, 180).trimEnd()}…` : evidence}”
               {evidence.length > 180 && (
                 <button
                   type="button"
                   onClick={() => setMore((m) => !m)}
-                  className="ml-1 font-sans text-[12.5px] not-italic font-medium text-accent-ink hover:underline"
+                  className="ml-1 font-sans text-meta font-medium text-accent-ink hover:underline pointer-coarse:min-h-11"
                 >
                   {more ? "Show less" : "Show all"}
                 </button>
@@ -104,11 +103,11 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
         </>
       )}
       {r.hasEditedVariant && r.applied === "excluded" && (
-        <p className="mt-2.5 text-[13px] text-ink-2">Your edited version is kept and will be restored if this clause is included again.</p>
+        <p className="mt-2 text-meta text-ink-2">Your edited version is kept and will be restored if this clause is included again.</p>
       )}
 
       {r.confirmed && !r.dismissed && !r.pending && (
-        <div className="-ml-2 mt-2 flex flex-wrap gap-1">
+        <div className="-ml-2.5 mt-2 flex flex-wrap gap-1">
           {r.override ? (
             btn("clear_override", "Follow the condition again", "ghost")
           ) : (
@@ -120,7 +119,7 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
         </div>
       )}
       {err && (
-        <p role="alert" className="mt-2 text-[13px] text-danger">
+        <p role="alert" className="mt-2 text-meta text-danger">
           {err}
         </p>
       )}

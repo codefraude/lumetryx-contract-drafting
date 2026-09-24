@@ -194,7 +194,7 @@ Checked on the synthetic fixtures:
 - **Rejected schema.** Gemini rejects `maxItems` on arrays of objects with HTTP 400, so every analysis failed. The caps are now enforced in code.
 - **Groupings silently dropped.** Gemini returns marker keys without their `k:` prefix, so every grouping was rejected and each marker became its own field. Keys are now resolved against the real markers.
 
-Neither defect showed up with the mocked model. The SDK's `RetryError` is also unwrapped now, so a lasting 5xx says "temporarily unavailable" instead of a generic failure, and unclassified AI errors are logged on the server.
+Neither defect showed up with the mocked model. The SDK's `RetryError` is also unwrapped now, so a lasting 5xx says that Gemini is overloaded or down (and to retry) instead of a generic failure, and unclassified AI errors are logged on the server.
 
 **Three defects found with a Word letter template whose blanks are all content controls, and fixed:**
 - **Values written next to the placeholder.** The boxes were not recognised, so the model could only point at the text before a gap, and the value was inserted after the placeholder ("Votre nom Camille Martin"). Placeholder boxes are now markers and are replaced, and the model can mark plain placeholder wording to be replaced.
@@ -312,7 +312,7 @@ The comparison shows:
 **Saving.**
 - Answers and conversation turns are saved as they happen.
 - Editor autosave runs 1.5 s after typing stops, and at least every 10 s during continuous typing. **Save now** flushes immediately.
-- The header shows *Saving… / Saved at HH:MM / Unsaved changes / Save failed*; a failed save also shows a banner with *Retry save*. "Saved" is shown only after the server confirms that exact revision.
+- The header shows *Saving… / Saved at HH:MM / Unsaved changes / Could not save*; a failed save also shows a banner with *Try again*. "Saved" is shown only after the server confirms that exact revision.
 - A server-side change to the draft writes document and state in one statement.
 
 **Other tabs and failures.**
@@ -327,15 +327,15 @@ The comparison shows:
 ## Interface and themes
 
 **Layout.**
-- *Upload screen:* a two-column layout (introduction and the three steps; upload card and synthetic examples). On phones it stacks, with the upload card right after the introduction. Each example can be used in one click (the page fetches the bundled synthetic file and uploads it like a chosen file) or downloaded.
-- *Workspace:* a 64 px bar with the document name, the save status, a Details → Draft → Review indicator (wide screens), Saved drafts, New template, the theme control and **Download .docx**. When Download is unavailable, the reason ("Generate the draft first") is linked to the button and shown beside it on wide screens.
-- *Assistant column* (360–430 px) with **Chat / Details / Clauses** tabs, and the document on a canvas beside it. Below 1024 px one region is shown at a time (Chat, Details, Clauses, Document) and the secondary actions move to a *More actions* menu; below 900 px the page is scaled to the width of the screen.
+- *Upload screen:* one column with a short title and sentence, the drop area with the real limits (one .docx up to 5 MB) and the blank formats it detects, a link to saved drafts, the synthetic examples as a plain list, and a "What happens to your file" disclosure. Each example can be used in one click (the page fetches the bundled synthetic file and uploads it like a chosen file) or downloaded.
+- *Workspace:* a 56 px bar with the document name and save status, the secondary actions (Save now, Saved drafts, New template), the theme control and one primary action for the state: **Generate draft** before a draft exists (disabled, and described by the status line, until everything needed is answered), then **Download Word file**.
+- *Assistant column* (380–480 px) with **Chat / Details / Clauses** tabs, and the document on a canvas beside it. Below 1024 px one region is shown at a time (Chat, Details, Clauses, Document) and the secondary actions move to a *More actions* menu; below 900 px the page is scaled to the width of the screen.
 - *State:* panels stay mounted and are hidden with `visibility`, so switching tabs, views or theme keeps unsent text, scroll positions, the editor instance and its undo history. Each region has a single scroll container.
 
 **Counts.** Details count the required details that apply now. A yes/no answer that decides an undecided clause counts once, as a **decision**. The header reads, for example, "12 details and 1 decision still needed"; before, it said "8 items" while the chat said "7 items", because the deciding answer was counted twice.
 
 **Chat.**
-- Replies render as they stream, with paragraphs, lists and bold. Each message animates in once; a working indicator shows only while a request is pending, and Stop aborts it.
+- The column is headed **Drafting assistant** with the reply language. Replies render as they stream, with paragraphs, lists and bold, and without entrance animations or a typing caret; a working indicator shows only while a request is pending, and Stop aborts it.
 - The transcript follows new content only while you are at the bottom. Otherwise **Jump to latest** appears, marked when something new arrived.
 - A failure appears inline with **Retry**. Retrying does not add the message twice, on screen or in the database: the server keeps a single copy of an identical message that was never answered (integration-tested). A message blocked before sending, for example by an unsaved editor edit, goes back into the composer.
 - "N details updated" appears under a reply only when that turn validated and saved field changes.
@@ -344,17 +344,18 @@ The comparison shows:
 **Dialogs and export.** Themed confirmation dialogs replace `window.confirm` (regenerate, leave with unsaved edits, new template, delete, export warnings). The download is fetched first, so a failed export shows an error with *Try again* instead of replacing the page.
 
 **Design system.**
-- Semantic colour tokens (`--lx-*` in `src/app/globals.css`) with one set per theme, exposed to Tailwind v4 through `@theme inline`. Status colours have separate light and dark foreground, surface and border values, and are always paired with text or an icon.
-- Type: Source Sans 3 for the interface and Source Serif 4 for display (upload headline, step numerals, document excerpts). Both are self-hosted by `next/font`, downloaded once at build time; the browser never contacts a font service.
-- Icons: `lucide-react` (ISC licence), the only dependency the redesign added.
-- Motion: 120–300 ms on opacity and transforms; one staggered entrance on the upload screen; drawers and dialogs enter and leave with `@starting-style`; no looping decoration. `prefers-reduced-motion` makes animation instant.
+- Semantic colour tokens (`--lx-*` in `src/app/globals.css`) with one set per theme, exposed to Tailwind v4 through `@theme inline`: warm neutrals with near-black ink in light mode, charcoal layers in dark mode, ink-coloured primary buttons, and one muted teal accent for links, focus, the brand mark and the drop state. Status colours have separate light and dark foreground, surface and border values, and are always paired with text or an icon. Every text pair is at least 4.5:1 and every input border 3:1, in both themes.
+- Type scale tokens: 13 px metadata, 14 px interface, 15 px reading (chat, excerpts), 17 px panel titles, 30 px page title. Radii 6 px (controls), 10 px (callouts, drop area), 12 px (dialogs). Shadows only on overlays and the document page.
+- Type: Source Sans 3 for the interface and Source Serif 4 for the upload title and legal text (source excerpts, comparison). Both are self-hosted by `next/font`, downloaded once at build time; the browser never contacts a font service.
+- Icons: `lucide-react` (ISC licence) at one 1.75 stroke, only where an icon names an action or a status.
+- Motion: 120–180 ms on controls and 180–240 ms on drawers and dialogs (`@starting-style`); no entrance animations on content, and loops only while something loads. `prefers-reduced-motion` makes animation instant.
 
 **Screenshots** (synthetic fixtures; `docs/screenshots/`): before, [upload](docs/screenshots/ui-before-upload.png) and [workspace](docs/screenshots/ui-before-workspace.png); after, the upload screen in [light](docs/screenshots/ui-upload-light.png) and [dark](docs/screenshots/ui-upload-dark.png), the [draft](docs/screenshots/ui-draft-dark.png), [clauses](docs/screenshots/ui-clauses-dark.png) and [saved drafts](docs/screenshots/ui-drafts-dark.png) in dark, [Compare](docs/screenshots/ui-compare-light.png) in light, and a [phone draft](docs/screenshots/ui-phone-draft-dark.png). The two chat screenshots ([desktop](docs/screenshots/ui-chat-light-stubbed-stream.png), [phone](docs/screenshots/ui-phone-chat-dark-stubbed-stream.png)) use a **stubbed** chat stream, because Gemini was unavailable; their opening message shows the markers-only mode the server was in.
 
 **Themes.**
 - *Light, Dark and System* (the default). The choice is stored in `localStorage` under `lx-theme`; only the preference is stored, never document content. System follows later OS changes; an explicit choice ignores them. If storage is blocked, the choice still applies to the open page.
 - *No flash:* an inline `<head>` script sets `data-theme` and `color-scheme` before the first paint, the approach in Next's "preventing flash before hydration" guide. `suppressHydrationWarning` is set on `<html>` only, because the script changes that element's attributes. A layout effect re-applies the theme after React's development remount.
-- Switching cross-fades the whole page once through the View Transitions API (200 ms). The fade is skipped under reduced motion and where the API is missing.
+- Switching cross-fades the whole page once through the View Transitions API (180 ms). The fade is skipped under reduced motion and where the API is missing.
 - *The document stays paper.* SuperDoc's chrome is themed only through its documented hooks: the `--sd-ui-*` and `--sd-ui-loader-*` variables and the `uiDisplayFallbackFont` option. The page colour cascades from `--sd-ui-bg` by default, so it is pinned to white. The page's own fonts, colours and layout are never touched, and no CSS filter or inversion is used. SuperDoc's right-click menu has fixed colours and no variables, so its own classes are overridden (chrome only). Switching theme fetches, saves and remounts nothing, and the export is identical in both themes (browser-tested).
 
 ## Streaming
