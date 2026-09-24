@@ -11,6 +11,7 @@ import pg from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { setStoreForTests } from "@/server/cache/redis";
 import * as repo from "@/server/db/repo";
+import { createSession } from "@/server/db/sessions";
 import { indexBlocks, applyTextEdits } from "@/server/docx/render";
 import { loadDocxPackage, serializePackage } from "@/server/docx/package";
 import type { EventPayload } from "@/features/documents/contracts/stream-events";
@@ -147,7 +148,7 @@ let pool: pg.Pool;
 let store: MemoryStore;
 
 async function newSession() {
-  const id = await repo.createSession(`test-${crypto.randomUUID()}`);
+  const id = await createSession(`test-${crypto.randomUUID()}`);
   return { id, aiRequests: 0, aiInputTokens: 0, aiOutputTokens: 0 };
 }
 

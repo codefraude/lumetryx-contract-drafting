@@ -1,7 +1,7 @@
 import "server-only";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { APICallError, RetryError, type LanguageModel } from "ai";
-import { recordUsage } from "@/server/db/repo";
+import { recordUsage } from "@/server/db/sessions";
 import { env, requireEnv } from "@/server/env";
 
 /** Bump when prompts or schemas change so cached analyses are not reused. */

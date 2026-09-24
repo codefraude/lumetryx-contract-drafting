@@ -2,7 +2,7 @@ import "server-only";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { rateLimit } from "@/server/cache/redis";
-import { createSession, findSession } from "@/server/db/repo";
+import { createSession, findSession } from "@/server/db/sessions";
 import { env } from "@/server/env";
 
 const COOKIE = "lx_session";
@@ -43,7 +43,7 @@ const cookieOptions = () => ({
   // Secure whenever the app is served over HTTPS; Safari refuses Secure cookies on http://localhost.
   secure: new URL(env().APP_URL).protocol === "https:",
   path: "/",
-  // Same lifetime as the database expiry, which slides with activity (see repo.findSession).
+  // Same lifetime as the database expiry, which slides with activity (see findSession in db/sessions.ts).
   maxAge: env().DRAFT_RETENTION_DAYS * 86_400,
 });
 

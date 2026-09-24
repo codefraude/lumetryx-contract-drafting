@@ -13,45 +13,11 @@ export class StaleRevisionError extends Error {
 }
 
 /** Retention window for drafts and the credential that reaches them (one setting keeps them aligned). */
-const retention = () => sql`now() + make_interval(days => ${env().DRAFT_RETENTION_DAYS})`;
+export const retention = () => sql`now() + make_interval(days => ${env().DRAFT_RETENTION_DAYS})`;
 /** Every successful save extends the draft's retention. */
 const saved = () => ({ savedAt: sql`now()`, expiresAt: retention(), updatedAt: new Date() });
 const live = () => gt(documents.expiresAt, sql`now()`);
 const owned = (sessionId: string, documentId: string) => and(eq(documents.id, documentId), eq(documents.sessionId, sessionId), live());
-
-export async function createSession(secretHash: string): Promise<string> {
-  const [row] = await getDb().insert(sessions).values({ secretHash, expiresAt: retention() }).returning({ id: sessions.id });
-  if (!row) throw new Error("The session was not created.");
-  return row.id;
-}
-
-/**
- * Looks up an unexpired session. Activity refreshes the expiry at most hourly (to avoid a write per
- * request); `refreshed` tells the caller to re-issue the cookie with the same lifetime.
- */
-export async function findSession(id: string, secretHash: string) {
-  const db = getDb();
-  const [row] = await db
-    .select()
-    .from(sessions)
-    .where(and(eq(sessions.id, id), eq(sessions.secretHash, secretHash), gt(sessions.expiresAt, sql`now()`)))
-    .limit(1);
-  if (!row) return null;
-  if (Date.now() - row.lastSeenAt.getTime() < 3_600_000) return { ...row, refreshed: false };
-  const [upd] = await db.update(sessions).set({ lastSeenAt: new Date(), expiresAt: retention() }).where(eq(sessions.id, id)).returning();
-  return { ...(upd ?? row), refreshed: true };
-}
-
-export async function recordUsage(sessionId: string, input: number, output: number) {
-  await getDb()
-    .update(sessions)
-    .set({
-      aiRequests: sql`${sessions.aiRequests} + 1`,
-      aiInputTokens: sql`${sessions.aiInputTokens} + ${input}`,
-      aiOutputTokens: sql`${sessions.aiOutputTokens} + ${output}`,
-    })
-    .where(eq(sessions.id, sessionId));
-}
 
 const docSummary = {
   id: documents.id,
