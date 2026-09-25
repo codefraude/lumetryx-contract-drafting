@@ -325,3 +325,63 @@ describe("labels the model copies from a blank", () => {
     ]);
   });
 });
+
+describe("a bilingual fee table", () => {
+  const FEES = `<w:tbl><w:tblPr/><w:tblGrid><w:gridCol w:w="4000"/><w:gridCol w:w="4000"/></w:tblGrid>${[
+    row(
+      cell(para(run("Item / Élément"))),
+      cell(para(run("Agreed value / Valeur convenue"))),
+    ),
+    row(
+      cell(para(run("Total fee / Prix total"))),
+      cell(para(run("{{total_fee}}"))),
+    ),
+    row(
+      cell(para(run("Payment deadline in days / Délai de paiement en jours"))),
+      cell(EMPTY_WITH_RUN),
+    ),
+  ].join(
+    "",
+  )}</w:tbl>${para(run("Target completion / Fin prévue : {{completion_date}}."))}`;
+
+  it("names an empty cell after its row alone when there is one value column, and types days as a duration", async () => {
+    const { built } = await analyse(FEES);
+    const f = built.fields.find((x) => x.label.startsWith("Payment deadline"));
+
+    expect(f?.label).toBe(
+      "Payment deadline in days / Délai de paiement en jours",
+    );
+
+    expect(f?.valueType).toBe("duration");
+  });
+
+  it("does not let the model put a marker named as a date into a field of another type", async () => {
+    const { built } = await analyse(FEES, {
+      fields: [
+        {
+          id: "payment_deadline",
+          label: "Payment deadline in days",
+          question: "How many days?",
+          valueType: "number",
+          group: "money",
+          required: true,
+          markerKeys: ["k:completion date"],
+          implicit: [],
+        },
+      ],
+      notFields: [],
+      conditions: [],
+      proposedRules: [],
+    });
+
+    expect(
+      built.fields.find((f) => f.id === "payment_deadline"),
+    ).toBeUndefined();
+
+    expect(
+      built.fields.find((f) => f.label === "Completion date")?.valueType,
+    ).toBe("date");
+
+    expect(built.rejected.join(" ")).toMatch(/completion date/);
+  });
+});

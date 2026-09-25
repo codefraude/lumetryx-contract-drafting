@@ -401,3 +401,42 @@ describe("answers the NDA test run got wrong", () => {
     expect(before).toContain("READY TO GENERATE: yes");
   });
 });
+
+describe("a template with its own currency field", () => {
+  it("reads later amounts in the currency already answered there", () => {
+    const currency = {
+      ...field("currency", "Currency / Devise", "money", "confirmed"),
+      rawValue: "MUR",
+      displayValue: "MUR",
+    };
+    const advance = {
+      ...field("advance_payment", "Advance payment / Acompte", "money"),
+      valueType: "money" as const,
+    };
+    const r = applyExtraction(
+      [currency, advance],
+      {
+        updates: [
+          {
+            fieldId: "advance_payment",
+            value: "150,00",
+            currency: null,
+            evidence: "150,00",
+          },
+        ],
+        clauseBlockIds: [],
+      },
+      "l'acompte est de 150,00",
+      null,
+      "fr",
+    );
+    const paid = r.fields.find((f) => f.id === "advance_payment");
+
+    expect(paid?.status).toBe("confirmed");
+
+    expect(paid?.normalized).toMatchObject({
+      kind: "money",
+      currency: "MUR",
+    });
+  });
+});

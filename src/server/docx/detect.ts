@@ -315,7 +315,8 @@ function emptyCells(
           text: "",
           marker: "cell",
           key: `e:${first.id}`,
-          labelHint: heading ? `${label} (${heading})` : label,
+          labelHint:
+            heading && valueCols.length > 1 ? `${label} (${heading})` : label,
           context: heading
             ? `empty cell in the row "${label}", column "${heading}"`
             : `empty cell in the row "${label}"`,

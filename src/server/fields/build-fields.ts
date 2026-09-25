@@ -71,6 +71,13 @@ export function guessType(label: string): {
     };
   }
 
+  if (has("days?\\b|jours?\\b|weeks?\\b|semaines?\\b")) {
+    return {
+      valueType: "duration",
+      group: "other",
+    };
+  }
+
   if (
     has(
       "rent|amount|price|fees?\\b|deposit|sum\\b|salary|payment|indemnit|loyer|montant|prix|depot|garantie|salaire|honoraires|remuneration|acompte|solde",
@@ -201,6 +208,17 @@ export function buildFields(
 
       if (!ms || used.has(key)) {
         rejected.push(`unknown or reused marker key ${key}`);
+        continue;
+      }
+
+      const [named] = ms;
+
+      if (
+        af.valueType !== "date" &&
+        (named?.marker === "brace" || named?.marker === "bracket") &&
+        /\bdate\b/i.test(named.labelHint)
+      ) {
+        rejected.push(`date marker ${key} in ${af.valueType} field ${af.id}`);
         continue;
       }
 

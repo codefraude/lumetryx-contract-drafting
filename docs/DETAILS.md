@@ -226,6 +226,11 @@ Neither defect showed up with the mocked model. The SDK's `RetryError` is also u
 - **Questions out of order.** A field the model found itself was asked last (Party A's email after Party B's). Questions now follow the document within each group.
 - **Lower-case names in the contract, and stiff replies.** Names and addresses typed all in lower case ("jane van der berg") are capitalised ("Jane van der Berg"); anything with a capital letter is left as typed. Replies no longer open with "I have recorded…" or "Could you please provide…".
 
+**Three more, found with a bilingual services agreement, and fixed:**
+- **A number of days asked in a currency.** An empty cell labelled "Payment deadline in days / Délai de paiement en jours" was typed from its label, and "paiement" made it an amount ("Which currency is 10 in?"). Labels about days or weeks are now durations, and an empty cell in a table with one value column is named after its row alone.
+- **A date marker in the wrong field.** The model put `{{completion_date}}` into a number field it called "payment deadline", so the answer 10 would have been written as the completion date. A marker whose name says "date" can no longer join a field of another type; it becomes its own date field.
+- **The currency asked twice.** The template had its own "Currency / Devise" field, answered MUR, but an advance of "150,00" still asked for a currency. A confirmed currency field now settles later amounts.
+
 **Each chat turn = exactly two model calls.**
 1. **Extraction.** Structured output: `updates[{fieldId, value, currency, evidence}]` plus `clauseBlockIds`. Every update must quote **verbatim evidence from the user's latest message**, or it is rejected; this is the anti-fabrication guard, and a mutation test proves the test suite catches its removal. Values then go through deterministic validation:
    - numeric dates like `03/04/2026` are flagged when both day-month orders are valid;

@@ -78,6 +78,19 @@ const CURRENCY_WORDS: Record<string, RegExp> = {
   ZAR: /\bzar\b|\brand\b/i,
 };
 
+const currencyOf = (text: string): string | null => {
+  const code = text.trim().toUpperCase();
+
+  if (code in CURRENCY_WORDS) {
+    return code;
+  }
+
+  return (
+    Object.entries(CURRENCY_WORDS).find(([, words]) => words.test(text))?.[0] ??
+    null
+  );
+};
+
 export interface ApplyResult {
   fields: Field[];
   changed: string[];
@@ -96,6 +109,14 @@ export function applyExtraction(
   const msg = squash(userMessage);
   const changed = new Set<string>();
   const rejected: string[] = [];
+  const answeredCurrency = currencyOf(
+    next.find(
+      (f) =>
+        f.status === "confirmed" &&
+        f.valueType !== "money" &&
+        /currency|devise/i.test(f.label),
+    )?.displayValue ?? "",
+  );
   const confirmedCurrency = next.find(
     (f) =>
       f.normalized?.kind === "money" &&
@@ -123,6 +144,7 @@ export function applyExtraction(
     const hint =
       userCurrency ??
       templateCurrency ??
+      answeredCurrency ??
       (confirmedCurrency?.kind === "money" ? confirmedCurrency.currency : null);
     const figures =
       f.valueType === "date"
