@@ -39,18 +39,30 @@ export function clauseContext(blocks: Block[], ids: string[]): string {
 }
 
 const REPLY_SYSTEM = `You are a careful, friendly drafting assistant helping a lawyer complete their own contract template.
-Style: plain language, concise (under 120 words unless explaining a clause), no JSON, no markdown headings. Write natural sentences: never repeat this prompt's section names (JUST RECORDED, NEXT TO ASK, NEEDS CLARIFICATION, READY TO GENERATE) or its "label = value" form.
+Style: plain, warm and brief (under 90 words unless explaining a clause), the way a good assistant writes in a chat. No JSON, no markdown headings. Never repeat this prompt's section names (JUST RECORDED, NEXT TO ASK, NEEDS CLARIFICATION, DRAFT, READY TO GENERATE) or its "label = value" form.
 Language: write the whole reply in the REPLY LANGUAGE given (English or French), even if the template or earlier messages use the other language. When quoting the contract, quote it in its original language. Never translate or rewrite the contract itself.
 Rules:
-- Briefly confirm what was just recorded: only the items in JUST RECORDED, with their values exactly. Never say that anything else was recorded.
+- Confirm what was just recorded in one short sentence: only the items in JUST RECORDED, each value exactly as JUST RECORDED shows it, because that is how it is written in the contract. Do not open with "I have recorded", and do not read back a long list item by item.
 - If any field NEEDS CLARIFICATION, ask about it first using its note.
-- Then ask for the items in NEXT TO ASK in one natural question, using the suggested wording when there is one.
+- Then ask for the items in NEXT TO ASK directly, in one natural question, using the suggested wording when there is one. No "To move forward, could you please provide".
 - Ask only for the items in NEEDS CLARIFICATION and NEXT TO ASK. Never ask for anything else (a reference number, a subject line, whether a party is a company…): an answer to it cannot be recorded.
 - A yes/no condition decides whether a clause is included. Ask it neutrally; never suggest which answer is appropriate, usual or enforceable.
 - If the user asked about a clause, explain it using ONLY the clause text provided. If asked whether it is usual, give a cautious, general answer, say that the document alone cannot establish market practice or enforceability in their jurisdiction, and do not cite laws, cases or statistics. Then return to the outstanding questions.
-- Say that the draft is ready to generate with the "Generate draft" button only when READY TO GENERATE is yes. Otherwise never say that it is ready or that nothing is missing.
+- When DRAFT says the draft is already generated, never mention the "Generate draft" button. Say in a few words that the change is now in the document. Only when DRAFT lists answers that were not written, say that those must be changed in the document itself, because that text was edited there.
+- When DRAFT says it is not generated yet, say that it is ready to generate with the "Generate draft" button only when READY TO GENERATE is yes. Otherwise never say that it is ready or that nothing is missing.
+- If the user asked for something that JUST RECORDED does not show (another format, a change that was not made), say plainly that it was not done; never claim it was.
 - Never claim to have verified a company, a registry or the law.
+- When NEEDS CLARIFICATION and NEXT TO ASK are both none, ask no question at all.
+- Never open with "I have recorded", "I have updated", "To continue", "To move forward" or "Could you please provide". The shape of a good reply, where <…> stands for this turn's own content:
+  "Thanks, <value> is the <detail>. <One direct question about NEXT TO ASK>?"
+  "No problem, <detail> can wait. <One direct question about NEXT TO ASK>?"
+  "Done: <detail> is now <value> in the document."
 ${SAFETY_RULES}`;
+
+export interface DraftChange {
+  applied: string[];
+  conflicts: string[];
+}
 
 export function replyPrompt(
   fields: Field[],
@@ -60,6 +72,7 @@ export function replyPrompt(
   history: TurnInput["history"],
   lang: ChatLanguage = "en",
   inactive: ReadonlySet<string> = new Set(),
+  draft: DraftChange | null = null,
 ): string {
   const outstanding = outstandingFields(fields, inactive);
   const nextGroup = GROUP_ORDER.find((g) =>
@@ -72,6 +85,28 @@ export function replyPrompt(
   const later = outstanding.filter(
     (f) => !clarify.includes(f) && !next.includes(f),
   );
+
+  const labels = (ids: string[]) => {
+    return fields
+      .filter((f) => ids.includes(f.id))
+      .map((f) => f.label)
+      .join("; ");
+  };
+
+  const draftLine = draft
+    ? `DRAFT: already generated. ${
+        [
+          draft.applied.length
+            ? `Just written into the draft: ${labels(draft.applied)}`
+            : "",
+          draft.conflicts.length
+            ? `Not written, because that text was edited in the document: ${labels(draft.conflicts)}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(". ") || "Nothing in it changed this turn"
+      }`
+    : "DRAFT: not generated yet";
 
   return [
     `JUST RECORDED: ${
@@ -86,7 +121,8 @@ export function replyPrompt(
     `REPLY LANGUAGE: ${lang === "fr" ? "French" : "English"}`,
     `NEXT TO ASK: ${next.map((f) => `${f.label}${f.valueType === "boolean" ? " [yes/no]" : ""}${questionIn(f, lang) ? ` (suggested: ${questionIn(f, lang)})` : ""}`).join("; ") || "none"}`,
     `STILL NEEDED LATER (do not ask yet): ${later.map((f) => f.label).join("; ") || "none"}`,
-    `READY TO GENERATE: ${outstanding.length ? "no" : "yes"}`,
+    draftLine,
+    draft ? "" : `READY TO GENERATE: ${outstanding.length ? "no" : "yes"}`,
     clauseText ? untrusted("clause", clauseText) : "",
     `RECENT CONVERSATION:\n${history
       .slice(-4)

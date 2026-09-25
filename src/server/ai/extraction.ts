@@ -7,7 +7,11 @@ import {
 import { z } from "zod";
 import type { Field, Lang } from "@/features/documents/contracts/fields";
 import type { Block } from "@/server/docx/blocks";
-import { chronologyIssues, normalizeValue } from "@/server/fields/normalize";
+import {
+  chronologyIssues,
+  normalizeValue,
+  properCase,
+} from "@/server/fields/normalize";
 import { AiError, SAFETY_RULES, providerOptions, untrusted } from "./model";
 
 export const Extraction = z.object({
@@ -32,6 +36,12 @@ export const Extraction = z.object({
         .describe(
           "Verbatim substring of the user's latest message that states this value",
         ),
+      keepFormat: z
+        .boolean()
+        .optional()
+        .describe(
+          "true only when the user explicitly asks for this date to be written the way they wrote it, e.g. in figures",
+        ),
     }),
   ),
   clauseBlockIds: z
@@ -50,6 +60,8 @@ const squash = (s: string) => {
 };
 
 const DATE_IN_FIGURES = /\b\d{1,2}[/.-]\d{1,2}[/.-]\d{4}\b/g;
+const FORMAT_REQUEST =
+  /\b(format|figures?|digits|numeric|as written|write (it|the date)|chiffres|numérique|tel quel)\b/i;
 
 const CURRENCY_WORDS: Record<string, RegExp> = {
   MUR: /\bmur\b|mauritian|mauritius|mauricienne?s?\b/i,
@@ -116,21 +128,43 @@ export function applyExtraction(
       f.valueType === "date"
         ? [...u.evidence.matchAll(DATE_IN_FIGURES)].map(([d]) => d)
         : [];
-    const value = figures.length === 1 ? (figures[0] ?? u.value) : u.value;
+    const given = figures.length === 1 ? (figures[0] ?? u.value) : u.value;
+    const value =
+      f.valueType === "party" || f.valueType === "address"
+        ? properCase(given)
+        : given;
     const r = normalizeValue(f.valueType, value, {
       currencyHint: hint,
       lang,
     });
+    const keptFigures =
+      f.normalized?.kind === "date" && Boolean(f.normalized.figures);
+    const n = r.normalized;
+    const written =
+      figures.length === 1 &&
+      ((u.keepFormat === true && FORMAT_REQUEST.test(userMessage)) ||
+        keptFigures) &&
+      n?.kind === "date"
+        ? {
+            ...n,
+            figures: value,
+          }
+        : null;
+    const displayValue = written ? value : r.displayValue;
 
-    if (f.rawValue === value && f.status === r.status) {
+    if (
+      f.rawValue === value &&
+      f.status === r.status &&
+      f.displayValue === displayValue
+    ) {
       continue;
     }
 
     Object.assign(f, {
       rawValue: value,
       status: r.status,
-      displayValue: r.displayValue,
-      normalized: r.normalized,
+      displayValue,
+      normalized: written ?? n,
       note: r.note,
     });
 
@@ -157,6 +191,7 @@ export function applyExtraction(
 const EXTRACT_SYSTEM = `You extract contract field values from a lawyer's chat message. Messages may be in English, French or a mix; fields may have been asked in another language than the answer.
 - Only extract values the user actually stated in their LATEST message. Never guess, infer or invent names, addresses, dates, amounts, numbers or registration details.
 - A relative date the user states ("today", "aujourd'hui", "tomorrow", "demain") is worked out from TODAY and written in full, e.g. "24 September 2026".
+- Dates are written in full in the contract ("26 September 2026"). Set keepFormat to true only when the user explicitly asks for a date to be written another way, e.g. "put the date as 26/09/2026" or "write it in figures"; then put the date exactly as they wrote it in value.
 - Keep names, addresses and identifiers exactly as written, with their accents. Do not translate them.
 - For boolean (yes/no) fields put "yes" or "no" in value only if the user clearly answered; "I don't know" or "maybe" is not an answer. Never infer a yes/no answer from a job title or other facts.
 - For amounts keep the digits and separators exactly as written (e.g. "1 250,50 EUR").

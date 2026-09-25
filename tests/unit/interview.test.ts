@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { APICallError, RetryError } from "ai";
 import { applyExtraction } from "@/server/ai/extraction";
 import { clauseContext, replyPrompt } from "@/server/ai/reply";
+import { renderAt } from "@/server/fields/normalize";
 import { errorBody } from "@/server/http/responses";
 import type { Field } from "@/features/documents/contracts/fields";
 
@@ -209,5 +210,194 @@ describe("messy answers found by the live evaluation", () => {
       message:
         "Gemini is overloaded or down right now and did not reply. Wait a few seconds, then retry.",
     });
+  });
+});
+
+describe("answers the NDA test run got wrong", () => {
+  const dateField = (): Field => {
+    return {
+      ...field("effective_date", "Effective date", "dates", "confirmed"),
+      valueType: "date",
+      rawValue: "25 September 2026",
+      displayValue: "25 September 2026",
+      normalized: {
+        kind: "date",
+        iso: "2026-09-25",
+      },
+    };
+  };
+
+  const update = (
+    fieldId: string,
+    value: string,
+    evidence: string,
+    keepFormat?: boolean,
+  ) => {
+    return {
+      updates: [
+        {
+          fieldId,
+          value,
+          currency: null,
+          evidence,
+          ...(keepFormat === undefined ? {} : { keepFormat }),
+        },
+      ],
+      clauseBlockIds: [],
+    };
+  };
+
+  it("writes a date in the user's figures when they ask for that format", () => {
+    const msg = "change the format of the date put 26/09/2026";
+    const r = applyExtraction(
+      [dateField()],
+      update("effective_date", "26/09/2026", "26/09/2026", true),
+      msg,
+      null,
+    );
+    const [f] = r.fields;
+
+    expect(r.changed).toEqual(["effective_date"]);
+    expect(f?.displayValue).toBe("26/09/2026");
+
+    expect(f?.normalized).toEqual({
+      kind: "date",
+      iso: "2026-09-26",
+      figures: "26/09/2026",
+    });
+
+    expect(renderAt(f!, "fr", "mixed")).toBe("26/09/2026");
+    expect(renderAt(f!, "en", "mixed")).toBe("26/09/2026");
+  });
+
+  it("applies a format change even when the date itself is unchanged", () => {
+    const before = {
+      ...dateField(),
+      rawValue: "26/09/2026",
+      displayValue: "26 September 2026",
+      normalized: {
+        kind: "date" as const,
+        iso: "2026-09-26",
+      },
+    };
+    const r = applyExtraction(
+      [before],
+      update("effective_date", "26/09/2026", "26/09/2026", true),
+      "write it as 26/09/2026",
+      null,
+    );
+
+    expect(r.changed).toEqual(["effective_date"]);
+    expect(r.fields[0]?.displayValue).toBe("26/09/2026");
+  });
+
+  it("keeps the long form when no format was asked for, even if the model says so", () => {
+    for (const keepFormat of [undefined, true]) {
+      const r = applyExtraction(
+        [dateField()],
+        update("effective_date", "26/09/2026", "26/09/2026", keepFormat),
+        "the effective date is 26/09/2026",
+        null,
+      );
+
+      expect(r.fields[0]?.displayValue).toBe("26 September 2026");
+    }
+
+    const fr = applyExtraction(
+      [dateField()],
+      update("effective_date", "26/09/2026", "26/09/2026", true),
+      "écris la date en chiffres : 26/09/2026",
+      null,
+    );
+
+    expect(fr.fields[0]?.displayValue).toBe("26/09/2026");
+  });
+
+  it("capitalises names and addresses typed all in lower case, and nothing else", () => {
+    const party = {
+      ...field("party_a_name", "Party A name", "parties"),
+      valueType: "party" as const,
+    };
+    const address = {
+      ...field("party_a_address", "Party A address", "parties"),
+      valueType: "address" as const,
+    };
+    const email = field("party_a_email", "Party A email", "parties");
+    const msg =
+      "party a is jane van der berg, 12 rue des lilas, port louis, jane.berg@example.com";
+    const r = applyExtraction(
+      [party, address, email],
+      {
+        updates: [
+          {
+            fieldId: "party_a_name",
+            value: "jane van der berg",
+            currency: null,
+            evidence: "jane van der berg",
+          },
+          {
+            fieldId: "party_a_address",
+            value: "12 rue des lilas, port louis",
+            currency: null,
+            evidence: "12 rue des lilas, port louis",
+          },
+          {
+            fieldId: "party_a_email",
+            value: "jane.berg@example.com",
+            currency: null,
+            evidence: "jane.berg@example.com",
+          },
+        ],
+        clauseBlockIds: [],
+      },
+      msg,
+      null,
+    );
+
+    expect(r.fields.map((f) => f.displayValue)).toEqual([
+      "Jane van der Berg",
+      "12 Rue des Lilas, Port Louis",
+      "jane.berg@example.com",
+    ]);
+
+    const typed = applyExtraction(
+      [party],
+      update("party_a_name", "ACME Ltd", "ACME Ltd"),
+      "it is ACME Ltd",
+      null,
+    );
+
+    expect(typed.fields[0]?.displayValue).toBe("ACME Ltd");
+  });
+
+  it("tells the reply that a draft exists, and never to generate it again", () => {
+    const fields = [
+      {
+        ...dateField(),
+        displayValue: "26/09/2026",
+      },
+    ];
+    const p = replyPrompt(
+      fields,
+      ["effective_date"],
+      "",
+      "put 26/09/2026",
+      [],
+      "en",
+      new Set(),
+      {
+        applied: ["effective_date"],
+        conflicts: [],
+      },
+    );
+
+    expect(p).toContain("DRAFT: already generated");
+    expect(p).toContain("written into the draft: Effective date");
+    expect(p).not.toContain("READY TO GENERATE: yes");
+
+    const before = replyPrompt(fields, [], "", "hi", [], "en");
+
+    expect(before).toContain("DRAFT: not generated yet");
+    expect(before).toContain("READY TO GENERATE: yes");
   });
 });

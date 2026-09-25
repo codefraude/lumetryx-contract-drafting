@@ -382,6 +382,41 @@ export function normalizeValue(
   }
 }
 
+const LOWER_WORDS = new Set([
+  "de",
+  "du",
+  "des",
+  "la",
+  "le",
+  "les",
+  "et",
+  "of",
+  "the",
+  "and",
+  "van",
+  "von",
+  "der",
+  "den",
+  "da",
+  "di",
+  "au",
+  "aux",
+]);
+
+export function properCase(value: string): string {
+  if (/\p{Lu}/u.test(value) || /@|https?:/.test(value)) {
+    return value;
+  }
+
+  return value.replace(/\p{L}[\p{L}'’-]*/gu, (word, at: number) => {
+    return at > 0 && LOWER_WORDS.has(word)
+      ? word
+      : word.replace(/(^|[-'’])(\p{L})/gu, (_, sep: string, ch: string) => {
+          return sep + ch.toUpperCase();
+        });
+  });
+}
+
 export function renderAt(
   f: Field,
   occurrenceLang: Lang,
@@ -395,7 +430,7 @@ export function renderAt(
   const n = f.normalized;
 
   if (n?.kind === "date") {
-    return formatDate(n.iso, lang);
+    return n.figures ?? formatDate(n.iso, lang);
   }
 
   if (n?.kind === "money") {

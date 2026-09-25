@@ -65,14 +65,14 @@ export function openingMessage(
       return "Je n'ai trouvé aucun élément à compléter dans ce modèle. Vous pouvez le relire dans le panneau du document.";
     }
 
-    return `J'ai trouvé ${out.length} élément${out.length === 1 ? "" : "s"} à compléter dans ce modèle. ${nextQuestion(out, "fr")}`;
+    return `Ce modèle contient ${out.length} information${out.length === 1 ? "" : "s"} à compléter. ${nextQuestion(out, "fr")}`;
   }
 
   if (!out.length) {
     return "I didn't find any fields to fill in this template. You can review it in the document panel.";
   }
 
-  return `I found ${out.length} item${out.length === 1 ? "" : "s"} to complete in this template. ${nextQuestion(out, "en")}`;
+  return `This template has ${out.length} detail${out.length === 1 ? "" : "s"} to fill in. ${nextQuestion(out, "en")}`;
 }
 
 export function languageSwitchMessage(

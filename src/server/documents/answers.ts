@@ -13,7 +13,12 @@ import {
   trackUsage,
   type SessionUsage,
 } from "@/server/ai/model";
-import { clauseContext, replyPrompt, streamReply } from "@/server/ai/reply";
+import {
+  clauseContext,
+  replyPrompt,
+  streamReply,
+  type DraftChange,
+} from "@/server/ai/reply";
 import { inactiveFields } from "@/server/clauses/evaluation";
 import * as repo from "@/server/db/repo";
 import { updateWorkingDraft, type DraftUpdate } from "@/server/draft/update";
@@ -208,6 +213,13 @@ export async function chatTurn(
     numberContext,
   );
   let fields = applied.fields;
+  let draft: DraftChange | null =
+    doc.draftStatus === "ready"
+      ? {
+          applied: [],
+          conflicts: [],
+        }
+      : null;
 
   if (applied.changed.length) {
     const next: FieldState = {
@@ -227,6 +239,11 @@ export async function chatTurn(
       );
 
       fields = saved.fieldState.fields;
+
+      draft = {
+        applied: update.appliedFields,
+        conflicts: update.conflicts,
+      };
 
       emit({
         type: "draft_patch",
@@ -275,6 +292,7 @@ export async function chatTurn(
       history,
       lang,
       inactive,
+      draft,
     ),
     signal,
   );

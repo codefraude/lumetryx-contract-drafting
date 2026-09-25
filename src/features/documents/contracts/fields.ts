@@ -74,6 +74,7 @@ export const NormalizedValue = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("date"),
     iso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    figures: z.string().max(40).optional(),
   }),
   z.object({
     kind: z.literal("money"),

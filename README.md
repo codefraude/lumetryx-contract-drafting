@@ -11,8 +11,8 @@ _A synthetic bilingual template in the dark theme, with no AI key set (markers-o
 ## What it does
 
 1. You upload one `.docx` of up to 5 MB. The server checks the zip before unpacking it and turns away encrypted, legacy `.doc` and macro-enabled files.
-2. The server finds the marked blanks itself: `{{name}}`, `[NAME]`, `____` and Word placeholder boxes. Gemini then merges duplicates, drops false positives and suggests unmarked blanks, quoting the template for each one.
-3. A chat asks for the missing details, a few at a time. Answers can also be typed in the Details panel.
+2. The server finds the marked blanks itself: `{{name}}`, `[NAME]`, `____`, lines drawn as underlined spaces, empty cells of a fill-in table and Word placeholder boxes. Gemini then merges duplicates, drops false positives and suggests unmarked blanks, quoting the template for each one.
+3. A chat asks for the missing details, a few at a time, in the order they appear in the template. Answers can also be typed in the Details panel. Dates are written in full ("26 September 2026") unless you ask for figures.
 4. The filled draft streams in, paragraph by paragraph.
 5. You edit it in SuperDoc, a Word-like editor that runs in the browser. Edits save on their own.
 6. You download the `.docx`, or open it in the Word app installed on the device.
@@ -118,7 +118,7 @@ fixtures/       synthetic .docx templates
 - 81 unit and integration tests pass. The integration tests use a real Postgres and a mocked model.
 - Playwright covers editing, export, themes, saved drafts, placeholder boxes and Open in Word, in Chromium, Firefox and WebKit.
 - Microsoft Word 16 on Windows opened each template's draft, and the same draft after a round trip through the editor, without a repair prompt. 86 automated checks found no difference from the templates.
-- Against live Gemini, the full bonus scenario passed in a browser. A ten-case evaluation of messy answers found four defects on its first run; after the fixes, all 16 expectations held.
+- Against live Gemini, the full bonus scenario passed in a browser. A thirteen-case evaluation of messy answers (corrections, unknown answers, hidden instructions, lower-case names, a date-format request, underlined and empty-cell blanks) held all 21 of its checks on its latest run.
 
 Each run is written up in [docs/DETAILS.md](docs/DETAILS.md#verification).
 
@@ -127,7 +127,7 @@ Each run is written up in [docs/DETAILS.md](docs/DETAILS.md#verification).
 - The templates are all synthetic. Lumetryx's own templates were not available.
 - Neon and Upstash were used, but never under load.
 - Word was only run on Windows, not on a Mac or on the web.
-- The live chat evaluation is ten cases, run once after the fixes.
+- The live chat evaluation is thirteen cases, run once after the latest fixes.
 - The chat's "Jump to latest" browser test fails about half the time, and did before the latest changes too. The test finishes while one of its network stubs is still running.
 - Without AI, only marked blanks are found, and a blank that appears in both languages is asked twice.
 - Placeholders inside footnotes and comments are missed.

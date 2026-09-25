@@ -22,6 +22,7 @@ interface Case {
   name: string;
   fixture: string;
   inject?: string;
+  injectXml?: string;
   forbid?: RegExp;
   turns: {
     say: string;
@@ -29,6 +30,20 @@ interface Case {
     untouched?: boolean;
   }[];
 }
+
+const cell = (text: string) => {
+  return `<w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/></w:tcPr><w:p>${text ? `<w:r><w:t>${text}</w:t></w:r>` : ""}</w:p></w:tc>`;
+};
+
+const BLANKS = [
+  '<w:p><w:r><w:t xml:space="preserve">Quarterly meetings take place at </w:t></w:r>',
+  '<w:r><w:rPr><w:u w:val="single"/></w:rPr><w:t xml:space="preserve">                 </w:t></w:r>',
+  "<w:r><w:t>.</w:t></w:r></w:p>",
+  '<w:tbl><w:tblPr/><w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="3000"/><w:gridCol w:w="3000"/></w:tblGrid>',
+  `<w:tr>${cell("Notice detail")}${cell("Party A")}${cell("Party B")}</w:tr>`,
+  `<w:tr>${cell("Email address")}${cell("")}${cell("{{party_b_email}}")}</w:tr>`,
+  "</w:tbl>",
+].join("");
 
 const CASES: Case[] = [
   {
@@ -196,6 +211,70 @@ const CASES: Case[] = [
     ],
   },
   {
+    name: "names and addresses typed in lower case",
+    fixture: "synthetic-residential-lease",
+    turns: [
+      {
+        say: "tenant is jane van der berg",
+        expect: [
+          {
+            field: /tenant.*name|name.*tenant/i,
+            status: "confirmed",
+            value: /^Jane van der Berg$/,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: "a date, then a request to write it in figures",
+    fixture: "synthetic-mutual-nda",
+    turns: [
+      {
+        say: "the effective date is 26/09/2026",
+        expect: [
+          {
+            field: /effective/i,
+            status: "confirmed",
+            value: /^26 September 2026$/,
+          },
+        ],
+      },
+      {
+        say: "change the format of the date, put 26/09/2026",
+        expect: [
+          {
+            field: /effective/i,
+            status: "confirmed",
+            value: /^26\/09\/2026$/,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: "a blank drawn as underlined spaces and an empty table cell",
+    fixture: "synthetic-mutual-nda",
+    injectXml: BLANKS,
+    turns: [
+      {
+        say: "the meetings are at the Port Louis office, and party a's email is a.contact@example.com",
+        expect: [
+          {
+            field: /meet/i,
+            status: "confirmed",
+            value: /Port Louis office/i,
+          },
+          {
+            field: /(email.*party a|party a.*email)/i,
+            status: "confirmed",
+            value: /^a\.contact@example\.com$/,
+          },
+        ],
+      },
+    ],
+  },
+  {
     name: "French answers in a bilingual template",
     fixture: "synthetic-bilingual-lease",
     turns: [
@@ -221,7 +300,7 @@ const CASES: Case[] = [
 async function template(c: Case): Promise<Blob> {
   const bytes = readFileSync(`fixtures/${c.fixture}.docx`);
 
-  if (!c.inject) {
+  if (!c.inject && !c.injectXml) {
     return new Blob([bytes]);
   }
 
@@ -236,7 +315,7 @@ async function template(c: Case): Promise<Blob> {
     "word/document.xml",
     xml.replace(
       "<w:sectPr",
-      `<w:p><w:r><w:t>${c.inject}</w:t></w:r></w:p><w:sectPr`,
+      `${c.injectXml ?? `<w:p><w:r><w:t>${c.inject}</w:t></w:r></w:p>`}<w:sectPr`,
     ),
   );
 
