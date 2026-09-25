@@ -195,7 +195,7 @@ Every first-party file, reviewed for the September 2026 refactor (see [ARCHITECT
 
 Binary assets, reviewed:
 
-- `docs/screenshots/` (21 files): Screenshots referenced by the README; the two `word-*.png` added later
+- `docs/screenshots/` (21 files): Screenshots referenced by the README and `docs/DETAILS.md`; the two `word-*.png` added later
 - `fixtures/` (7 files): Synthetic .docx templates used by tests; `synthetic-supply-agreement.docx` added later for the Word check
 - `public/examples/` (5 files): The same templates, offered as examples on the upload screen
 

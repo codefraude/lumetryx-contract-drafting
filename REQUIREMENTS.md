@@ -28,7 +28,7 @@ Legend: **V** verified by automated test or observed run · **M** verified with 
 | 22 | Upstash cache/dedupe/rate limits with safe fallback | `server/cache/redis.ts` | Integration (cache reuse, isolation, outage, dedupe); production fails closed without Redis (observed 503) | V (fake store) / P Upstash |
 | 23 | Gemini cost controls | Local detection first, cached analysis, compact prompts, 2 calls/turn, output caps, minimal thinking, usage ceilings | Code + integration usage tracking; live evaluation: 2 requests per turn after one analysis, about 3.3–3.4k input and 1.0–1.3k output tokens per single-turn case over two runs, read back from the session counters | M / L |
 | 24 | Template text treated as untrusted | Data wrapping + system rules + deterministic validation of every mutation | Code; an instruction in a user message changed nothing live; the template-injection case (`npm run eval:conversation`) held live on 25 September 2026: no answer took the injected value | V / L |
-| 25 | README, licences, limitations; recording | `README.md`, `docs/ADR-001-document-engine.md`, `docs/ADR-002-bonuses.md`, `WALKTHROUGH.md` | — | Recording P |
+| 25 | README, licences, limitations; recording | `README.md`, `docs/DETAILS.md`, `docs/ADR-001-document-engine.md`, `docs/ADR-002-bonuses.md`, `WALKTHROUGH.md` | — | Recording P |
 
 ## Bonuses
 

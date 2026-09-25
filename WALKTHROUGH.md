@@ -46,4 +46,4 @@ This is a script for the recording; **the recording itself has not been made yet
 10. **4:30 Close (20 s).** Switch the theme to *Dark*: the page stays white and nothing reloads. Mention:
     - values are changed only at the text-run level, and whole clauses are moved without touching numbering definitions;
     - the editor is under the AGPL licence;
-    - the README lists what was verified live, what was verified in a browser, and what is pending (Word).
+    - the README summarises what was verified, and `docs/DETAILS.md` lists each run: live, in a browser and in Microsoft Word.

@@ -32,4 +32,4 @@ Three identity carriers were injected into a template: a bookmark, a block conte
 - A paragraph the user **moves** (cut and paste) gets a new id and shows up in the comparison as removed plus added.
 - A clause whose neighbouring paragraphs were all deleted cannot be restored safely. That is reported instead of guessed.
 - Ids are Word-compatible (`< 0x80000000`, `w14` declared and marked ignorable).
-- Microsoft Word itself has not been run on these outputs (see the README checklist).
+- Microsoft Word itself has not been run on these outputs (see the Word checklist in [DETAILS.md](DETAILS.md#verification)).

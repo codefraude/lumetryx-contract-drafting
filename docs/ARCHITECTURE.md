@@ -166,7 +166,7 @@ Additional checks:
 
 ## After the refactor
 
-Done the same day, after a review against the assessment rubric found gaps. The README's verification table has the results.
+Done the same day, after a review against the assessment rubric found gaps. The verification table in [DETAILS.md](DETAILS.md#verification) has the results.
 
 - **Microsoft Word check** (`npm run check:word`, `scripts/word/`). Word 16 on Windows opens every template, filled draft and editor round trip, and a script compares what Word reports: styles, live numbering, fonts, spacing, emphasis, tables, headers, margins, notes, comments, tracked changes, pictures, text boxes and contents. A rich fixture (`synthetic-supply-agreement.docx`) carries the features the other fixtures lack.
 - **Live conversation evaluation** (`npm run eval:conversation`). It found four defects, fixed with tests: a date written in figures was re-read by the model, raw placeholder labels reached the lawyer, clause ids leaked into replies, and a failed reply hid the answers already saved.
