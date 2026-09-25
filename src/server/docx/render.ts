@@ -15,6 +15,7 @@ import {
   mapParagraph,
   paraIdOf,
   placeholderSpans,
+  blankLineSpans,
   runSpans,
 } from "./paragraph-text";
 import {
@@ -122,6 +123,7 @@ function renderParagraph(
     text: map.text,
     paraId: paraIdOf(p),
     placeholders: placeholderSpans(map),
+    blankLines: blankLineSpans(map),
     runs: runSpans(map),
     numberLabel:
       d.numbering && partKind === "body" ? counter.next(d.numbering) : null,

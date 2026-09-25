@@ -1,6 +1,7 @@
 import type { Block } from "@/server/docx/blocks";
 
-export type MarkerKind = "brace" | "bracket" | "underscore" | "control";
+export type MarkerKind =
+  "brace" | "bracket" | "underscore" | "line" | "cell" | "control";
 
 export interface MarkerOccurrence {
   blockId: string;
@@ -31,6 +32,7 @@ const NON_FIELD_BRACKETS = new Set([
 ]);
 const SIGNATURE_CONTEXT =
   /(sign(ed|ature)?|initials?|signé(e)?|paraphe)\s*(by|par)?[^.:]{0,40}:?\s*$/i;
+const SIGNATURE_LABEL = /^(sign|initials?|paraphe)/i;
 
 export const normalizeKey = (raw: string): string => {
   return raw
@@ -45,8 +47,8 @@ export const normalizeKey = (raw: string): string => {
 
 export const humanize = (raw: string): string => {
   const s = raw
-    .trim()
     .replace(/[_\s]+/g, " ")
+    .trim()
     .toLowerCase();
 
   return s.charAt(0).toUpperCase() + s.slice(1);
@@ -163,6 +165,32 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
       });
     }
 
+    for (const line of b.blankLines ?? []) {
+      const before = text.slice(Math.max(0, line.start - 50), line.start);
+
+      if (
+        SIGNATURE_CONTEXT.test(before) ||
+        out.some(
+          (m) => m.blockId === b.id && m.start < line.end && m.end > line.start,
+        )
+      ) {
+        continue;
+      }
+
+      const shown = `${text.slice(0, line.start)}____${text.slice(line.end)}`;
+
+      out.push({
+        blockId: b.id,
+        start: line.start,
+        end: line.end,
+        text: text.slice(line.start, line.end),
+        marker: "line",
+        key: `l:${b.id}:${line.start}`,
+        labelHint: underscoreLabel(text, line.start),
+        context: contextOf(shown, line.start, line.start + 4),
+      });
+    }
+
     const marked = out.filter((m) => m.blockId === b.id);
 
     for (const ph of b.placeholders ?? []) {
@@ -208,5 +236,93 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
     }
   }
 
-  return out;
+  return [...out, ...emptyCells(blocks, out)];
+}
+
+function emptyCells(
+  blocks: Block[],
+  markers: MarkerOccurrence[],
+): MarkerOccurrence[] {
+  const marked = new Set(markers.map((m) => m.blockId));
+  const tables = new Map<string, Block[]>();
+
+  for (const b of blocks) {
+    if (b.kind === "tableCell" && b.table) {
+      const key = `${b.part}|${b.table.table}`;
+
+      tables.set(key, [...(tables.get(key) ?? []), b]);
+    }
+  }
+
+  const found: MarkerOccurrence[] = [];
+
+  for (const cells of tables.values()) {
+    const at = (row: number, col: number) => {
+      return cells.filter((c) => c.table?.row === row && c.table.col === col);
+    };
+
+    const textAt = (row: number, col: number) => {
+      return at(row, col)
+        .map((c) => c.text)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .replace(/\s*:\s*$/, "")
+        .trim();
+    };
+
+    const hasMarker = (row: number, col: number) => {
+      return at(row, col).some((c) => marked.has(c.id));
+    };
+
+    const rows = [...new Set(cells.map((c) => c.table?.row ?? 0))].sort(
+      (a, b) => a - b,
+    );
+    const cols = [...new Set(cells.map((c) => c.table?.col ?? 0))].sort(
+      (a, b) => a - b,
+    );
+    const header = rows[0] === 0 && !cols.some((c) => hasMarker(0, c));
+    const dataRows = header ? rows.filter((r) => r !== 0) : rows;
+    const valueCols = cols.filter((c) => c > 0);
+
+    if (!dataRows.some((r) => valueCols.some((c) => hasMarker(r, c)))) {
+      continue;
+    }
+
+    for (const r of dataRows) {
+      const label = textAt(r, 0);
+
+      if (!label || SIGNATURE_LABEL.test(label)) {
+        continue;
+      }
+
+      for (const c of valueCols) {
+        const parts = at(r, c);
+        const [first] = parts;
+
+        if (
+          !first ||
+          parts.some((p) => p.text.trim() || p.placeholders?.length)
+        ) {
+          continue;
+        }
+
+        const heading = header ? textAt(0, c) : "";
+
+        found.push({
+          blockId: first.id,
+          start: 0,
+          end: 0,
+          text: "",
+          marker: "cell",
+          key: `e:${first.id}`,
+          labelHint: heading ? `${label} (${heading})` : label,
+          context: heading
+            ? `empty cell in the row "${label}", column "${heading}"`
+            : `empty cell in the row "${label}"`,
+        });
+      }
+    }
+  }
+
+  return found;
 }

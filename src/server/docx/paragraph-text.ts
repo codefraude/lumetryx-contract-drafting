@@ -1,5 +1,5 @@
 import { Element as XmlElement, type Node as XmlNode } from "@xmldom/xmldom";
-import type { PlaceholderSpan, RunSpan } from "./blocks";
+import type { PlaceholderSpan, RunSpan, TextSpan } from "./blocks";
 import {
   firstChild,
   nearestAncestor,
@@ -183,6 +183,46 @@ export function placeholderSpans(map: ParagraphMap): PlaceholderSpan[] {
         title: title ? (wAttr(title, "val") ?? null) : null,
       };
     });
+}
+
+const BLANK_LINE = /[ \u00a0]{4,}/g;
+
+export function blankLineSpans(map: ParagraphMap): TextSpan[] {
+  const underlined = new Array<boolean>(map.text.length).fill(false);
+
+  for (const seg of map.segments) {
+    const r = seg.node ? nearestAncestor(seg.node, "r") : null;
+    const rPr = r ? firstChild(r, "rPr") : null;
+
+    if (toggleOn(rPr ? firstChild(rPr, "u") : null)) {
+      underlined.fill(true, seg.start, seg.end);
+    }
+  }
+
+  const spans: TextSpan[] = [];
+
+  for (const m of map.text.matchAll(BLANK_LINE)) {
+    let start = -1;
+
+    for (let i = m.index; i <= m.index + m[0].length; i++) {
+      const on = i < m.index + m[0].length && underlined[i];
+
+      if (on && start < 0) {
+        start = i;
+      } else if (!on && start >= 0) {
+        if (i - start >= 4) {
+          spans.push({
+            start,
+            end: i,
+          });
+        }
+
+        start = -1;
+      }
+    }
+  }
+
+  return spans;
 }
 
 export const paraIdOf = (p: XmlElement): string | null => {

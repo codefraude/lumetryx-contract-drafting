@@ -19,7 +19,12 @@ export function draftEdits(
       }
 
       const v = renderAt(f, o.lang, docLang);
-      const value = v === null ? o.expected : o.mode === "insert" ? ` ${v}` : v;
+      const value =
+        v === null
+          ? o.expected
+          : o.mode === "insert" && o.start > 0
+            ? ` ${v}`
+            : v;
 
       edits.push({
         blockId: o.blockId,
@@ -125,7 +130,7 @@ export function anchoredUpdates(
         continue;
       }
 
-      const value = a.mode === "insert" ? ` ${v}` : v;
+      const value = a.mode === "insert" && a.start > 0 ? ` ${v}` : v;
 
       if (value !== a.text) {
         edits.push({

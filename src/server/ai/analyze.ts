@@ -17,7 +17,7 @@ import {
   untrusted,
 } from "@/server/ai/model";
 
-export const PARSER_VERSION = "x4";
+export const PARSER_VERSION = "x5";
 const ANALYSIS_TTL_SECONDS = 60 * 60 * 24;
 
 export const analysisCacheKey = (
@@ -33,6 +33,7 @@ Identify every piece of information the lawyer must supply to complete the contr
 - Group markers that mean the same thing under one field (e.g. {{tenant_name}} and [TENANT NAME]), including across languages (e.g. [TENANT NAME] and [NOM DU LOCATAIRE], landlord/bailleur, start date/date de début) — but only when exactly the same value is written at each place. Two different parties are never merged because both are names, and the lines of one address (street, then postcode and town) are separate fields. Never merge markers with different meanings.
 - ids are English snake_case whatever the template language; labels use the template's own wording; give each question in English (question) and French (questionFr).
 - Every label is different. When the template uses the same wording for different information (e.g. "Adresse postale" for the sender and for the recipient), say whose it is, e.g. "Adresse postale (expéditeur)" and "Adresse postale (destinataire)".
+- Markers of kind line are blanks drawn as underlined spaces. Markers of kind cell are empty cells of a fill-in table: the row and the column named in their context say what goes there (row "Email address", column "Party A" is Party A's email address, labelled "Email address (Party A)"). Both are fields, like underscores.
 - Markers of kind control are Word content controls showing placeholder text (their text is the placeholder, their title names the control). A placeholder that names what to enter ("Votre nom", "Date", "Nom du destinataire") is a field. A placeholder that is sample wording to keep or rewrite (part of a sentence, a closing such as "Cordialement", a label such as "Pièce jointe") goes in notFields.
 - Put markers that are ordinary contract text (citations, cross-references, defined terms) in notFields.
 - Find IMPLICIT gaps: places where information is plainly missing but there is no marker (e.g. "the Tenant, of" followed by nothing, "a deposit of" with no amount). For each, give the block id and a verbatim quote, copied exactly, unique within that block: either the text immediately BEFORE the gap (replace: false), or, when the template writes placeholder wording where the value goes (e.g. a line that only reads "Nom du destinataire", or "Dear Client Name,"), that placeholder wording itself (replace: true) so that the value replaces it. A caption followed by a blank ("Date:") stays: replace: false.
@@ -43,6 +44,14 @@ Identify every piece of information the lawyer must supply to complete the contr
 - proposedRules: ONLY for clauses the template itself explicitly marks as optional or conditional in ordinary wording (e.g. "[Optional — include only if the employee is senior]", "Applicable uniquement si…"). Give the first and last block ids of the clause, a condition name, a yes/no question and the verbatim evidence. Never propose a condition based on your own view of what is appropriate or enforceable.
 ${SAFETY_RULES}`;
 
+const shownText = (m: MarkerOccurrence) => {
+  return m.marker === "line"
+    ? "[underlined blank]"
+    : m.marker === "cell"
+      ? "[empty table cell]"
+      : m.text;
+};
+
 function buildPrompt(
   blocks: Block[],
   markers: MarkerOccurrence[],
@@ -50,7 +59,7 @@ function buildPrompt(
 ): string {
   const markerLines = [...new Map(markers.map((m) => [m.key, m])).values()].map(
     (m) =>
-      `${m.key} | ${m.marker} | ${m.text} | ${m.context.replace(/\s+/g, " ")}${m.title ? ` (control title: ${m.title})` : ""}`,
+      `${m.key} | ${m.marker} | ${shownText(m)} | ${m.context.replace(/\s+/g, " ")}${m.title ? ` (control title: ${m.title})` : ""}`,
   );
   const blockLines = blocks
     .filter((b) => b.text.trim())

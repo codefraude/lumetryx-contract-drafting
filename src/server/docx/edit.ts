@@ -1,6 +1,13 @@
 import { Element as XmlElement } from "@xmldom/xmldom";
 import type { ParagraphMap } from "./paragraph-text";
-import { firstChild, toggleOn, W_NS, wAttr, XML_NS } from "./xml";
+import {
+  firstChild,
+  nearestAncestor,
+  toggleOn,
+  W_NS,
+  wAttr,
+  XML_NS,
+} from "./xml";
 
 export interface TextEdit {
   blockId: string;
@@ -92,6 +99,19 @@ export function applyToParagraph(
       : textSegs[0];
   const doc = map.el.ownerDocument;
 
+  if (!first && doc && !map.text && edit.start === 0 && edit.end === 0) {
+    const run =
+      firstChild(map.el, "r") ??
+      map.el.appendChild(doc.createElementNS(W_NS, "w:r"));
+    const t = doc.createElementNS(W_NS, "w:t");
+
+    t.setAttributeNS(XML_NS, "xml:space", "preserve");
+    t.appendChild(doc.createTextNode(value));
+    run.appendChild(t);
+
+    return;
+  }
+
   if (!first || !doc) {
     throw new AnchorConflictError(edit, actual);
   }
@@ -120,6 +140,16 @@ export function applyToParagraph(
 
   if (value === edit.expected) {
     return;
+  }
+
+  if (edit.expected.length && !edit.expected.trim()) {
+    const run = nearestAncestor(first.node, "r");
+    const rPr = run ? firstChild(run, "rPr") : null;
+    const u = rPr ? firstChild(rPr, "u") : null;
+
+    if (u && first.node.textContent === value) {
+      rPr?.removeChild(u);
+    }
   }
 
   for (const seg of edit.start === edit.end ? [first] : textSegs) {

@@ -18,6 +18,11 @@ export interface PlaceholderSpan {
   title: string | null;
 }
 
+export interface TextSpan {
+  start: number;
+  end: number;
+}
+
 export interface NumberingRef {
   numId: string;
   ilvl: number;
@@ -39,6 +44,7 @@ export interface Block {
   text: string;
   paraId: string | null;
   placeholders?: PlaceholderSpan[];
+  blankLines?: TextSpan[];
 }
 
 export interface RenderedBlock extends Block {
@@ -77,6 +83,14 @@ export const CachedBlocks: z.ZodType<Block[]> = z.array(
           end: z.number().int(),
           binding: z.string().nullable(),
           title: z.string().nullable(),
+        }),
+      )
+      .optional(),
+    blankLines: z
+      .array(
+        z.object({
+          start: z.number().int(),
+          end: z.number().int(),
         }),
       )
       .optional(),

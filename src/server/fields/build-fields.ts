@@ -1,4 +1,5 @@
 import {
+  GROUP_ORDER,
   FieldGroup,
   ValueType,
   type Field,
@@ -27,10 +28,12 @@ const slug = (s: string) => {
   );
 };
 
-const readableLabel = (label: string) => {
-  return /^\s*(\{\{.*\}\}|\[.*\])\s*$|_|^[^a-z]*$/.test(label)
+const readableLabel = (label: string, id: string) => {
+  const readable = /^\s*(\{\{.*\}\}|\[.*\])\s*$|_|^[^a-z]*$/.test(label)
     ? humanize(label.replace(/[{}[\]]/g, ""))
-    : label;
+    : label.trim();
+
+  return /\p{L}/u.test(readable) ? readable : humanize(id);
 };
 
 export function guessType(label: string): {
@@ -42,6 +45,13 @@ export function guessType(label: string): {
   const has = (words: string) => {
     return new RegExp(`\\b(${words})`).test(l);
   };
+
+  if (has("e-?mail|courriel")) {
+    return {
+      valueType: "text",
+      group: "parties",
+    };
+  }
 
   if (/\b(name|nom)\b/.test(l)) {
     return {
@@ -152,7 +162,7 @@ export function buildFields(
       start: m.start,
       end: m.end,
       expected: m.text,
-      mode: "replace",
+      mode: m.marker === "cell" ? "insert" : "replace",
       marker: m.marker,
       lang: langOf.get(m.blockId) ?? "unknown",
     };
@@ -216,6 +226,11 @@ export function buildFields(
         ? [at, at + imp.quote.length]
         : [at + imp.quote.length, at + imp.quote.length];
 
+      if (!imp.replace && isRowLabel(block, blocks, end)) {
+        rejected.push(`label cell in ${imp.blockId}: ${imp.quote}`);
+        continue;
+      }
+
       if (
         markers.some(
           (m) => m.blockId === block.id && m.start <= end + 1 && m.end >= start,
@@ -257,7 +272,7 @@ export function buildFields(
 
     fields.push({
       id: uniqueId(af.id),
-      label: readableLabel(af.label),
+      label: readableLabel(af.label, af.id),
       question: af.question,
       ...(af.questionFr ? { questionFr: af.questionFr } : {}),
       valueType: af.valueType,
@@ -301,26 +316,26 @@ export function buildFields(
     }
 
     const guess = guessType(m.labelHint);
+    const drawn = m.marker === "underscore" || m.marker === "line";
 
     fields.push({
-      id: uniqueId(
-        m.marker === "underscore" ? `blank_${m.labelHint}` : m.labelHint,
-      ),
+      id: uniqueId(drawn ? `blank_${m.labelHint}` : m.labelHint),
       label: m.labelHint,
       valueType: guess.valueType,
       group: guess.group,
       occurrences: ms.map(toOccurrence),
       context: m.context,
       required: true,
-      confidence: m.marker === "underscore" ? 0.6 : 0.9,
+      confidence: drawn ? 0.6 : m.marker === "cell" ? 0.8 : 0.9,
       source: "marker",
       status: "missing",
       rawValue: null,
       displayValue: null,
       normalized: null,
-      note:
-        m.marker === "underscore"
-          ? "Detected from a blank line; confirm what it should contain."
+      note: drawn
+        ? "Detected from a blank line; confirm what it should contain."
+        : m.marker === "cell"
+          ? "Detected from an empty table cell; confirm what it should contain."
           : null,
       related: [],
     });
@@ -403,10 +418,40 @@ export function buildFields(
     }
   }
 
+  const position = new Map(blocks.map((b, i) => [b.id, i]));
+
+  const where = (f: Field) => {
+    const [o] = f.occurrences;
+
+    return o ? (position.get(o.blockId) ?? blocks.length) * 1e6 + o.start : 0;
+  };
+
+  fields.sort(
+    (a, b) =>
+      GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) ||
+      where(a) - where(b),
+  );
+
   return {
     fields,
     rules,
     ruleIssues: parsed.issues,
     rejected,
   };
+}
+
+function isRowLabel(block: Block, blocks: Block[], at: number): boolean {
+  const { table } = block;
+
+  if (!table || table.col !== 0 || at < block.text.trimEnd().length) {
+    return false;
+  }
+
+  return blocks.some(
+    (b) =>
+      b.part === block.part &&
+      b.table?.table === table.table &&
+      b.table.row === table.row &&
+      b.table.col > 0,
+  );
 }

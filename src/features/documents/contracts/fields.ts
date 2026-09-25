@@ -56,7 +56,15 @@ export const Occurrence = z.object({
   end: z.number().int().nonnegative(),
   expected: z.string(),
   mode: z.enum(["replace", "insert"]),
-  marker: z.enum(["brace", "bracket", "underscore", "control", "implicit"]),
+  marker: z.enum([
+    "brace",
+    "bracket",
+    "underscore",
+    "line",
+    "cell",
+    "control",
+    "implicit",
+  ]),
   lang: Lang.default("unknown"),
 });
 
