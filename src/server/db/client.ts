@@ -11,13 +11,29 @@ export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 let db: Db | null = null;
 
-const isLocal = (url: string) => ["localhost", "127.0.0.1", "::1"].includes(new URL(url).hostname);
+const isLocal = (url: string) => {
+  return ["localhost", "127.0.0.1", "::1"].includes(new URL(url).hostname);
+};
 
 export function getDb(): Db {
-  if (db) return db;
+  if (db) {
+    return db;
+  }
+
   const url = requireEnv("DATABASE_URL", "document storage");
+
   db = isLocal(url)
-    ? drizzlePg({ client: new pg.Pool({ connectionString: url, max: 5 }), schema })
-    : drizzleNeon({ client: new NeonPool({ connectionString: url }), schema });
+    ? drizzlePg({
+        client: new pg.Pool({
+          connectionString: url,
+          max: 5,
+        }),
+        schema,
+      })
+    : drizzleNeon({
+        client: new NeonPool({ connectionString: url }),
+        schema,
+      });
+
   return db;
 }

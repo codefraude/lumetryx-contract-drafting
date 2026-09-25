@@ -3,8 +3,9 @@ import JSZip from "jszip";
 import { readFileSync } from "node:fs";
 
 /**
- * Browser E2E in markers-only mode (no Gemini key needed): upload → fill via Details API →
- * streamed draft → real editor edits → immediate download → inspect the DOCX package.
+ * Browser E2E in markers-only mode (no Gemini key needed):
+ * upload → fill via Details API → streamed draft → real editor
+ * edits → immediate download → inspect the DOCX package.
  */
 const ORIGIN = { Origin: process.env.APP_URL ?? "http://localhost:3000" };
 const VALUES: Record<string, string> = {
@@ -19,43 +20,82 @@ const VALUES: Record<string, string> = {
   "Reference number": "LX-7 & Co",
 };
 
-type Doc = { id: string; fieldsVersion: number; fields: { id: string; label: string }[] };
+type Doc = {
+  id: string;
+  fieldsVersion: number;
+  fields: {
+    id: string;
+    label: string;
+  }[];
+};
 
 async function uploadAndFill(page: Page) {
   await page.goto("/");
-  await page.setInputFiles("input[type=file]", "fixtures/synthetic-residential-lease.docx");
+
+  await page.setInputFiles(
+    "input[type=file]",
+    "fixtures/synthetic-residential-lease.docx",
+  );
+
   await expect(page.getByText(/still needed/)).toBeVisible({ timeout: 20_000 });
-  let doc = (await (await page.request.get("/api/documents/current")).json()).document as Doc;
+  let doc = (await (await page.request.get("/api/documents/current")).json())
+    .document as Doc;
+
   for (const f of doc.fields) {
     doc = await (
       await page.request.patch(`/api/documents/${doc.id}/fields`, {
         headers: ORIGIN,
-        data: { fieldsVersion: doc.fieldsVersion, fieldId: f.id, value: VALUES[f.label] ?? "30 September 2027" },
+        data: {
+          fieldsVersion: doc.fieldsVersion,
+          fieldId: f.id,
+          value: VALUES[f.label] ?? "30 September 2027",
+        },
       })
     ).json();
   }
+
   await page.reload();
+
   return doc;
 }
 
-const stage = (page: Page) => page.locator(".v2-super-editor__stage");
+const stage = (page: Page) => {
+  return page.locator(".v2-super-editor__stage");
+};
 
-/** Waits until SuperDoc's render scheduler has painted every pending change, so measured positions are current. */
+/**
+ * Waits until SuperDoc's render scheduler has painted
+ * every pending change, so measured positions are current.
+ */
 async function settle(page: Page) {
   await page.waitForFunction(() => {
     const s = document.querySelector(".v2-super-editor__stage");
-    if (!s) return false;
-    const a = (n: string) => s.getAttribute(`data-v2-render-scheduler-${n}`);
-    return a("painted-sequence") === a("target-sequence") && a("action-painted-sequence") === a("action-target-sequence") && a("pending-action-count") === "0";
+
+    if (!s) {
+      return false;
+    }
+
+    const a = (n: string) => {
+      return s.getAttribute(`data-v2-render-scheduler-${n}`);
+    };
+
+    return (
+      a("painted-sequence") === a("target-sequence") &&
+      a("action-painted-sequence") === a("action-target-sequence") &&
+      a("pending-action-count") === "0"
+    );
   });
+
   await page.waitForTimeout(150);
 }
 
 async function clickEndOf(page: Page, text: string, exact = false) {
   await settle(page);
   const el = stage(page).getByText(text, { exact }).first();
+
   await el.scrollIntoViewIfNeeded();
   const box = (await el.boundingBox())!;
+
   await page.mouse.click(box.x + box.width - 1, box.y + box.height / 2);
   await page.keyboard.press("End");
 }
@@ -65,13 +105,23 @@ async function paragraphs(zipBytes: Buffer) {
   const xml = await zip.file("word/document.xml")!.async("string");
   const paras = [...xml.matchAll(/<w:p[ >][\s\S]*?<\/w:p>/g)].map((m) => ({
     xml: m[0],
-    text: [...m[0].matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)].map((t) => t[1]).join(""),
+    text: [...m[0].matchAll(/<w:t(?: [^>]*)?>([^<]*)<\/w:t>/g)]
+      .map((t) => t[1])
+      .join(""),
   }));
-  return { zip, xml, paras };
+
+  return {
+    zip,
+    xml,
+    paras,
+  };
 }
 
-test("progressive draft, real edits and immediate download preserve structure", async ({ page }) => {
+test("progressive draft, real edits and immediate download preserve structure", async ({
+  page,
+}) => {
   const external: string[] = [];
+
   page.on(
     "request",
     (r) =>
@@ -80,7 +130,9 @@ test("progressive draft, real edits and immediate download preserve structure", 
       !r.url().startsWith("blob:") &&
       external.push(r.url()),
   );
+
   const errors: string[] = [];
+
   page.on("pageerror", (e) => errors.push(e.message));
 
   await uploadAndFill(page);
@@ -91,7 +143,8 @@ test("progressive draft, real edits and immediate download preserve structure", 
   await page.screenshot({ path: "tests/output/e2e-draft-desktop.png" });
 
   // 1. Heading edit (the first click focuses the editor surface).
-  // exact: the page header also contains "Residential Lease Agreement" (case-insensitive substring).
+  // exact: the page header also contains "Residential Lease Agreement"
+  // (case-insensitive substring).
   await clickEndOf(page, "RESIDENTIAL LEASE AGREEMENT", true);
   await clickEndOf(page, "RESIDENTIAL LEASE AGREEMENT", true);
   await page.keyboard.type(" (DRAFT)");
@@ -104,48 +157,94 @@ test("progressive draft, real edits and immediate download preserve structure", 
   // 4. Nested list: outdent 3.1.1 to level 2 with the toolbar.
   await clickEndOf(page, "Late payments attract interest");
   await page.waitForTimeout(300);
-  await page.getByRole("button", { name: "Left indent", exact: true }).click();
+
+  await page
+    .getByRole("button", {
+      name: "Left indent",
+      exact: true,
+    })
+    .click();
+
   // 5. Toolbar: bold a new word, then undo/redo an insertion.
   await clickEndOf(page, "private residence.");
   await page.keyboard.type(" Strictly");
-  for (let i = 0; i < "Strictly".length; i++) await page.keyboard.press("Shift+ArrowLeft");
-  await page.getByRole("button", { name: "Bold", exact: true }).click();
-  // The editor groups keystrokes typed in quick succession into one undo step, as a person pausing would not.
+
+  for (let i = 0; i < "Strictly".length; i++) {
+    await page.keyboard.press("Shift+ArrowLeft");
+  }
+
+  await page
+    .getByRole("button", {
+      name: "Bold",
+      exact: true,
+    })
+    .click();
+
+  // The editor groups keystrokes typed in quick succession
+  // into one undo step, as a person pausing would not.
   await page.waitForTimeout(800);
   await page.keyboard.press("End");
   await page.keyboard.type(" ZZZ");
   await page.waitForTimeout(800);
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
+
+  await page
+    .getByRole("button", {
+      name: "Undo",
+      exact: true,
+    })
+    .click();
+
   await page.screenshot({ path: "tests/output/e2e-edited.png" });
 
   // Download immediately — the debounce has not fired; flush() must save first.
-  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download Word file" }).click()]);
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button", { name: "Download Word file" }).click(),
+  ]);
+
   expect(download.suggestedFilename()).toMatch(/draft\.docx$/);
   await download.saveAs("tests/output/e2e-download.docx");
   const bytes = readFileSync("tests/output/e2e-download.docx");
   const { zip, xml, paras } = await paragraphs(bytes);
 
-  const heading = paras.find((p) => p.text.includes("RESIDENTIAL LEASE AGREEMENT"))!;
+  const heading = paras.find((p) =>
+    p.text.includes("RESIDENTIAL LEASE AGREEMENT"),
+  )!;
+
   expect(heading.text).toContain("(DRAFT)");
   expect(heading.xml).toMatch(/<w:pStyle w:val="Heading1"\s*\/>/);
   const italic = paras.find((p) => p.text.includes("The Tenant shall not:"))!;
+
   expect(italic.text).toContain("at any time");
   expect(italic.xml).toMatch(/<w:i\s*\/>/);
   expect(paras.some((p) => p.text.includes("Deposit (refundable)"))).toBe(true);
   expect(xml).toContain("<w:tbl>");
   const late = paras.find((p) => p.text.includes("Late payments"))!;
+
   expect(late.xml).toMatch(/<w:ilvl w:val="1"\s*\/>/);
   const strictly = paras.find((p) => p.text.includes("Strictly"))!;
+
   expect(strictly.xml).toMatch(/<w:b\s*\/>[\s\S]*?Strictly/);
   expect(strictly.text).not.toContain("ZZZ");
   // Structure that must survive the browser round trip.
   const numbering = await zip.file("word/numbering.xml")!.async("string");
+
   expect(numbering).toContain('w:val="%1.%2.%3."');
   const pgMar = xml.match(/<w:pgMar [^>]*>/)?.[0] ?? "";
-  for (const side of ["top", "right", "bottom", "left"]) expect(pgMar).toContain(`w:${side}="1440"`);
+
+  for (const side of ["top", "right", "bottom", "left"]) {
+    expect(pgMar).toContain(`w:${side}="1440"`);
+  }
+
   expect(xml).toContain("w:headerReference");
-  const headerPart = Object.keys(zip.files).find((n) => /^word\/header\d*\.xml$/.test(n))!;
-  expect(await zip.file(headerPart)!.async("string")).toContain("LX-7 &amp; Co");
+  const headerPart = Object.keys(zip.files).find((n) =>
+    /^word\/header\d*\.xml$/.test(n),
+  )!;
+
+  expect(await zip.file(headerPart)!.async("string")).toContain(
+    "LX-7 &amp; Co",
+  );
+
   expect(xml).toContain("John Smith");
 
   expect(external, "no requests may leave this origin").toEqual([]);
@@ -153,30 +252,68 @@ test("progressive draft, real edits and immediate download preserve structure", 
 });
 
 for (const vp of [
-  { name: "mobile", width: 390, height: 844 },
-  { name: "tablet", width: 820, height: 1180 },
+  {
+    name: "mobile",
+    width: 390,
+    height: 844,
+  },
+  {
+    name: "tablet",
+    width: 820,
+    height: 1180,
+  },
 ]) {
-  test(`usable at ${vp.name} width without horizontal page overflow`, async ({ page }) => {
-    await page.setViewportSize({ width: vp.width, height: vp.height });
+  test(`usable at ${vp.name} width without horizontal page overflow`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({
+      width: vp.width,
+      height: vp.height,
+    });
+
     await page.goto("/");
     await page.screenshot({ path: `tests/output/e2e-upload-${vp.name}.png` });
     await uploadAndFill(page);
     const tabs = page.getByRole("navigation", { name: "Views" });
+
     await expect(tabs).toBeVisible();
-    await expect(page.getByRole("button", { name: "Generate draft" })).toBeVisible();
+
+    await expect(
+      page.getByRole("button", { name: "Generate draft" }),
+    ).toBeVisible();
+
     await page.getByRole("button", { name: "Generate draft" }).click();
     await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
     await settle(page);
     await page.screenshot({ path: `tests/output/e2e-document-${vp.name}.png` });
-    // Narrow screens scale the page to the width of its canvas: the whole page shows and nothing scrolls sideways.
+    // Narrow screens scale the page to the width of its canvas:
+    // the whole page shows and nothing scrolls sideways.
     const canvas = await stage(page).evaluate((el) => {
       let c = el.parentElement;
-      while (c && getComputedStyle(c).overflowX !== "auto") c = c.parentElement;
-      return c ? { client: c.clientWidth, scroll: c.scrollWidth } : null;
+
+      while (c && getComputedStyle(c).overflowX !== "auto") {
+        c = c.parentElement;
+      }
+
+      return c
+        ? {
+            client: c.clientWidth,
+            scroll: c.scrollWidth,
+          }
+        : null;
     });
-    expect(canvas, "the document sits in its own scrollable canvas").not.toBeNull();
+
+    expect(
+      canvas,
+      "the document sits in its own scrollable canvas",
+    ).not.toBeNull();
+
     expect(canvas!.scroll).toBeLessThanOrEqual(canvas!.client + 1);
-    const sheet = (await stage(page).locator(".superdoc-page").first().boundingBox())!;
+    const sheet = (await stage(page)
+      .locator(".superdoc-page")
+      .first()
+      .boundingBox())!;
+
     expect(sheet.x).toBeGreaterThanOrEqual(0);
     expect(sheet.x + sheet.width).toBeLessThanOrEqual(vp.width + 1);
     // The scaled page is edited where it is tapped.
@@ -187,23 +324,43 @@ for (const vp of [
     await tabs.getByRole("button", { name: "Chat" }).click();
     await expect(page.locator("#composer")).toBeVisible();
     await page.screenshot({ path: `tests/output/e2e-chat-${vp.name}.png` });
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+
     expect(overflow).toBeLessThanOrEqual(0);
     // Switching back keeps the editor state (panels stay mounted).
     await tabs.getByRole("button", { name: "Document" }).click();
     await expect(stage(page).getByText("John Smith").first()).toBeVisible();
     // Compare and Saved drafts fit the viewport too.
     await page.getByRole("tab", { name: "Compare with template" }).click();
-    await expect(page.getByText(/changes? from the template/)).toBeVisible({ timeout: 30_000 });
+
+    await expect(page.getByText(/changes? from the template/)).toBeVisible({
+      timeout: 30_000,
+    });
+
     await page.screenshot({ path: `tests/output/e2e-compare-${vp.name}.png` });
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+
     await page.getByRole("tab", { name: "Draft" }).click();
     // Secondary actions sit in the "More actions" menu below desktop width.
     await page.getByRole("button", { name: "More actions" }).click();
     await page.getByRole("button", { name: "Saved drafts" }).click();
     const drawer = page.getByRole("dialog", { name: "Saved drafts" });
-    await expect(drawer.getByText("synthetic-residential-lease", { exact: false }).first()).toBeVisible();
-    expect((await drawer.boundingBox())!.width).toBeLessThanOrEqual(vp.width + 0.5); // sub-pixel rounding while it slides in
+
+    await expect(
+      drawer.getByText("synthetic-residential-lease", { exact: false }).first(),
+    ).toBeVisible();
+
+    expect((await drawer.boundingBox())!.width).toBeLessThanOrEqual(
+      vp.width + 0.5,
+    ); // sub-pixel rounding while it slides in
+
     await page.screenshot({ path: `tests/output/e2e-drafts-${vp.name}.png` });
     await page.keyboard.press("Escape");
     await expect(drawer).toBeHidden();
@@ -213,45 +370,97 @@ for (const vp of [
 
 test("rejects an invalid upload with a clear message", async ({ page }) => {
   await page.goto("/");
-  await page.setInputFiles("input[type=file]", { name: "contract.docx", mimeType: "application/octet-stream", buffer: Buffer.from("not a word file") });
-  await expect(page.getByText("This file is not a Word .docx document.")).toBeVisible();
+
+  await page.setInputFiles("input[type=file]", {
+    name: "contract.docx",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from("not a word file"),
+  });
+
+  await expect(
+    page.getByText("This file is not a Word .docx document."),
+  ).toBeVisible();
 });
 
-test("Open in Word hands Word a short-lived link to the saved draft, which works without the cookie", async ({ page, playwright }) => {
-  // Headless browsers have no Word to launch: record the link handed to it instead.
+test("Open in Word hands Word a short-lived link to the saved draft, which works without the cookie", async ({
+  page,
+  playwright,
+}) => {
+  // Headless browsers have no Word to launch:
+  // record the link handed to it instead.
   await page.addInitScript(() => {
     const launched: string[] = [];
+
     Object.assign(window, { launched });
     const click = HTMLAnchorElement.prototype.click;
+
     HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
-      if (this.href.startsWith("ms-word:")) launched.push(this.href);
-      else click.call(this);
+      if (this.href.startsWith("ms-word:")) {
+        launched.push(this.href);
+      } else {
+        click.call(this);
+      }
     };
   });
+
   const doc = await uploadAndFill(page);
+
   await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
-  const openInWord = page.getByRole("banner").getByRole("button", { name: "Open in Word" });
+  const openInWord = page
+    .getByRole("banner")
+    .getByRole("button", { name: "Open in Word" });
+
   await openInWord.click();
-  // The first time, the app's own dialog explains the browser's one-time question; later clicks go straight to Word.
+  // The first time, the app's own dialog explains the browser's
+  // one-time question; later clicks go straight to Word.
   const intro = page.getByRole("dialog", { name: "Open the draft in Word?" });
+
   await intro.getByRole("button", { name: "Open in Word" }).click();
   await expect(page.getByText("Opening the draft in Word.")).toBeVisible();
   await openInWord.click();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { launched: string[] }).launched.length)).toBe(2);
+
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => (window as unknown as { launched: string[] }).launched.length,
+      ),
+    )
+    .toBe(2);
+
   await expect(intro).toHaveCount(0);
-  const [launched] = await page.evaluate(() => (window as unknown as { launched: string[] }).launched);
-  expect(launched).toMatch(/^ms-word:ofv\|u\|https?:\/\/[^/]+\/api\/word\/[^/]+\/[^/]+-%20draft\.docx$/);
+  const [launched] = await page.evaluate(
+    () => (window as unknown as { launched: string[] }).launched,
+  );
+
+  expect(launched).toMatch(
+    /^ms-word:ofv\|u\|https?:\/\/[^/]+\/api\/word\/[^/]+\/[^/]+-%20draft\.docx$/,
+  );
+
   const link = launched!.replace("ms-word:ofv|u|", "");
 
-  // Word has no cookie: a fresh client gets exactly what Download gives, and a changed link gets nothing.
+  // Word has no cookie: a fresh client gets exactly what
+  // Download gives, and a changed link gets nothing.
   const word = await playwright.request.newContext();
   const viaLink = await word.get(link);
+
   expect(viaLink.status()).toBe(200);
   expect(viaLink.headers()["content-type"]).toContain("wordprocessingml");
-  const viaDownload = await page.request.get(`/api/documents/${doc.id}/download`);
-  expect(Buffer.from(await viaLink.body()).equals(Buffer.from(await viaDownload.body()))).toBe(true);
+  const viaDownload = await page.request.get(
+    `/api/documents/${doc.id}/download`,
+  );
+
+  expect(
+    Buffer.from(await viaLink.body()).equals(
+      Buffer.from(await viaDownload.body()),
+    ),
+  ).toBe(true);
+
   expect((await word.head(link)).status()).toBe(200);
-  expect((await word.get(link.replace("/api/word/", "/api/word/0"))).status()).toBe(404);
+
+  expect(
+    (await word.get(link.replace("/api/word/", "/api/word/0"))).status(),
+  ).toBe(404);
+
   await word.dispose();
 });

@@ -14,7 +14,10 @@ interface Props {
   busy: boolean;
   error: ActionFailure | null;
   disabledReason: string | null;
-  /** Resolves false when the message was not sent at all, so the composer keeps the text. */
+  /**
+   * Resolves false when the message was not sent
+   * at all, so the composer keeps the text.
+   */
   onSend(text: string): Promise<boolean>;
   onStop(): void;
   onRetry(): void;
@@ -22,9 +25,21 @@ interface Props {
   footer?: ReactNode;
 }
 
-const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reducedMotion = () => {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+};
 
-export function ChatPanel({ messages, busy, error, disabledReason, onSend, onStop, onRetry, header, footer }: Props) {
+export function ChatPanel({
+  messages,
+  busy,
+  error,
+  disabledReason,
+  onSend,
+  onStop,
+  onRetry,
+  header,
+  footer,
+}: Props) {
   const list = useRef<HTMLDivElement>(null);
   /** Follow new content only while the reader is at the bottom. */
   const stick = useRef(true);
@@ -35,23 +50,41 @@ export function ChatPanel({ messages, busy, error, disabledReason, onSend, onSto
 
   useLayoutEffect(() => {
     const el = list.current;
-    // Instant, not smooth: a smooth scroll per streamed token would fight the reader.
-    if (el && stick.current) el.scrollTop = el.scrollHeight;
+
+    // Instant, not smooth: a smooth scroll per
+    // streamed token would fight the reader.
+    if (el && stick.current) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [signature]);
 
   const onScroll = () => {
     const el = list.current;
-    if (!el) return;
+
+    if (!el) {
+      return;
+    }
+
     const near = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+
     stick.current = near;
     setAway(!near);
-    if (near) setSeen(signature);
+
+    if (near) {
+      setSeen(signature);
+    }
   };
+
   const jump = () => {
     stick.current = true;
     const el = list.current;
-    el?.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? "auto" : "smooth" });
+
+    el?.scrollTo({
+      top: el.scrollHeight,
+      behavior: reducedMotion() ? "auto" : "smooth",
+    });
   };
+
   const fresh = away && seen !== signature;
 
   return (
@@ -75,7 +108,12 @@ export function ChatPanel({ messages, busy, error, disabledReason, onSend, onSto
               icon={CircleAlert}
               actions={
                 error.retryable && (
-                  <Button size="sm" variant="secondary" icon={RotateCcw} onClick={onRetry}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    icon={RotateCcw}
+                    onClick={onRetry}
+                  >
                     Retry
                   </Button>
                 )
@@ -95,7 +133,10 @@ export function ChatPanel({ messages, busy, error, disabledReason, onSend, onSto
             Jump to latest
             {fresh && (
               <>
-                <span aria-hidden className="size-1.5 rounded-full bg-accent-ink" />
+                <span
+                  aria-hidden
+                  className="size-1.5 rounded-full bg-accent-ink"
+                />
                 <span className="sr-only">(new messages)</span>
               </>
             )}
@@ -103,7 +144,13 @@ export function ChatPanel({ messages, busy, error, disabledReason, onSend, onSto
         )}
       </div>
       {footer}
-      <Composer busy={busy} disabledReason={disabledReason} onSend={onSend} onStop={onStop} onSubmitted={() => (stick.current = true)} />
+      <Composer
+        busy={busy}
+        disabledReason={disabledReason}
+        onSend={onSend}
+        onStop={onStop}
+        onSubmitted={() => (stick.current = true)}
+      />
     </section>
   );
 }

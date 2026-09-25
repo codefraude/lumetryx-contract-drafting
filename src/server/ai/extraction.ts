@@ -1,31 +1,61 @@
-import { generateText, NoObjectGeneratedError, Output, type LanguageModel } from "ai";
+import {
+  generateText,
+  NoObjectGeneratedError,
+  Output,
+  type LanguageModel,
+} from "ai";
 import { z } from "zod";
 import type { Field, Lang } from "@/features/documents/contracts/fields";
 import type { Block } from "@/server/docx/blocks";
 import { chronologyIssues, normalizeValue } from "@/server/fields/normalize";
 import { AiError, SAFETY_RULES, providerOptions, untrusted } from "./model";
 
-/** Stage 1 of a chat turn: the model proposes field values from the user's latest message. */
+/**
+ * Stage 1 of a chat turn: the model proposes
+ * field values from the user's latest message.
+ */
 
 export const Extraction = z.object({
-  // Gemini rejects maxItems on arrays of objects (HTTP 400); the 40 cap is applied in applyExtraction.
+  // Gemini rejects maxItems on arrays of objects (HTTP
+  // 400); the 40 cap is applied in applyExtraction.
   updates: z.array(
     z.object({
       fieldId: z.string(),
-      value: z.string().max(400).describe("The value exactly as it should appear in the contract, using the user's wording"),
-      currency: z.string().nullable().describe("ISO 4217 code ONLY if the user explicitly named the currency, else null"),
-      evidence: z.string().max(400).describe("Verbatim substring of the user's latest message that states this value"),
+      value: z
+        .string()
+        .max(400)
+        .describe(
+          "The value exactly as it should appear in the contract, using the user's wording",
+        ),
+      currency: z
+        .string()
+        .nullable()
+        .describe(
+          "ISO 4217 code ONLY if the user explicitly named the currency, else null",
+        ),
+      evidence: z
+        .string()
+        .max(400)
+        .describe(
+          "Verbatim substring of the user's latest message that states this value",
+        ),
     }),
   ),
-  clauseBlockIds: z.array(z.string()).max(6).describe("Block ids of clauses the user is asking about, if any"),
+  clauseBlockIds: z
+    .array(z.string())
+    .max(6)
+    .describe("Block ids of clauses the user is asking about, if any"),
 });
+
 export type Extraction = z.infer<typeof Extraction>;
 
-const squash = (s: string) =>
-  s
+const squash = (s: string) => {
+  return s
     .toLowerCase()
     .replace(/[\s,]+/g, " ")
     .trim();
+};
+
 const DATE_IN_FIGURES = /\b\d{1,2}[/.-]\d{1,2}[/.-]\d{4}\b/g;
 
 const CURRENCY_WORDS: Record<string, RegExp> = {
@@ -50,8 +80,8 @@ export interface ApplyResult {
 }
 
 /**
- * Commits an update only if it names a real field, quotes text the user actually wrote and passes
- * validation. Nothing is parsed out of prose.
+ * Commits an update only if it names a real field, quotes text the user
+ * actually wrote and passes validation. Nothing is parsed out of prose.
  */
 export function applyExtraction(
   fields: Field[],
@@ -65,36 +95,76 @@ export function applyExtraction(
   const msg = squash(userMessage);
   const changed = new Set<string>();
   const rejected: string[] = [];
-  const confirmedCurrency = next.find((f) => f.normalized?.kind === "money" && f.status === "confirmed" && f.normalized.currency !== "XXX")?.normalized;
+  const confirmedCurrency = next.find(
+    (f) =>
+      f.normalized?.kind === "money" &&
+      f.status === "confirmed" &&
+      f.normalized.currency !== "XXX",
+  )?.normalized;
+
   for (const u of extraction.updates.slice(0, 40)) {
     const f = byId.get(u.fieldId);
+
     if (!f) {
       rejected.push(`unknown field ${u.fieldId}`);
       continue;
     }
+
     if (!u.evidence.trim() || !msg.includes(squash(u.evidence))) {
       rejected.push(`no evidence in message for ${u.fieldId}`);
       continue;
     }
-    const userCurrency = u.currency && CURRENCY_WORDS[u.currency.toUpperCase()]?.test(userMessage) ? u.currency.toUpperCase() : null;
-    const hint = userCurrency ?? templateCurrency ?? (confirmedCurrency?.kind === "money" ? confirmedCurrency.currency : null);
-    // A date the user wrote in figures is checked as written: the model must not settle 03/04/2026 by itself.
-    const figures = f.valueType === "date" ? [...u.evidence.matchAll(DATE_IN_FIGURES)].map(([d]) => d) : [];
+
+    const userCurrency =
+      u.currency && CURRENCY_WORDS[u.currency.toUpperCase()]?.test(userMessage)
+        ? u.currency.toUpperCase()
+        : null;
+    const hint =
+      userCurrency ??
+      templateCurrency ??
+      (confirmedCurrency?.kind === "money" ? confirmedCurrency.currency : null);
+    // A date the user wrote in figures is checked as written:
+    // the model must not settle 03/04/2026 by itself.
+    const figures =
+      f.valueType === "date"
+        ? [...u.evidence.matchAll(DATE_IN_FIGURES)].map(([d]) => d)
+        : [];
     const value = figures.length === 1 ? (figures[0] ?? u.value) : u.value;
-    const r = normalizeValue(f.valueType, value, { currencyHint: hint, lang });
-    if (f.rawValue === value && f.status === r.status) continue;
-    Object.assign(f, { rawValue: value, status: r.status, displayValue: r.displayValue, normalized: r.normalized, note: r.note });
+    const r = normalizeValue(f.valueType, value, {
+      currencyHint: hint,
+      lang,
+    });
+
+    if (f.rawValue === value && f.status === r.status) {
+      continue;
+    }
+
+    Object.assign(f, {
+      rawValue: value,
+      status: r.status,
+      displayValue: r.displayValue,
+      normalized: r.normalized,
+      note: r.note,
+    });
+
     changed.add(f.id);
   }
+
   for (const issue of chronologyIssues(next)) {
     const f = byId.get(issue.fieldId);
+
     if (f?.status === "confirmed") {
       f.status = "needs_clarification";
       f.note = issue.note;
       changed.add(f.id);
     }
   }
-  return { fields: next, changed: [...changed], rejected };
+
+  return {
+    fields: next,
+    changed: [...changed],
+    rejected,
+  };
 }
 
 const EXTRACT_SYSTEM = `You extract contract field values from a lawyer's chat message. Messages may be in English, French or a mix; fields may have been asked in another language than the answer.
@@ -110,8 +180,9 @@ const EXTRACT_SYSTEM = `You extract contract field values from a lawyer's chat m
 - If the message only asks a question, return no updates.
 ${SAFETY_RULES}`;
 
-const fieldLine = (f: Field) =>
-  `${f.id} | ${f.label} | ${f.valueType} | ${f.status}${f.displayValue ? ` = ${f.displayValue}` : ""} | ${(f.question ?? f.context).replace(/\s+/g, " ").slice(0, 140)}`;
+const fieldLine = (f: Field) => {
+  return `${f.id} | ${f.label} | ${f.valueType} | ${f.status}${f.displayValue ? ` = ${f.displayValue}` : ""} | ${(f.question ?? f.context).replace(/\s+/g, " ").slice(0, 140)}`;
+};
 
 export function outline(blocks: Block[]): string {
   return blocks
@@ -125,14 +196,21 @@ export interface TurnInput {
   model: LanguageModel;
   fields: Field[];
   blocks: Block[];
-  history: { role: "user" | "assistant"; content: string }[];
+  history: {
+    role: "user" | "assistant";
+    content: string;
+  }[];
   userMessage: string;
   abortSignal?: AbortSignal;
 }
 
-/** The server's calendar date. ponytail: send the browser's date instead if users work in another time zone than the server. */
+/**
+ * The server's calendar date. ponytail: send the browser's date
+ * instead if users work in another time zone than the server.
+ */
 const today = () => {
   const d = new Date();
+
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
@@ -142,8 +220,9 @@ export async function extract(input: TurnInput) {
     .slice(-6)
     .map((m) => `${m.role}: ${m.content.slice(0, 600)}`)
     .join("\n")}\n\n${untrusted("user_message", input.userMessage)}`;
-  const run = (extra = "") =>
-    generateText({
+
+  const run = (extra = "") => {
+    return generateText({
       model: input.model,
       system: EXTRACT_SYSTEM,
       prompt: prompt + extra,
@@ -153,24 +232,45 @@ export async function extract(input: TurnInput) {
       abortSignal: input.abortSignal,
       providerOptions: providerOptions(),
     });
+  };
+
   try {
     let result;
+
     try {
       result = await run();
     } catch (err) {
-      if (!NoObjectGeneratedError.isInstance(err) || err.finishReason === "length") throw err;
+      if (
+        !NoObjectGeneratedError.isInstance(err) ||
+        err.finishReason === "length"
+      ) {
+        throw err;
+      }
+
       result = await run("\n\nReturn valid JSON matching the schema.");
     }
-    if (result.finishReason === "length")
-      throw new AiError("truncated", "The response was cut off, so your answer was not saved. Retry, or send a shorter message.", true);
-    return { extraction: result.output, usage: result.usage };
+
+    if (result.finishReason === "length") {
+      throw new AiError(
+        "truncated",
+        "The response was cut off, so your answer was not saved. Retry, or send a shorter message.",
+        true,
+      );
+    }
+
+    return {
+      extraction: result.output,
+      usage: result.usage,
+    };
   } catch (err) {
-    if (NoObjectGeneratedError.isInstance(err))
+    if (NoObjectGeneratedError.isInstance(err)) {
       throw new AiError(
         err.finishReason === "length" ? "truncated" : "invalid_output",
         "That answer could not be read reliably, so nothing was saved. Retry, or rephrase it.",
         true,
       );
+    }
+
     throw err;
   }
 }

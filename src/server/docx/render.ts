@@ -1,42 +1,120 @@
-import { Element as XmlElement, type Document as XmlDocument } from "@xmldom/xmldom";
-import { assertIndexable, type Block, type BlockKind, type PartKind, type RenderedBlock } from "./blocks";
+import {
+  Element as XmlElement,
+  type Document as XmlDocument,
+} from "@xmldom/xmldom";
+import {
+  assertIndexable,
+  type Block,
+  type BlockKind,
+  type PartKind,
+  type RenderedBlock,
+} from "./blocks";
 import { AnchorConflictError, applyToParagraph, type TextEdit } from "./edit";
 import type { DocxPackage } from "./package";
-import { mapParagraph, paraIdOf, placeholderSpans, runSpans } from "./paragraph-text";
-import { loadContext, NumberingCounter, readNumPr, type DocContext } from "./styles";
-import { contentParts, firstChild, nearestAncestor, paragraphsOf, parseXml, serializeXml, W_NS, wAttr } from "./xml";
+import {
+  mapParagraph,
+  paraIdOf,
+  placeholderSpans,
+  runSpans,
+} from "./paragraph-text";
+import {
+  loadContext,
+  NumberingCounter,
+  readNumPr,
+  type DocContext,
+} from "./styles";
+import {
+  contentParts,
+  firstChild,
+  nearestAncestor,
+  paragraphsOf,
+  parseXml,
+  serializeXml,
+  W_NS,
+  wAttr,
+} from "./xml";
 
-/** The single walk over body, headers and footers that applies edits and renders blocks. */
+/**
+ * The single walk over body, headers and footers
+ * that applies edits and renders blocks.
+ */
 
-function describeParagraph(p: XmlElement, ctx: DocContext): Pick<Block, "kind" | "styleId" | "numbering" | "table"> & { headingLevel: number | null } {
+function describeParagraph(
+  p: XmlElement,
+  ctx: DocContext,
+): Pick<Block, "kind" | "styleId" | "numbering" | "table"> & {
+  headingLevel: number | null;
+} {
   const pPr = firstChild(p, "pPr");
   const pStyle = pPr ? firstChild(pPr, "pStyle") : null;
   const styleId = pStyle ? wAttr(pStyle, "val") : null;
   const style = styleId ? ctx.styles.get(styleId) : undefined;
   const direct = pPr ? firstChild(pPr, "numPr") : null;
-  const numbering = (direct ? readNumPr(direct) : null) ?? style?.numbering ?? null;
+  const numbering =
+    (direct ? readNumPr(direct) : null) ?? style?.numbering ?? null;
   const tc = nearestAncestor(p, "tc");
   let table: Block["table"] = null;
+
   if (tc) {
     const tr = nearestAncestor(tc, "tr");
     const tbl = tr ? nearestAncestor(tr, "tbl") : null;
+
     const indexIn = (el: XmlElement | null, name: string) => {
-      if (!el?.parentNode) return 0;
+      if (!el?.parentNode) {
+        return 0;
+      }
+
       let i = 0;
-      for (let n = el.parentNode.firstChild; n && n !== el; n = n.nextSibling) if (n instanceof XmlElement && n.localName === name) i++;
+
+      for (let n = el.parentNode.firstChild; n && n !== el; n = n.nextSibling) {
+        if (n instanceof XmlElement && n.localName === name) {
+          i++;
+        }
+      }
+
       return i;
     };
-    const allTables = tbl?.ownerDocument ? Array.from(tbl.ownerDocument.getElementsByTagNameNS(W_NS, "tbl")) : [];
-    table = { table: tbl ? Math.max(0, allTables.indexOf(tbl)) : 0, row: indexIn(tr, "tr"), col: indexIn(tc, "tc") };
+
+    const allTables = tbl?.ownerDocument
+      ? Array.from(tbl.ownerDocument.getElementsByTagNameNS(W_NS, "tbl"))
+      : [];
+
+    table = {
+      table: tbl ? Math.max(0, allTables.indexOf(tbl)) : 0,
+      row: indexIn(tr, "tr"),
+      col: indexIn(tc, "tc"),
+    };
   }
+
   const headingLevel = style?.headingLevel ?? null;
-  const kind: BlockKind = table ? "tableCell" : headingLevel ? "heading" : numbering ? "listItem" : "paragraph";
-  return { kind, styleId, numbering, table, headingLevel };
+  const kind: BlockKind = table
+    ? "tableCell"
+    : headingLevel
+      ? "heading"
+      : numbering
+        ? "listItem"
+        : "paragraph";
+
+  return {
+    kind,
+    styleId,
+    numbering,
+    table,
+    headingLevel,
+  };
 }
 
-function renderParagraph(p: XmlElement, part: string, partKind: PartKind, ordinal: number, ctx: DocContext, counter: NumberingCounter): RenderedBlock {
+function renderParagraph(
+  p: XmlElement,
+  part: string,
+  partKind: PartKind,
+  ordinal: number,
+  ctx: DocContext,
+  counter: NumberingCounter,
+): RenderedBlock {
   const map = mapParagraph(p);
   const d = describeParagraph(p, ctx);
+
   return {
     id: `${part}#${ordinal}`,
     part,
@@ -50,7 +128,8 @@ function renderParagraph(p: XmlElement, part: string, partKind: PartKind, ordina
     paraId: paraIdOf(p),
     placeholders: placeholderSpans(map),
     runs: runSpans(map),
-    numberLabel: d.numbering && partKind === "body" ? counter.next(d.numbering) : null,
+    numberLabel:
+      d.numbering && partKind === "body" ? counter.next(d.numbering) : null,
     headingLevel: d.headingLevel,
   };
 }
@@ -58,80 +137,180 @@ function renderParagraph(p: XmlElement, part: string, partKind: PartKind, ordina
 /** Indexes every paragraph in body, headers and footers. */
 export async function indexBlocks(pkg: DocxPackage): Promise<RenderedBlock[]> {
   const blocks: RenderedBlock[] = [];
-  for await (const ev of fillAndRender(pkg, [])) if (ev.type === "block") blocks.push(ev.block);
+
+  for await (const ev of fillAndRender(pkg, [])) {
+    if (ev.type === "block") {
+      blocks.push(ev.block);
+    }
+  }
+
   assertIndexable(blocks);
+
   return blocks;
 }
 
 export interface AppliedEdit {
   edit: TextEdit;
-  /** Anchor of the inserted value after all edits in its paragraph are applied. */
-  result: { blockId: string; start: number; end: number; text: string };
+  /**
+   * Anchor of the inserted value after all edits in its paragraph are applied.
+   */
+  result: {
+    blockId: string;
+    start: number;
+    end: number;
+    text: string;
+  };
 }
 
-export type FillEvent = { type: "block"; block: RenderedBlock } | { type: "done"; applied: AppliedEdit[] };
+export type FillEvent =
+  | {
+      type: "block";
+      block: RenderedBlock;
+    }
+  | {
+      type: "done";
+      applied: AppliedEdit[];
+    };
 
 /**
- * Applies edits through the XML DOM, which escapes values, and yields rendered blocks in document order.
- * One bad anchor aborts before any output; a paragraph's edits run from its end so offsets stay valid.
+ * Applies edits through the XML DOM, which escapes values, and yields
+ * rendered blocks in document order. One bad anchor aborts before any
+ * output; a paragraph's edits run from its end so offsets stay valid.
  */
-export async function* fillAndRender(pkg: DocxPackage, edits: TextEdit[], omit: ReadonlySet<string> = new Set()): AsyncGenerator<FillEvent> {
+export async function* fillAndRender(
+  pkg: DocxPackage,
+  edits: TextEdit[],
+  omit: ReadonlySet<string> = new Set(),
+): AsyncGenerator<FillEvent> {
   const ctx = await loadContext(pkg);
   const counter = new NumberingCounter(ctx);
   const byBlock = new Map<string, [TextEdit, ...TextEdit[]]>();
+
   for (const e of edits) {
     const same = byBlock.get(e.blockId);
-    if (same) same.push(e);
-    else byBlock.set(e.blockId, [e]);
+
+    if (same) {
+      same.push(e);
+    } else {
+      byBlock.set(e.blockId, [e]);
+    }
   }
+
   const parts = contentParts(pkg);
   const docs = new Map<string, XmlDocument>();
+
   for (const { part } of parts) {
     const xml = await pkg.zip.file(part)?.async("string");
-    if (xml) docs.set(part, parseXml(xml));
+
+    if (xml) {
+      docs.set(part, parseXml(xml));
+    }
   }
+
   // Validate every anchor before mutating anything.
   for (const [blockId, pe] of byBlock) {
     const part = blockId.slice(0, blockId.lastIndexOf("#"));
     const doc = docs.get(part);
-    const p = doc ? paragraphsOf(doc)[Number(blockId.slice(blockId.lastIndexOf("#") + 1))] : undefined;
-    if (!p) throw new AnchorConflictError(pe[0], "");
+    const p = doc
+      ? paragraphsOf(doc)[Number(blockId.slice(blockId.lastIndexOf("#") + 1))]
+      : undefined;
+
+    if (!p) {
+      throw new AnchorConflictError(pe[0], "");
+    }
+
     const text = mapParagraph(p).text;
     let later: TextEdit | undefined;
-    for (const e of [...pe].sort((a, b) => b.start - a.start || b.end - a.end)) {
-      if (text.slice(e.start, e.end) !== e.expected) throw new AnchorConflictError(e, text.slice(e.start, e.end));
-      if (later && e.end > later.start) throw new Error(`Overlapping edits in ${blockId}`);
+
+    for (const e of [...pe].sort(
+      (a, b) => b.start - a.start || b.end - a.end,
+    )) {
+      if (text.slice(e.start, e.end) !== e.expected) {
+        throw new AnchorConflictError(e, text.slice(e.start, e.end));
+      }
+
+      if (later && e.end > later.start) {
+        throw new Error(`Overlapping edits in ${blockId}`);
+      }
+
       later = e;
     }
   }
+
   const applied: AppliedEdit[] = [];
+
   for (const { part, kind } of parts) {
     const doc = docs.get(part);
-    if (!doc) continue;
+
+    if (!doc) {
+      continue;
+    }
+
     const paragraphs = paragraphsOf(doc);
+
     for (const [ord, p] of paragraphs.entries()) {
       const pe = byBlock.get(`${part}#${ord}`);
+
       if (pe) {
-        for (const e of [...pe].sort((a, b) => b.start - a.start || b.end - a.end)) applyToParagraph(mapParagraph(p), e, ctx.placeholderStyles);
+        for (const e of [...pe].sort(
+          (a, b) => b.start - a.start || b.end - a.end,
+        )) {
+          applyToParagraph(mapParagraph(p), e, ctx.placeholderStyles);
+        }
+
         let shift = 0;
+
         for (const e of [...pe].sort((a, b) => a.start - b.start)) {
           const v = e.value.replace(/[\r\n]+/g, " ");
-          applied.push({ edit: e, result: { blockId: e.blockId, start: e.start + shift, end: e.start + shift + v.length, text: v } });
+
+          applied.push({
+            edit: e,
+            result: {
+              blockId: e.blockId,
+              start: e.start + shift,
+              end: e.start + shift + v.length,
+              text: v,
+            },
+          });
+
           shift += v.length - (e.end - e.start);
         }
       }
-      // Omitted blocks (excluded clauses, condition markers) are about to be removed: they are
-      // not shown and do not advance list numbering, exactly as in the resulting document.
-      if (!omit.has(`${part}#${ord}`)) yield { type: "block", block: renderParagraph(p, part, kind, ord, ctx, counter) };
+
+      // Omitted blocks (excluded clauses, condition markers) are
+      // about to be removed: they are not shown and do not advance
+      // list numbering, exactly as in the resulting document.
+      if (!omit.has(`${part}#${ord}`)) {
+        yield {
+          type: "block",
+          block: renderParagraph(p, part, kind, ord, ctx, counter),
+        };
+      }
     }
-    if (edits.length) pkg.zip.file(part, serializeXml(doc));
+
+    if (edits.length) {
+      pkg.zip.file(part, serializeXml(doc));
+    }
   }
-  yield { type: "done", applied };
+
+  yield {
+    type: "done",
+    applied,
+  };
 }
 
 /** `fillAndRender` without the streamed blocks. */
-export async function applyTextEdits(pkg: DocxPackage, edits: TextEdit[]): Promise<AppliedEdit[]> {
+export async function applyTextEdits(
+  pkg: DocxPackage,
+  edits: TextEdit[],
+): Promise<AppliedEdit[]> {
   let applied: AppliedEdit[] = [];
-  for await (const ev of fillAndRender(pkg, edits)) if (ev.type === "done") applied = ev.applied;
+
+  for await (const ev of fillAndRender(pkg, edits)) {
+    if (ev.type === "done") {
+      applied = ev.applied;
+    }
+  }
+
   return applied;
 }

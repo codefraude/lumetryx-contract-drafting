@@ -8,18 +8,26 @@ import { renderDraft } from "@/server/draft/generate";
 import { mustGet, mustGetBytes } from "./access";
 
 /**
- * Compares the template with the newest draft snapshot: the editor's unsaved export when sent, else
- * the saved working draft, else a preview built from the current answers. No model call is made.
+ * Compares the template with the newest draft snapshot: the editor's
+ * unsaved export when sent, else the saved working draft, else a
+ * preview built from the current answers. No model call is made.
  */
-export async function compare(sessionId: string, documentId: string, snapshot: Uint8Array | null): Promise<CompareResponse> {
+export async function compare(
+  sessionId: string,
+  documentId: string,
+  snapshot: Uint8Array | null,
+): Promise<CompareResponse> {
   const doc = await mustGet(sessionId, documentId);
   const bytes = await mustGetBytes(sessionId, documentId);
   const originalPkg = await loadDocxPackage(new Uint8Array(bytes.originalDocx));
-  await ensureParaIds(originalPkg); // the same deterministic ids the draft was given
+
+  // The same deterministic ids the draft was given.
+  await ensureParaIds(originalPkg);
   const original = await indexBlocks(originalPkg);
   let source: CompareResponse["source"];
   let current: Uint8Array;
   let state = doc.fieldState;
+
   if (snapshot && doc.draftStatus === "ready") {
     source = "editor";
     current = snapshot;
@@ -29,9 +37,18 @@ export async function compare(sessionId: string, documentId: string, snapshot: U
   } else {
     source = "preview";
     const r = await renderDraft(new Uint8Array(bytes.originalDocx), state);
+
     current = r.bytes;
     state = r.state;
   }
+
   const currentBlocks = await indexBlocks(await loadDocxPackage(current));
-  return { source, result: compareBlocks(original, currentBlocks, { fields: state.fields, rules: state.rules }) };
+
+  return {
+    source,
+    result: compareBlocks(original, currentBlocks, {
+      fields: state.fields,
+      rules: state.rules,
+    }),
+  };
 }

@@ -1,20 +1,60 @@
 "use client";
 
-import { CircleCheck, CircleHelp, CircleMinus, CircleSlash, Lightbulb, TriangleAlert } from "lucide-react";
+import {
+  CircleCheck,
+  CircleHelp,
+  CircleMinus,
+  CircleSlash,
+  Lightbulb,
+  TriangleAlert,
+} from "lucide-react";
 import { useState } from "react";
-import type { RuleAction, RuleView } from "@/features/documents/contracts/document-view";
-import type { ChatLanguage, Field } from "@/features/documents/contracts/fields";
+import type {
+  RuleAction,
+  RuleView,
+} from "@/features/documents/contracts/document-view";
+import type {
+  ChatLanguage,
+  Field,
+} from "@/features/documents/contracts/fields";
 import { errorMessage } from "@/lib/http";
 import { Button } from "@/shared/ui/Button";
 import { Callout, StatusText, type Tone } from "@/shared/ui/Status";
 import { ClauseDecision } from "./ClauseDecision";
 
-const STATE: Record<RuleView["state"], { label: string; tone: Tone; icon: typeof CircleCheck }> = {
-  included: { label: "Included", tone: "ok", icon: CircleCheck },
-  excluded: { label: "Excluded", tone: "neutral", icon: CircleSlash },
-  unresolved: { label: "Needs decision", tone: "warn", icon: CircleHelp },
-  proposed: { label: "Suggested", tone: "neutral", icon: Lightbulb },
-  dismissed: { label: "Not conditional", tone: "neutral", icon: CircleMinus },
+const STATE: Record<
+  RuleView["state"],
+  {
+    label: string;
+    tone: Tone;
+    icon: typeof CircleCheck;
+  }
+> = {
+  included: {
+    label: "Included",
+    tone: "ok",
+    icon: CircleCheck,
+  },
+  excluded: {
+    label: "Excluded",
+    tone: "neutral",
+    icon: CircleSlash,
+  },
+  unresolved: {
+    label: "Needs decision",
+    tone: "warn",
+    icon: CircleHelp,
+  },
+  proposed: {
+    label: "Suggested",
+    tone: "neutral",
+    icon: Lightbulb,
+  },
+  dismissed: {
+    label: "Not conditional",
+    tone: "neutral",
+    icon: CircleMinus,
+  },
 };
 
 export interface RuleCardProps {
@@ -22,20 +62,35 @@ export interface RuleCardProps {
   r: RuleView;
   fields: Field[];
   language: ChatLanguage;
-  /** A draft exists: answers change through the chat so the draft is patched safely. */
+  /**
+   * A draft exists: answers change through
+   * the chat so the draft is patched safely.
+   */
   locked: boolean;
   onAction(ruleId: string, action: RuleAction): Promise<unknown>;
 }
 
-/** One conditional clause: its state and reason, and the decision or confirmation it waits for. */
-export function RuleCard({ documentId, r, fields, language, locked, onAction }: RuleCardProps) {
+/**
+ * One conditional clause: its state and reason,
+ * and the decision or confirmation it waits for.
+ */
+export function RuleCard({
+  documentId,
+  r,
+  fields,
+  language,
+  locked,
+  onAction,
+}: RuleCardProps) {
   const [busy, setBusy] = useState<RuleAction | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [more, setMore] = useState(false);
   const s = STATE[r.state];
+
   const act = async (a: RuleAction) => {
     setBusy(a);
     setErr(null);
+
     try {
       await onAction(r.id, a);
     } catch (e) {
@@ -44,12 +99,27 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
       setBusy(null);
     }
   };
-  const btn = (a: RuleAction, label: string, variant: "primary" | "secondary" | "ghost" = "secondary") => (
-    <Button size="sm" variant={variant} busy={busy === a} disabled={busy !== null} onClick={() => void act(a)}>
-      {label}
-    </Button>
-  );
+
+  const btn = (
+    a: RuleAction,
+    label: string,
+    variant: "primary" | "secondary" | "ghost" = "secondary",
+  ) => {
+    return (
+      <Button
+        size="sm"
+        variant={variant}
+        busy={busy === a}
+        disabled={busy !== null}
+        onClick={() => void act(a)}
+      >
+        {label}
+      </Button>
+    );
+  };
+
   const evidence = r.evidence ?? "";
+
   return (
     <li className="px-4 py-4 sm:px-5">
       <div className="flex items-baseline justify-between gap-3">
@@ -73,18 +143,30 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
             </>
           }
         >
-          The answers call for {r.state === "excluded" ? "removing" : "changing"} this clause, but you edited it in the draft. Removing it keeps your edited
-          version, which comes back if the clause is included again.
+          The answers call for{" "}
+          {r.state === "excluded" ? "removing" : "changing"} this clause, but
+          you edited it in the draft. Removing it keeps your edited version,
+          which comes back if the clause is included again.
         </Callout>
       )}
       {r.state === "unresolved" && !r.pending && (
-        <ClauseDecision documentId={documentId} r={r} field={fields.find((f) => f.id === r.condition.fieldId)} language={language} locked={locked} />
+        <ClauseDecision
+          documentId={documentId}
+          r={r}
+          field={fields.find((f) => f.id === r.condition.fieldId)}
+          language={language}
+          locked={locked}
+        />
       )}
       {r.state === "proposed" && (
         <>
           {evidence && (
             <blockquote className="mt-3 border-l-2 border-line pl-3 font-serif text-body text-ink-2">
-              <span className="sr-only">The template says: </span>“{evidence.length > 180 && !more ? `${evidence.slice(0, 180).trimEnd()}…` : evidence}”
+              <span className="sr-only">The template says: </span>“
+              {evidence.length > 180 && !more
+                ? `${evidence.slice(0, 180).trimEnd()}…`
+                : evidence}
+              ”
               {evidence.length > 180 && (
                 <button
                   type="button"
@@ -103,11 +185,14 @@ export function RuleCard({ documentId, r, fields, language, locked, onAction }: 
         </>
       )}
       {r.hasEditedVariant && r.applied === "excluded" && (
-        <p className="mt-2 text-meta text-ink-2">Your edited version is kept and will be restored if this clause is included again.</p>
+        <p className="mt-2 text-meta text-ink-2">
+          Your edited version is kept and will be restored if this clause is
+          included again.
+        </p>
       )}
 
       {r.confirmed && !r.dismissed && !r.pending && (
-        <div className="-ml-2.5 mt-2 flex flex-wrap gap-1">
+        <div className="mt-2 -ml-2.5 flex flex-wrap gap-1">
           {r.override ? (
             btn("clear_override", "Follow the condition again", "ghost")
           ) : (

@@ -103,12 +103,14 @@ This tab is the writer. Revision checks on the server catch other tabs.
 
 | | Before (`fd4b280`) | After the refactor | Now |
 | --- | --- | --- | --- |
-| Files | 55 | 122 | 132 |
-| Lines | 8,430 | 9,484 | 11,510 |
-| Files ≥ 300 lines | 9 (largest: 632) | 1: `scripts/make-fixtures.ts` (421), test tooling | 0 |
-| Files 201–299 lines | 9 | 4 (largest production file: 236) | 8 (largest: 294) |
+| Files | 55 | 122 | 136 |
+| Lines | 8,430 | 9,484 | 21,441 |
+| Files ≥ 300 lines | 9 (largest: 632) | 1: `scripts/make-fixtures.ts` (421), test tooling | 19 (largest: `server/db/repo.ts`, 500) |
+| Files 201–299 lines | 9 | 4 (largest production file: 236) | 19 (largest: 288) |
 
 "Now" adds the work described in [After the refactor](#after-the-refactor). Prettier's line breaks lengthened some files, so `server/db/repo.ts` (320 lines after formatting) gave its session functions to `server/db/sessions.ts`. `scripts/make-fixtures.ts` was split into `scripts/fixtures/`.
+
+On 25 September 2026 the layout moved to 80 columns, with braces on every branch, one member per line in objects and types, and block bodies for named functions. That nearly doubled the line count with the same code, so the "Now" sizes count layout, not new logic. The files were not split again afterwards.
 
 Files that were split:
 - `components/Workspace.tsx`: 632 lines into 11 modules across `workspace`, `chat`, `documents` and `shared/ui`
@@ -170,7 +172,7 @@ Done the same day, after a review against the assessment rubric found gaps. The 
 - **Live conversation evaluation** (`npm run eval:conversation`). It found four defects, fixed with tests: a date written in figures was re-read by the model, raw placeholder labels reached the lawyer, clause ids leaked into replies, and a failed reply hid the answers already saved.
 - **Narrow screens.** Below 900 px the page is scaled to the width of the screen, with no sideways scrolling.
 - **Firefox and WebKit** run the browser tests. The session cookie is `Secure` only when `APP_URL` is HTTPS, because Safari drops `Secure` cookies on `http://localhost`.
-- **Prettier** 3.9.9 (devDependency, `printWidth` 160) formats the code. `npm run format:check` verifies it.
+- **Prettier** 3.9.9 with `prettier-plugin-tailwindcss` 0.8.1 (devDependencies, `printWidth` 80) formats the code and sorts Tailwind classes. `npm run format:check` verifies it. ESLint covers the layout Prettier leaves alone: `curly`, `@stylistic/eslint-plugin` 5.10.0 (blank lines between statements and class members, one member per line in objects and type literals), and a `no-restricted-syntax` rule that gives every named arrow function a block body.
 - **Interface refinement:** new design tokens and shared primitives (`globals.css`, `shared/ui/`), plain rows instead of cards, one primary action in the header, and the screen-reader markers of the chat and comparison lists contained in their scroll containers (they had made the page scroll).
 - **Vercel AI Gateway** (`server/ai/fallback.ts`, `AI_PROVIDER`): Gemini first and the gateway when a call fails, or either one alone. `ai` 7.0.113 with `@ai-sdk/google` 4.0.79 and `@ai-sdk/gateway` 4.0.91, so there is one copy of the provider packages.
 - **Open in Word** (`server/documents/word-link.ts`, `features/workspace/use-export.ts`): a link to the saved draft, signed with the session's secret hash and valid for five minutes, handed to Word through its `ms-word:` scheme; `/api/word/<token>/<name>.docx` is the one route that authenticates by link instead of cookie.

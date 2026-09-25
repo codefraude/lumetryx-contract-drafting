@@ -14,10 +14,14 @@ interface Options {
 }
 
 /**
- * A stopped or failed generation never replaces the previous draft.
- * If the draft is closed mid-way the server still finishes it, and its events only update this draft's entry.
+ * A stopped or failed generation never replaces the previous
+ * draft. If the draft is closed mid-way the server still
+ * finishes it, and its events only update this draft's entry.
  */
-export function useDraftGeneration(documentId: string, { onCompleted, onFailed, announce }: Options) {
+export function useDraftGeneration(
+  documentId: string,
+  { onCompleted, onFailed, announce }: Options,
+) {
   const queryClient = useQueryClient();
   const [blocks, setBlocks] = useState<DraftBlock[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -30,13 +34,19 @@ export function useDraftGeneration(documentId: string, { onCompleted, onFailed, 
     setGenerating(true);
     announce("Generating the draft.");
     const ctrl = new AbortController();
+
     abort.current = ctrl;
+
     const fail = (f: ActionFailure) => {
       setFailure(f);
       onFailed();
     };
+
     const onEvent = (e: StreamEvent) => {
-      if (e.type === "draft_block_ready") setBlocks((b) => [...b, e.block]);
+      if (e.type === "draft_block_ready") {
+        setBlocks((b) => [...b, e.block]);
+      }
+
       if (e.type === "draft_complete") {
         patchDocument(queryClient, documentId, (d) => ({
           ...d,
@@ -46,21 +56,46 @@ export function useDraftGeneration(documentId: string, { onCompleted, onFailed, 
           workingRevision: e.workingRevision,
           fieldsVersion: e.fieldsVersion,
         }));
+
         onCompleted(e.workingRevision);
         announce("The draft is ready to edit.");
       }
-      if (e.type === "error") fail({ message: e.message, retryable: e.retryable });
+
+      if (e.type === "error") {
+        fail({
+          message: e.message,
+          retryable: e.retryable,
+        });
+      }
     };
+
     try {
-      await streamDraftGeneration(documentId, fieldsVersionOf(queryClient, documentId), onEvent, ctrl.signal);
+      await streamDraftGeneration(
+        documentId,
+        fieldsVersionOf(queryClient, documentId),
+        onEvent,
+        ctrl.signal,
+      );
     } catch (e) {
-      if (!ctrl.signal.aborted) fail(toFailure(e));
+      if (!ctrl.signal.aborted) {
+        fail(toFailure(e));
+      }
     } finally {
       abort.current = null;
       setGenerating(false);
-      void queryClient.invalidateQueries({ queryKey: documentKeys.detail(documentId) });
+
+      void queryClient.invalidateQueries({
+        queryKey: documentKeys.detail(documentId),
+      });
     }
   }
 
-  return { blocks, generating, failure, generate, stop: () => abort.current?.abort(), clearFailure: () => setFailure(null) };
+  return {
+    blocks,
+    generating,
+    failure,
+    generate,
+    stop: () => abort.current?.abort(),
+    clearFailure: () => setFailure(null),
+  };
 }

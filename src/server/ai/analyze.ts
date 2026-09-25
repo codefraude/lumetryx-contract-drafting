@@ -1,16 +1,32 @@
 import "server-only";
-import { generateText, NoObjectGeneratedError, Output, type LanguageModel } from "ai";
+import {
+  generateText,
+  NoObjectGeneratedError,
+  Output,
+  type LanguageModel,
+} from "ai";
 import { cacheGet, cacheSet } from "@/server/cache/redis";
 import type { MarkerOccurrence } from "@/server/docx/detect";
 import type { Block } from "@/server/docx/blocks";
 import { TemplateAnalysis } from "@/server/fields/template-analysis";
-import { AiError, PROMPT_VERSION, SAFETY_RULES, providerOptions, untrusted } from "@/server/ai/model";
+import {
+  AiError,
+  PROMPT_VERSION,
+  SAFETY_RULES,
+  providerOptions,
+  untrusted,
+} from "@/server/ai/model";
 
 export const PARSER_VERSION = "x4";
 const ANALYSIS_TTL_SECONDS = 60 * 60 * 24;
 
-export const analysisCacheKey = (sessionId: string, templateHash: string, model: string) =>
-  `lx:analysis:${sessionId}:${templateHash}:${PARSER_VERSION}:${PROMPT_VERSION}:${model}`;
+export const analysisCacheKey = (
+  sessionId: string,
+  templateHash: string,
+  model: string,
+) => {
+  return `lx:analysis:${sessionId}:${templateHash}:${PARSER_VERSION}:${PROMPT_VERSION}:${model}`;
+};
 
 const SYSTEM = `You analyse contract templates (English, French or both) for a lawyer's drafting assistant.
 Identify every piece of information the lawyer must supply to complete the contract.
@@ -27,18 +43,34 @@ Identify every piece of information the lawyer must supply to complete the contr
 - proposedRules: ONLY for clauses the template itself explicitly marks as optional or conditional in ordinary wording (e.g. "[Optional — include only if the employee is senior]", "Applicable uniquement si…"). Give the first and last block ids of the clause, a condition name, a yes/no question and the verbatim evidence. Never propose a condition based on your own view of what is appropriate or enforceable.
 ${SAFETY_RULES}`;
 
-function buildPrompt(blocks: Block[], markers: MarkerOccurrence[], conditions: string[]): string {
+function buildPrompt(
+  blocks: Block[],
+  markers: MarkerOccurrence[],
+  conditions: string[],
+): string {
   const markerLines = [...new Map(markers.map((m) => [m.key, m])).values()].map(
-    (m) => `${m.key} | ${m.marker} | ${m.text} | ${m.context.replace(/\s+/g, " ")}${m.title ? ` (control title: ${m.title})` : ""}`,
+    (m) =>
+      `${m.key} | ${m.marker} | ${m.text} | ${m.context.replace(/\s+/g, " ")}${m.title ? ` (control title: ${m.title})` : ""}`,
   );
-  const blockLines = blocks.filter((b) => b.text.trim()).map((b) => `${b.id} | ${b.partKind}/${b.kind} | ${b.text.replace(/\s+/g, " ")}`);
+  const blockLines = blocks
+    .filter((b) => b.text.trim())
+    .map(
+      (b) =>
+        `${b.id} | ${b.partKind}/${b.kind} | ${b.text.replace(/\s+/g, " ")}`,
+    );
+
   return `${untrusted("template", `MARKERS (key | kind | text | context):\n${markerLines.join("\n")}\n\nCONDITIONS (from [[IF …]] markers):\n${conditions.join("\n") || "none"}\n\nBLOCKS (id | location | text):\n${blockLines.join("\n")}`)}\n\nReturn the analysis.`;
 }
 
 export interface AnalysisResult {
   analysis: TemplateAnalysis;
   cached: boolean;
-  usage: { inputTokens?: number | undefined; outputTokens?: number | undefined } | undefined;
+  usage:
+    | {
+        inputTokens?: number | undefined;
+        outputTokens?: number | undefined;
+      }
+    | undefined;
 }
 
 export async function analyzeTemplate(opts: {
@@ -51,13 +83,25 @@ export async function analyzeTemplate(opts: {
   conditions?: string[];
   abortSignal?: AbortSignal;
 }): Promise<AnalysisResult> {
-  const key = analysisCacheKey(opts.sessionId, opts.templateHash, opts.modelName);
+  const key = analysisCacheKey(
+    opts.sessionId,
+    opts.templateHash,
+    opts.modelName,
+  );
   const hit = await cacheGet(key, (raw) => TemplateAnalysis.parse(raw));
-  if (hit) return { analysis: hit, cached: true, usage: undefined };
+
+  if (hit) {
+    return {
+      analysis: hit,
+      cached: true,
+      usage: undefined,
+    };
+  }
 
   const prompt = buildPrompt(opts.blocks, opts.markers, opts.conditions ?? []);
-  const run = (extra = "") =>
-    generateText({
+
+  const run = (extra = "") => {
+    return generateText({
       model: opts.model,
       system: SYSTEM,
       prompt: prompt + extra,
@@ -67,29 +111,61 @@ export async function analyzeTemplate(opts: {
       abortSignal: opts.abortSignal,
       providerOptions: providerOptions(),
     });
+  };
 
   let result;
+
   try {
     result = await run();
   } catch (err) {
-    if (!NoObjectGeneratedError.isInstance(err) || err.finishReason === "length") throw mapNoObject(err);
+    if (
+      !NoObjectGeneratedError.isInstance(err) ||
+      err.finishReason === "length"
+    ) {
+      throw mapNoObject(err);
+    }
+
     // A single repair attempt, not a retry loop.
     try {
-      result = await run("\n\nYour previous reply did not match the required JSON schema. Reply again with valid JSON only.");
+      result = await run(
+        "\n\nYour previous reply did not match the required JSON schema. Reply again with valid JSON only.",
+      );
     } catch (err2) {
       throw mapNoObject(err2);
     }
   }
-  if (result.finishReason === "length") throw new AiError("truncated", "The template analysis was cut off. Try a shorter template.", true);
+
+  if (result.finishReason === "length") {
+    throw new AiError(
+      "truncated",
+      "The template analysis was cut off. Try a shorter template.",
+      true,
+    );
+  }
+
   await cacheSet(key, result.output, ANALYSIS_TTL_SECONDS);
-  return { analysis: result.output, cached: false, usage: result.usage };
+
+  return {
+    analysis: result.output,
+    cached: false,
+    usage: result.usage,
+  };
 }
 
 function mapNoObject(err: unknown): unknown {
   if (NoObjectGeneratedError.isInstance(err)) {
     return err.finishReason === "length"
-      ? new AiError("truncated", "The AI response was cut off before it was complete.", true)
-      : new AiError("invalid_output", "The AI returned an invalid analysis.", true);
+      ? new AiError(
+          "truncated",
+          "The AI response was cut off before it was complete.",
+          true,
+        )
+      : new AiError(
+          "invalid_output",
+          "The AI returned an invalid analysis.",
+          true,
+        );
   }
+
   return err;
 }

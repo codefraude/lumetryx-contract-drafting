@@ -6,12 +6,22 @@ import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 // Self-hosted at build time: the browser never contacts a font service.
-const ui = Source_Sans_3({ subsets: ["latin"], variable: "--font-ui", display: "swap" });
-const display = Source_Serif_4({ subsets: ["latin"], variable: "--font-display", display: "swap", axes: ["opsz"] });
+const ui = Source_Sans_3({
+  subsets: ["latin"],
+  variable: "--font-ui",
+  display: "swap",
+});
+const display = Source_Serif_4({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  axes: ["opsz"],
+});
 
 export const metadata: Metadata = {
   title: "Contract drafting from your Word template",
-  description: "Upload a Word contract template, answer a few questions, edit the draft and download it as .docx.",
+  description:
+    "Upload a Word contract template, answer a few questions, edit the draft and download it as .docx.",
 };
 
 export const viewport: Viewport = {
@@ -21,15 +31,30 @@ export const viewport: Viewport = {
   // The on-screen keyboard shrinks the layout, so the composer stays above it.
   interactiveWidget: "resizes-content",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
-    { media: "(prefers-color-scheme: dark)", color: "#191918" },
+    {
+      media: "(prefers-color-scheme: light)",
+      color: "#f7f7f5",
+    },
+    {
+      media: "(prefers-color-scheme: dark)",
+      color: "#191918",
+    },
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    // The head script sets the theme before hydration; this only silences <html>'s own attributes.
-    <html lang="en" className={`${ui.variable} ${display.variable}`} suppressHydrationWarning>
+    // The head script sets the theme before hydration;
+    // this only silences <html>'s own attributes.
+    <html
+      lang="en"
+      className={`${ui.variable} ${display.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>

@@ -26,7 +26,7 @@ function Rich({ text }: { text: string }) {
   return (
     <>
       {messageBlocks(text).map((b, i) => {
-        if (b.kind === "p")
+        if (b.kind === "p") {
           return (
             <p key={i}>
               {b.lines.map((l, k) => (
@@ -37,9 +37,15 @@ function Rich({ text }: { text: string }) {
               ))}
             </p>
           );
+        }
+
         const List = b.kind === "ul" ? "ul" : "ol";
+
         return (
-          <List key={i} className={`space-y-1 pl-5 ${b.kind === "ul" ? "list-disc" : "list-decimal"} marker:text-ink-3`}>
+          <List
+            key={i}
+            className={`space-y-1 pl-5 ${b.kind === "ul" ? "list-disc" : "list-decimal"} marker:text-ink-3`}
+          >
             {b.items.map((it, k) => (
               <li key={k} className="pl-0.5">
                 <Inline text={it} />
@@ -57,7 +63,12 @@ function Thinking() {
     <div role="status" className="flex h-7 items-center gap-1 text-ink-3">
       <span className="sr-only">The assistant is working on a reply</span>
       {[0, 1, 2].map((i) => (
-        <span key={i} aria-hidden className="lx-dot size-1.5 rounded-full bg-current" style={{ animationDelay: `${i * 160}ms` }} />
+        <span
+          key={i}
+          aria-hidden
+          className="lx-dot size-1.5 rounded-full bg-current"
+          style={{ animationDelay: `${i * 160}ms` }}
+        />
       ))}
     </div>
   );
@@ -65,21 +76,25 @@ function Thinking() {
 
 /** Memoised: while a reply streams, only the last message re-renders. */
 export const Message = memo(function Message({ m }: { m: ChatMessage }) {
-  if (m.role === "notice")
+  if (m.role === "notice") {
     return (
       <Callout tone="warn" icon={Info} role="note" className="text-ui">
         {m.content}
       </Callout>
     );
-  if (m.role === "user")
+  }
+
+  if (m.role === "user") {
     return (
-      <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-card border border-line bg-subtle px-3.5 py-2 text-body text-ink">
+      <div className="ml-auto w-fit max-w-[85%] rounded-card border border-line bg-subtle px-3.5 py-2 text-body break-words whitespace-pre-wrap text-ink">
         <span className="sr-only">You said: </span>
         {m.content}
       </div>
     );
+  }
+
   return (
-    <div className="break-words text-body leading-relaxed text-ink">
+    <div className="text-body leading-relaxed break-words text-ink">
       <span className="sr-only">Assistant: </span>
       {m.content ? (
         <div className="space-y-2.5">

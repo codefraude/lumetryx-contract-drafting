@@ -5,7 +5,9 @@ import { useRef, type ReactNode } from "react";
 export interface TabItem<T extends string> {
   id: T;
   label: ReactNode;
-  /** Accessible name when the visible label carries extra marks such as counts. */
+  /**
+   * Accessible name when the visible label carries extra marks such as counts.
+   */
   name?: string;
   badge?: ReactNode;
   disabled?: boolean;
@@ -35,17 +37,22 @@ export function TabBar<T extends string>({
     0,
     items.findIndex((t) => t.id === value),
   );
+
   const move = (from: number, step: number) => {
     for (let k = 1; k <= items.length; k++) {
-      const n = (((from + step * k) % items.length) + items.length) % items.length;
+      const n =
+        (((from + step * k) % items.length) + items.length) % items.length;
       const item = items[n];
+
       if (item && !item.disabled) {
         onChange(item.id);
         refs.current[n]?.focus();
+
         return;
       }
     }
   };
+
   return (
     <div
       role="tablist"
@@ -63,6 +70,7 @@ export function TabBar<T extends string>({
     >
       {items.map((t, i) => {
         const on = t.id === value;
+
         return (
           <button
             key={t.id}
@@ -82,7 +90,10 @@ export function TabBar<T extends string>({
           >
             <span className="truncate">{t.label}</span>
             {t.badge}
-            <span aria-hidden className={`absolute inset-x-2.5 -bottom-px h-0.5 rounded-full ${on ? "bg-ink" : "bg-transparent"}`} />
+            <span
+              aria-hidden
+              className={`absolute inset-x-2.5 -bottom-px h-0.5 rounded-full ${on ? "bg-ink" : "bg-transparent"}`}
+            />
           </button>
         );
       })}

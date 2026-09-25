@@ -1,21 +1,46 @@
 "use client";
 
-import type { ChatLanguage, DocLanguage } from "@/features/documents/contracts/fields";
+import type {
+  ChatLanguage,
+  DocLanguage,
+} from "@/features/documents/contracts/fields";
 
-const LANGS: { value: ChatLanguage | null; label: string }[] = [
-  { value: null, label: "Auto" },
-  { value: "en", label: "English" },
-  { value: "fr", label: "Français" },
+const LANGS: {
+  value: ChatLanguage | null;
+  label: string;
+}[] = [
+  {
+    value: null,
+    label: "Auto",
+  },
+  {
+    value: "en",
+    label: "English",
+  },
+  {
+    value: "fr",
+    label: "Français",
+  },
 ];
 
-const TEMPLATE_LANG: Partial<Record<DocLanguage, string>> = { mixed: "Bilingual template.", fr: "French template." };
+const TEMPLATE_LANG: Partial<Record<DocLanguage, string>> = {
+  mixed: "Bilingual template.",
+  fr: "French template.",
+};
 
-/** Assistant identity and conversation language; progress lives in the header status and the tab counts. */
+/**
+ * Assistant identity and conversation language; progress
+ * lives in the header status and the tab counts.
+ */
 export function ChatHeader({
   language,
   onLanguage,
 }: {
-  language: { document: DocLanguage; conversation: ChatLanguage | null; effective: ChatLanguage } | null;
+  language: {
+    document: DocLanguage;
+    conversation: ChatLanguage | null;
+    effective: ChatLanguage;
+  } | null;
   onLanguage(l: ChatLanguage | null): void;
 }) {
   return (
@@ -23,7 +48,9 @@ export function ChatHeader({
       <div className="min-w-0 flex-1">
         <p className="text-ui font-semibold text-ink">Drafting assistant</p>
         <p className="text-meta text-ink-3">
-          {language ? `Replies in ${language.effective === "fr" ? "French" : "English"}. ${TEMPLATE_LANG[language.document] ?? ""}` : "Off for this template"}
+          {language
+            ? `Replies in ${language.effective === "fr" ? "French" : "English"}. ${TEMPLATE_LANG[language.document] ?? ""}`
+            : "Off for this template"}
         </p>
       </div>
       {language && (
@@ -35,6 +62,7 @@ export function ChatHeader({
         >
           {LANGS.map((l) => {
             const on = language.conversation === l.value;
+
             return (
               <button
                 key={l.label}

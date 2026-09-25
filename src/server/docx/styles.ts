@@ -1,12 +1,16 @@
 import type { Element as XmlElement } from "@xmldom/xmldom";
+import type { NumberingRef } from "./blocks";
 import type { DocxPackage } from "./package";
 import { firstChild, parseXml, W_NS, wAttr } from "./xml";
 
-/** Paragraph styles and list numbering: heading levels, list levels and Word-like number labels. */
+/**
+ * Paragraph styles and list numbering: heading
+ * levels, list levels and Word-like number labels.
+ */
 
 interface StyleInfo {
   headingLevel: number | null;
-  numbering: { numId: string; ilvl: number } | null;
+  numbering: NumberingRef | null;
 }
 
 interface NumberingLevel {
@@ -19,7 +23,10 @@ export interface DocContext {
   styles: Map<string, StyleInfo>;
   /** numId -> levels */
   numbering: Map<string, NumberingLevel[]>;
-  /** Ids of Word's “Placeholder Text” style (the id is localised, the name is not). */
+  /**
+   * Ids of Word's “Placeholder Text” style
+   * (the id is localised, the name is not).
+   */
   placeholderStyles: Set<string>;
 }
 
@@ -27,59 +34,101 @@ export async function loadContext(pkg: DocxPackage): Promise<DocContext> {
   const styles = new Map<string, StyleInfo>();
   const placeholderStyles = new Set<string>();
   const stylesXml = await pkg.zip.file("word/styles.xml")?.async("string");
+
   if (stylesXml) {
     const doc = parseXml(stylesXml);
+
     for (const s of Array.from(doc.getElementsByTagNameNS(W_NS, "style"))) {
       const id = wAttr(s, "styleId");
-      if (!id) continue;
+
+      if (!id) {
+        continue;
+      }
+
       const name = firstChild(s, "name");
       const nameVal = name ? (wAttr(name, "val") ?? "") : "";
-      if (/^placeholder text$/i.test(nameVal)) placeholderStyles.add(id);
-      const heading = /^heading (\d)$/i.exec(nameVal) ?? /^Heading(\d)$/.exec(id);
+
+      if (/^placeholder text$/i.test(nameVal)) {
+        placeholderStyles.add(id);
+      }
+
+      const heading =
+        /^heading (\d)$/i.exec(nameVal) ?? /^Heading(\d)$/.exec(id);
       const pPr = firstChild(s, "pPr");
       const outline = pPr ? firstChild(pPr, "outlineLvl") : null;
       const numPr = pPr ? firstChild(pPr, "numPr") : null;
+
       styles.set(id, {
-        headingLevel: heading ? Number(heading[1]) : outline ? Number(wAttr(outline, "val")) + 1 : null,
+        headingLevel: heading
+          ? Number(heading[1])
+          : outline
+            ? Number(wAttr(outline, "val")) + 1
+            : null,
         numbering: numPr ? readNumPr(numPr) : null,
       });
     }
   }
+
   const numbering = new Map<string, NumberingLevel[]>();
   const numXml = await pkg.zip.file("word/numbering.xml")?.async("string");
+
   if (numXml) {
     const doc = parseXml(numXml);
     const abstract = new Map<string, NumberingLevel[]>();
-    for (const [i, a] of Array.from(doc.getElementsByTagNameNS(W_NS, "abstractNum")).entries()) {
+
+    for (const [i, a] of Array.from(
+      doc.getElementsByTagNameNS(W_NS, "abstractNum"),
+    ).entries()) {
       const levels: NumberingLevel[] = [];
-      for (const [j, l] of Array.from(a.getElementsByTagNameNS(W_NS, "lvl")).entries()) {
+
+      for (const [j, l] of Array.from(
+        a.getElementsByTagNameNS(W_NS, "lvl"),
+      ).entries()) {
         const ilvl = Number(wAttr(l, "ilvl") ?? j);
         const fmt = firstChild(l, "numFmt");
         const text = firstChild(l, "lvlText");
         const start = firstChild(l, "start");
+
         levels[ilvl] = {
           fmt: fmt ? (wAttr(fmt, "val") ?? "decimal") : "decimal",
           text: text ? (wAttr(text, "val") ?? "") : "",
           start: start ? Number(wAttr(start, "val") ?? 1) : 1,
         };
       }
+
       abstract.set(wAttr(a, "abstractNumId") ?? String(i), levels);
     }
+
     for (const n of Array.from(doc.getElementsByTagNameNS(W_NS, "num"))) {
       const ref = firstChild(n, "abstractNumId");
       const levels = ref ? abstract.get(wAttr(ref, "val") ?? "") : undefined;
-      if (levels) numbering.set(wAttr(n, "numId") ?? "", levels);
+
+      if (levels) {
+        numbering.set(wAttr(n, "numId") ?? "", levels);
+      }
     }
   }
-  return { styles, numbering, placeholderStyles };
+
+  return {
+    styles,
+    numbering,
+    placeholderStyles,
+  };
 }
 
-export function readNumPr(numPr: XmlElement): { numId: string; ilvl: number } | null {
+export function readNumPr(numPr: XmlElement): NumberingRef | null {
   const numId = firstChild(numPr, "numId");
   const ilvl = firstChild(numPr, "ilvl");
   const id = numId ? wAttr(numId, "val") : null;
-  if (!id || id === "0") return null;
-  return { numId: id, ilvl: ilvl ? Number(wAttr(ilvl, "val") ?? 0) : 0 };
+
+  if (!id || id === "0") {
+    return null;
+  }
+
+  return {
+    numId: id,
+    ilvl: ilvl ? Number(wAttr(ilvl, "val") ?? 0) : 0,
+  };
 }
 
 const ROMAN: [number, string][] = [
@@ -108,11 +157,14 @@ function formatCounter(n: number, fmt: string): string {
     case "upperRoman": {
       let r = "";
       let v = n;
-      for (const [k, s] of ROMAN)
+
+      for (const [k, s] of ROMAN) {
         while (v >= k) {
           r += s;
           v -= k;
         }
+      }
+
       return fmt === "upperRoman" ? r.toUpperCase() : r;
     }
     default:
@@ -120,22 +172,50 @@ function formatCounter(n: number, fmt: string): string {
   }
 }
 
-/** Computes display labels (e.g. "1.1.2.") the way Word would for sequential paragraphs. Used for the streaming preview only. */
+/**
+ * Computes display labels (e.g. "1.1.2.") the way Word would for
+ * sequential paragraphs. Used for the streaming preview only.
+ */
 export class NumberingCounter {
   private counters = new Map<string, number[]>();
+
   constructor(private ctx: DocContext) {}
-  next(num: { numId: string; ilvl: number }): string | null {
+
+  next(num: NumberingRef): string | null {
     const levels = this.ctx.numbering.get(num.numId);
     const level = levels?.[num.ilvl];
-    if (!levels || !level) return null;
+
+    if (!levels || !level) {
+      return null;
+    }
+
     const c = this.counters.get(num.numId) ?? [];
-    for (let i = 0; i < num.ilvl; i++) if (c[i] === undefined) c[i] = levels[i]?.start ?? 1;
+
+    for (let i = 0; i < num.ilvl; i++) {
+      if (c[i] === undefined) {
+        c[i] = levels[i]?.start ?? 1;
+      }
+    }
+
     const count = c[num.ilvl];
+
     c[num.ilvl] = count === undefined ? level.start : count + 1;
     c.length = num.ilvl + 1;
     this.counters.set(num.numId, c);
-    if (level.fmt === "bullet") return "\u2022";
-    if (level.fmt === "none") return null;
-    return level.text.replace(/%(\d)/g, (_, d: string) => formatCounter(c[Number(d) - 1] ?? 1, levels[Number(d) - 1]?.fmt ?? "decimal"));
+
+    if (level.fmt === "bullet") {
+      return "\u2022";
+    }
+
+    if (level.fmt === "none") {
+      return null;
+    }
+
+    return level.text.replace(/%(\d)/g, (_, d: string) =>
+      formatCounter(
+        c[Number(d) - 1] ?? 1,
+        levels[Number(d) - 1]?.fmt ?? "decimal",
+      ),
+    );
   }
 }

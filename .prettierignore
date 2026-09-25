@@ -1,7 +1,7 @@
 .next
 node_modules
 drizzle
-fixtures
+/fixtures
 public
 tests/output
 test-results

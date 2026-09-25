@@ -4,7 +4,10 @@ import { RotateCcw } from "lucide-react";
 import dynamic from "next/dynamic";
 import type { Ref } from "react";
 import { ComparePanel } from "@/features/comparison/components/ComparePanel";
-import { DraftPreview, PaperSkeleton } from "@/features/documents/components/DraftPreview";
+import {
+  DraftPreview,
+  PaperSkeleton,
+} from "@/features/documents/components/DraftPreview";
 import type { DraftBlock } from "@/features/documents/contracts/stream-events";
 import type { SaveStatus } from "@/features/documents/editor/save-coordinator";
 import type { EditorHandle } from "@/features/documents/editor/SuperDocEditor";
@@ -13,12 +16,21 @@ import { TabBar } from "@/shared/ui/TabBar";
 import { TabPanel } from "@/shared/ui/TabPanel";
 
 // The editor is large; load it only when a document is on screen.
-const SuperDocEditor = dynamic(() => import("@/features/documents/editor/SuperDocEditor").then((m) => m.SuperDocEditor), {
-  ssr: false,
-  loading: () => <PaperSkeleton />,
-});
+const SuperDocEditor = dynamic(
+  () =>
+    import("@/features/documents/editor/SuperDocEditor").then(
+      (m) => m.SuperDocEditor,
+    ),
+  {
+    ssr: false,
+    loading: () => <PaperSkeleton />,
+  },
+);
 
-/** The template before a draft exists, the streamed preview while it is generated, then the editor. */
+/**
+ * The template before a draft exists, the streamed
+ * preview while it is generated, then the editor.
+ */
 export type DocMode = "template" | "preview" | "editor";
 export type DocPane = "document" | "compare";
 
@@ -31,10 +43,16 @@ interface Props {
   blocks: DraftBlock[];
   pane: DocPane;
   onPane(pane: DocPane): void;
-  /** Narrow screens show one region at a time; true while the assistant is in front. */
+  /**
+   * Narrow screens show one region at a time;
+   * true while the assistant is in front.
+   */
   hidden: boolean;
   editorRef: Ref<EditorHandle>;
-  /** Changing it reloads the draft from the server (a new revision the server wrote). */
+  /**
+   * Changing it reloads the draft from the
+   * server (a new revision the server wrote).
+   */
   editorKey: string;
   onEditorStatus(status: SaveStatus, message?: string): void;
   onEditorSaved(revision: number, savedAt: string): void;
@@ -73,7 +91,10 @@ export function DocumentPane({
           value={pane}
           onChange={onPane}
           items={[
-            { id: "document", label: hasDraft ? "Draft" : "Template" },
+            {
+              id: "document",
+              label: hasDraft ? "Draft" : "Template",
+            },
             {
               id: "compare",
               name: "Compare with template",
@@ -88,7 +109,13 @@ export function DocumentPane({
           ]}
         />
         {hasDraft && !generating && (
-          <Button size="sm" variant="ghost" icon={RotateCcw} onClick={onRegenerate} className="ml-auto self-center">
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={RotateCcw}
+            onClick={onRegenerate}
+            className="ml-auto self-center"
+          >
             Regenerate
           </Button>
         )}
@@ -111,7 +138,11 @@ export function DocumentPane({
         </TabPanel>
         {pane === "compare" && (
           <TabPanel base="doc" id="compare" active>
-            <ComparePanel documentId={documentId} snapshot={snapshot} version={compareVersion} />
+            <ComparePanel
+              documentId={documentId}
+              snapshot={snapshot}
+              version={compareVersion}
+            />
           </TabPanel>
         )}
       </div>

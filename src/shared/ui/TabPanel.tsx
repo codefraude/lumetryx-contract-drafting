@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 
 /**
- * Stays mounted and hides with visibility, so scroll, unsent text and the editor survive a switch.
- * Active panels inherit visibility, never force it, so a region hidden on narrow screens hides them too.
+ * Stays mounted and hides with visibility, so scroll, unsent text and
+ * the editor survive a switch. Active panels inherit visibility, never
+ * force it, so a region hidden on narrow screens hides them too.
  */
 export function TabPanel({
   base,

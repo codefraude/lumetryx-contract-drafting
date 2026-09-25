@@ -1,13 +1,40 @@
 import { z } from "zod";
-import { ChatLanguage, Condition, DocLanguage, Field, StructureIssue } from "./fields";
+import {
+  ChatLanguage,
+  Condition,
+  DocLanguage,
+  Field,
+  StructureIssue,
+} from "./fields";
 
-/** A draft as `GET /api/documents/:id` and every write return it, built from persisted state. */
+/**
+ * A draft as `GET /api/documents/:id` and every
+ * write return it, built from persisted state.
+ */
 
-/** How a conditional clause stands. "unresolved" (an answer is missing) is never treated as "no". */
-export const ClauseState = z.enum(["included", "excluded", "unresolved", "proposed", "dismissed"]);
+/**
+ * How a conditional clause stands. "unresolved"
+ * (an answer is missing) is never treated as "no".
+ */
+export const ClauseState = z.enum([
+  "included",
+  "excluded",
+  "unresolved",
+  "proposed",
+  "dismissed",
+]);
+
 export type ClauseState = z.infer<typeof ClauseState>;
 
-export const RuleAction = z.enum(["confirm", "dismiss", "include", "exclude", "clear_override", "apply"]);
+export const RuleAction = z.enum([
+  "confirm",
+  "dismiss",
+  "include",
+  "exclude",
+  "clear_override",
+  "apply",
+]);
+
 export type RuleAction = z.infer<typeof RuleAction>;
 
 export const RuleView = z.object({
@@ -23,17 +50,35 @@ export const RuleView = z.object({
   reason: z.string(),
   /** What the working draft contains (null before a draft exists). */
   applied: z.enum(["included", "excluded"]).nullable(),
-  /** The draft differs from what the condition calls for and waits for confirmation (the clause was edited by hand). */
+  /**
+   * The draft differs from what the condition calls for and
+   * waits for confirmation (the clause was edited by hand).
+   */
   pending: z.boolean(),
-  /** Excluded text the user edited, kept so re-including the clause restores it. */
+  /**
+   * Excluded text the user edited, kept so re-including the clause restores it.
+   */
   hasEditedVariant: z.boolean(),
 });
+
 export type RuleView = z.infer<typeof RuleView>;
 
-export const Phase = z.enum(["interview", "ready", "generating", "interrupted", "draft"]);
+export const Phase = z.enum([
+  "interview",
+  "ready",
+  "generating",
+  "interrupted",
+  "draft",
+]);
+
 export type Phase = z.infer<typeof Phase>;
 
-export const DocumentMessage = z.object({ id: z.string(), role: z.enum(["user", "assistant"]), content: z.string() });
+export const DocumentMessage = z.object({
+  id: z.string(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+});
+
 export type DocumentMessage = z.infer<typeof DocumentMessage>;
 
 export const DocumentView = z.object({
@@ -50,19 +95,36 @@ export const DocumentView = z.object({
   analysis: z.enum(["ai", "markers_only"]),
   savedAt: z.string(),
   expiresAt: z.string(),
-  language: z.object({ document: DocLanguage, conversation: ChatLanguage.nullable(), effective: ChatLanguage }),
+  language: z.object({
+    document: DocLanguage,
+    conversation: ChatLanguage.nullable(),
+    effective: ChatLanguage,
+  }),
   rules: z.array(RuleView),
   ruleIssues: z.array(z.string()),
   structureIssues: z.array(StructureIssue),
   inactiveFieldIds: z.array(z.string()),
   messages: z.array(DocumentMessage),
 });
+
 export type DocumentView = z.infer<typeof DocumentView>;
 
-export const CurrentDocumentResponse = z.object({ document: DocumentView.nullable() });
+export const CurrentDocumentResponse = z.object({
+  document: DocumentView.nullable(),
+});
 
-export const SavedRevision = z.object({ workingRevision: z.number().int(), savedAt: z.string() });
+export const SavedRevision = z.object({
+  workingRevision: z.number().int(),
+  savedAt: z.string(),
+});
+
 export type SavedRevision = z.infer<typeof SavedRevision>;
 
-/** A short-lived link to the saved draft that Word can open without the browser's cookie. */
-export const WordLink = z.object({ url: z.string().url(), expiresAt: z.string() });
+/**
+ * A short-lived link to the saved draft that
+ * Word can open without the browser's cookie.
+ */
+export const WordLink = z.object({
+  url: z.string().url(),
+  expiresAt: z.string(),
+});

@@ -10,53 +10,104 @@ import { FieldRow } from "./FieldRow";
 interface Props {
   documentId: string;
   fields: Field[];
-  /** When a draft exists, answers change through chat so the draft is patched safely. */
+  /**
+   * When a draft exists, answers change through
+   * chat so the draft is patched safely.
+   */
   locked: boolean;
   /** The assistant can answer for this template (its AI analysis ran). */
   assistant: boolean;
-  /** Fields only used by excluded or undecided clauses: kept, but not needed now. */
+  /**
+   * Fields only used by excluded or undecided
+   * clauses: kept, but not needed now.
+   */
   inactive: ReadonlySet<string>;
 }
 
-const byGroup = (a: Field, b: Field) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group);
+const byGroup = (a: Field, b: Field) => {
+  return GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group);
+};
 
-function Section({ title, count, children }: { title: string; count: number; children: ReactNode }) {
-  if (!count) return null;
+function Section({
+  title,
+  count,
+  children,
+}: {
+  title: string;
+  count: number;
+  children: ReactNode;
+}) {
+  if (!count) {
+    return null;
+  }
+
   return (
     <section>
       <h3 className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface px-4 py-2 text-meta font-semibold text-ink-2 sm:px-5">
         {title}
-        <span className="tabular-nums text-ink-3">{count}</span>
+        <span className="text-ink-3 tabular-nums">{count}</span>
       </h3>
       <ul className="divide-y divide-line">{children}</ul>
     </section>
   );
 }
 
-/** Details: what is still needed first, then confirmed answers, then fields not needed now. */
-export const FieldPanel = memo(function FieldPanel({ documentId, fields, locked, assistant, inactive }: Props) {
-  // Yes/no answers that decide clauses live under Clauses, so they are not counted twice.
+/**
+ * Details: what is still needed first, then
+ * confirmed answers, then fields not needed now.
+ */
+export const FieldPanel = memo(function FieldPanel({
+  documentId,
+  fields,
+  locked,
+  assistant,
+  inactive,
+}: Props) {
+  // Yes/no answers that decide clauses live under
+  // Clauses, so they are not counted twice.
   const details = fields.filter((f) => f.source !== "condition");
   const active = details.filter((f) => !inactive.has(f.id));
-  const needed = active.filter((f) => f.required && f.status !== "confirmed").sort(byGroup);
+  const needed = active
+    .filter((f) => f.required && f.status !== "confirmed")
+    .sort(byGroup);
   const done = active.filter((f) => f.status === "confirmed").sort(byGroup);
-  const rest = details.filter((f) => inactive.has(f.id) || (!f.required && f.status !== "confirmed")).sort(byGroup);
+  const rest = details
+    .filter(
+      (f) => inactive.has(f.id) || (!f.required && f.status !== "confirmed"),
+    )
+    .sort(byGroup);
   const progress = detailProgress(fields, inactive);
-  const row = (f: Field) => (
-    <FieldRow key={`${f.id}:${f.rawValue ?? ""}:${f.required}`} documentId={documentId} f={f} inactive={inactive.has(f.id)} locked={locked} />
-  );
 
-  if (!details.length)
+  const row = (f: Field) => {
+    return (
+      <FieldRow
+        key={`${f.id}:${f.rawValue ?? ""}:${f.required}`}
+        documentId={documentId}
+        f={f}
+        inactive={inactive.has(f.id)}
+        locked={locked}
+      />
+    );
+  };
+
+  if (!details.length) {
     return (
       <div className="px-4 py-4 sm:px-5">
-        <Callout icon={CircleDashed} title="No fields were found in this template">
-          Mark the blanks in Word as [NAME], {"{{name}}"}, a line of underscores or a placeholder box (content control), then upload the template again.
+        <Callout
+          icon={CircleDashed}
+          title="No fields were found in this template"
+        >
+          Mark the blanks in Word as [NAME], {"{{name}}"}, a line of underscores
+          or a placeholder box (content control), then upload the template
+          again.
         </Callout>
       </div>
     );
+  }
+
   return (
     <div>
-      <div className="px-4 pb-3 pt-4 sm:px-5">
+      <div className="px-4 pt-4 pb-3 sm:px-5">
         <p className="text-ui font-semibold text-ink">
           {progress.confirmed} of {progress.total} required details confirmed
         </p>

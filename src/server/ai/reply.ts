@@ -1,28 +1,48 @@
 import { streamText, type LanguageModel } from "ai";
-import { GROUP_ORDER, type ChatLanguage, type Field } from "@/features/documents/contracts/fields";
+import {
+  GROUP_ORDER,
+  type ChatLanguage,
+  type Field,
+} from "@/features/documents/contracts/fields";
 import { outstandingFields } from "@/features/documents/progress";
 import type { Block } from "@/server/docx/blocks";
 import type { TurnInput } from "./extraction";
 import { providerOptions, SAFETY_RULES, untrusted } from "./model";
 
-/** Stage 2 of a chat turn: the streamed reply, told exactly what was recorded and what is still needed. */
+/**
+ * Stage 2 of a chat turn: the streamed reply, told
+ * exactly what was recorded and what is still needed.
+ */
 
-/** Relevant clause text: the referenced blocks plus their nested sub-clauses. */
+/**
+ * Relevant clause text: the referenced blocks plus their nested sub-clauses.
+ */
 export function clauseContext(blocks: Block[], ids: string[]): string {
   const body = blocks.filter((b) => b.partKind === "body");
   const parts: string[] = [];
+
   for (const id of ids) {
     const i = body.findIndex((b) => b.id === id);
     const root = body[i];
-    if (!root) continue;
+
+    if (!root) {
+      continue;
+    }
+
     const lvl = root.numbering?.ilvl ?? -1;
     const chunk = [root.text];
+
     for (const b of body.slice(i + 1)) {
-      if (chunk.length >= 8 || !b.numbering || b.numbering.ilvl <= lvl) break;
+      if (chunk.length >= 8 || !b.numbering || b.numbering.ilvl <= lvl) {
+        break;
+      }
+
       chunk.push(b.text);
     }
+
     parts.push(chunk.join("\n"));
   }
+
   return parts.join("\n\n");
 }
 
@@ -50,12 +70,19 @@ export function replyPrompt(
   inactive: ReadonlySet<string> = new Set(),
 ): string {
   const outstanding = outstandingFields(fields, inactive);
-  const nextGroup = GROUP_ORDER.find((g) => outstanding.some((f) => f.group === g && f.status === "missing"));
+  const nextGroup = GROUP_ORDER.find((g) =>
+    outstanding.some((f) => f.group === g && f.status === "missing"),
+  );
   const clarify = outstanding.filter((f) => f.status === "needs_clarification");
-  const next = outstanding.filter((f) => f.status === "missing" && f.group === nextGroup).slice(0, 3);
-  // Listed by name, not counted: given a count, the model invents questions to reach it and stops
-  // early when two fields have similar names.
-  const later = outstanding.filter((f) => !clarify.includes(f) && !next.includes(f));
+  const next = outstanding
+    .filter((f) => f.status === "missing" && f.group === nextGroup)
+    .slice(0, 3);
+  // Listed by name, not counted: given a count, the model invents questions
+  // to reach it and stops early when two fields have similar names.
+  const later = outstanding.filter(
+    (f) => !clarify.includes(f) && !next.includes(f),
+  );
+
   return [
     `JUST RECORDED: ${
       changed.length
@@ -81,8 +108,15 @@ export function replyPrompt(
     .join("\n\n");
 }
 
-/** The streamed reply. A failure inside the stream only ends it, so `failure()` says what went wrong. */
-export function streamReply(model: LanguageModel, prompt: string, abortSignal?: AbortSignal) {
+/**
+ * The streamed reply. A failure inside the stream
+ * only ends it, so `failure()` says what went wrong.
+ */
+export function streamReply(
+  model: LanguageModel,
+  prompt: string,
+  abortSignal?: AbortSignal,
+) {
   let failure: unknown = null;
   const stream = streamText({
     model,
@@ -94,8 +128,17 @@ export function streamReply(model: LanguageModel, prompt: string, abortSignal?: 
     providerOptions: providerOptions(),
     onError: ({ error }) => void (failure = error),
   });
-  return { stream, failure: () => failure };
+
+  return {
+    stream,
+    failure: () => failure,
+  };
 }
 
-/** The analysis' own wording of a field's question, in the conversation language. */
-export const questionIn = (f: Field, lang: ChatLanguage) => (lang === "fr" ? (f.questionFr ?? null) : (f.question ?? null));
+/**
+ * The analysis' own wording of a field's
+ * question, in the conversation language.
+ */
+export const questionIn = (f: Field, lang: ChatLanguage) => {
+  return lang === "fr" ? (f.questionFr ?? null) : (f.question ?? null);
+};

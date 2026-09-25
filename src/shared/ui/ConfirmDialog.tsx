@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { Button } from "./Button";
 
 export interface ConfirmOptions {
@@ -10,36 +17,83 @@ export interface ConfirmOptions {
   cancel?: string;
   tone?: "primary" | "danger";
 }
-type Request = ConfirmOptions & { resolve(ok: boolean): void; open: boolean };
 
-/** A themed replacement for window.confirm. Render `dialog` once; `ask()` resolves true on confirm. */
-export function useConfirm(): [ReactNode, (o: ConfirmOptions) => Promise<boolean>] {
+type Request = ConfirmOptions & {
+  resolve(ok: boolean): void;
+  open: boolean;
+};
+
+/**
+ * A themed replacement for window.confirm. Render
+ * `dialog` once; `ask()` resolves true on confirm.
+ */
+export function useConfirm(): [
+  ReactNode,
+  (o: ConfirmOptions) => Promise<boolean>,
+] {
   const [request, setRequest] = useState<Request | null>(null);
-  const ask = useCallback((o: ConfirmOptions) => new Promise<boolean>((resolve) => setRequest({ ...o, resolve, open: true })), []);
+  const ask = useCallback(
+    (o: ConfirmOptions) =>
+      new Promise<boolean>((resolve) =>
+        setRequest({
+          ...o,
+          resolve,
+          open: true,
+        }),
+      ),
+    [],
+  );
   const finish = useCallback((ok: boolean) => {
     setRequest((r) => {
       r?.resolve(ok);
-      return r && { ...r, open: false };
+
+      return (
+        r && {
+          ...r,
+          open: false,
+        }
+      );
     });
   }, []);
-  return [<ConfirmDialog key="confirm" request={request} onFinish={finish} />, ask];
+
+  return [
+    <ConfirmDialog key="confirm" request={request} onFinish={finish} />,
+    ask,
+  ];
 }
 
-function ConfirmDialog({ request, onFinish }: { request: Request | null; onFinish(ok: boolean): void }) {
+function ConfirmDialog({
+  request,
+  onFinish,
+}: {
+  request: Request | null;
+  onFinish(ok: boolean): void;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const open = Boolean(request?.open);
+
   useEffect(() => {
     const d = ref.current;
-    if (!d) return;
+
+    if (!d) {
+      return;
+    }
+
     if (open && !d.open) {
       d.showModal();
-      // Destructive confirmations start on Cancel, others on the confirm action.
+      // Destructive confirmations start on
+      // Cancel, others on the confirm action.
       d.querySelector<HTMLElement>("[data-default]")?.focus();
     }
-    if (!open && d.open) d.close();
+
+    if (!open && d.open) {
+      d.close();
+    }
   }, [open]);
+
   const danger = request?.tone === "danger";
+
   return (
     <dialog
       ref={ref}
@@ -52,12 +106,24 @@ function ConfirmDialog({ request, onFinish }: { request: Request | null; onFinis
           <h2 id={titleId} className="text-title font-semibold text-ink">
             {request.title}
           </h2>
-          {request.body && <div className="mt-2 text-ui leading-relaxed text-ink-2">{request.body}</div>}
+          {request.body && (
+            <div className="mt-2 text-ui leading-relaxed text-ink-2">
+              {request.body}
+            </div>
+          )}
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="secondary" data-default={danger ? "" : undefined} onClick={() => onFinish(false)}>
+            <Button
+              variant="secondary"
+              data-default={danger ? "" : undefined}
+              onClick={() => onFinish(false)}
+            >
               {request.cancel ?? "Cancel"}
             </Button>
-            <Button variant={danger ? "danger" : "primary"} data-default={danger ? undefined : ""} onClick={() => onFinish(true)}>
+            <Button
+              variant={danger ? "danger" : "primary"}
+              data-default={danger ? undefined : ""}
+              onClick={() => onFinish(true)}
+            >
               {request.confirm}
             </Button>
           </div>
