@@ -11,8 +11,8 @@ _A synthetic bilingual template in the dark theme, with no AI key set (markers-o
 ## What it does
 
 1. You upload one `.docx` of up to 5 MB. The server checks the zip before unpacking it and turns away encrypted, legacy `.doc` and macro-enabled files.
-2. The server finds the marked blanks itself: `{{name}}`, `[NAME]`, `____`, lines drawn as underlined spaces, empty cells of a fill-in table and Word placeholder boxes. Gemini then merges duplicates, drops false positives and suggests unmarked blanks, quoting the template for each one.
-3. A chat asks for the missing details, a few at a time, in the order they appear in the template. Answers can also be typed in the Details panel. Dates are written in full ("26 September 2026") unless you ask for figures.
+2. The server finds the blanks itself, reading the Word structure rather than flat text: `{{name}}` (also when Word splits it across runs), `[NAME]`, `____`, lines drawn as underlined spaces, empty cells whose row and column labels name a value, and Word placeholder boxes, in the body, headers and footers. Code works out what each blank means: a cell takes its row and column labels, `[address]` after "(the Tenant), of" is the tenant's address, the words after a blank give its unit ("calendar days", "hours", "persons"), and a blank in an English sentence followed by the same blank in its French translation is one field. Gemini then merges duplicates and names the fields, quoting the template. It cannot delete a real blank: a blank it doubts stays, marked as uncertain.
+3. A chat asks for the missing details two or three at a time: the parties first, then the subject, dates, money and other terms, with contacts and signatories last. One message can answer several details, correct an earlier one or ask a question back. "None", "not applicable", "I don't know yet" and "leave it blank" are understood and kept apart from zero. Answers can also be typed in the Details panel. Dates are written in full ("26 September 2026") unless you ask for figures.
 4. The filled draft streams in, paragraph by paragraph.
 5. You edit it in SuperDoc, a Word-like editor that runs in the browser. Edits save on their own.
 6. You download the `.docx`, or open it in the Word app installed on the device.
@@ -21,7 +21,7 @@ The four optional parts of the brief are there too. French and mixed English/Fre
 
 ## How it works
 
-The model never writes the contract. It proposes answers, and each one has to quote what the user actually typed. Code then checks it: `03/04/2026` gets a follow-up question because it could be the 3rd of April or the 4th of March, a currency has to be named, and amounts are stored as exact decimals. Only then is anything saved.
+The model never writes the contract. It proposes answers, and one function (`server/fields/resolve.ts`) decides what is saved, for the chat and the Details panel alike. A proposed value must appear in the user's message, or be the value of a field the user explicitly points to ("same address as the landlord"). A value inside a question is never stored, and a contact person is not taken as the signatory. `03/04/2026` gets a follow-up question because it could be the 3rd of April or the 4th of March. A currency has to be named, "$" is ambiguous, "25 000,50 EUR" is read the French way, and amounts are stored as exact decimals. Emails and counts in the template's unit are checked, and so is an end date that falls before its start date. Free text that the bilingual template writes in both languages gets a French wording, translated by the model, checked for matching numbers and flagged as a translation in the Details panel. Progress, the next questions and the pre-export check all read the same saved state.
 
 Filling is ordinary code on the server. It edits the Word XML with `jszip` and `@xmldom/xmldom` and changes nothing but text, so styles, numbering, pictures and relationships stay as they were. A test checks that `numbering.xml` comes out byte for byte the same.
 
@@ -53,6 +53,7 @@ Every package in `package.json`, at the version installed.
 | `@upstash/redis` | 1.39.0 | Redis over HTTP: the template cache and request locks | MIT |
 | `@upstash/ratelimit` | 2.1.0 | Rate limits on new sessions, uploads and chat turns | MIT |
 | `lucide-react` | 1.47.0 | Icons | ISC |
+| `next-intl` | 4.14.7 | English and French interface, locale from a cookie | MIT |
 | `server-only` | 0.0.1 | Fails the build if server code is imported into the browser | MIT |
 
 Development only:
@@ -76,8 +77,8 @@ You need Node 22 or later and npm.
 
 ```bash
 npm ci
-cp .env.example .env.local   # every variable is explained in the file
-node --env-file=.env.local node_modules/.bin/drizzle-kit migrate
+cp .env.example .env   # every variable is explained in the file
+node --env-file=.env node_modules/.bin/drizzle-kit migrate
 npm run dev                  # http://localhost:3000
 ```
 
@@ -90,6 +91,7 @@ Without an AI key (`GEMINI_API_KEY` or `AI_GATEWAY_API_KEY`), the app runs in ma
 | `npm run test:e2e` | Playwright tests against a running server (`APP_URL`) |
 | `npm run check:word` | Opens the exported drafts in Microsoft Word (Windows or WSL) and compares them with their templates |
 | `npm run eval:conversation` | A small live test of the chat, which needs a real AI key |
+| `npm run eval:fixtures -- --runs 2` | Live analysis and chat turns on the three supplied templates, scored against their manifests. Writes a JSON report with model, runs, failures and token use to `tests/output/live-eval/` |
 | `npm run db:cleanup` | Deletes expired drafts and sessions, for a cron job |
 
 The browser tests expect a production build with no AI key and no Redis:
@@ -115,10 +117,11 @@ fixtures/       synthetic .docx templates
 
 ## What was tested
 
-- 81 unit and integration tests pass. The integration tests use a real Postgres and a mocked model.
-- Playwright covers editing, export, themes, saved drafts, placeholder boxes and Open in Word, in Chromium, Firefox and WebKit.
-- Microsoft Word 16 on Windows opened each template's draft, and the same draft after a round trip through the editor, without a repair prompt. 86 automated checks found no difference from the templates.
-- Against live Gemini, the full bonus scenario passed in a browser. A thirteen-case evaluation of messy answers (corrections, unknown answers, hidden instructions, lower-case names, a date-format request, underlined and empty-cell blanks) held all 21 of its checks on its latest run.
+- The three templates Lumetryx supplied are immutable fixtures (`fixtures/lumetryx/`), each with a hand-written manifest of its fields, reviewed independently against the raw XML (`tests/manifests/`). Detection scores zero missed fields, zero false positives, zero wrong merges and zero duplicate questions on all three, for markers-only detection and for a recorded model analysis.
+- 160 unit and integration tests pass. One flow per supplied template runs upload, answers, clarification, correction, the streamed draft, a browser edit, resume and export, and parses the exported file again: every paragraph keeps its style and numbering, text outside the answers is unchanged, and styles, numbering and settings are byte-identical. Generalization tests change copies of the templates: renamed parties, reordered tables, one [NAME] for two parties, a French-only template, no fields, and an instruction hidden in the text.
+- Playwright covers editing, export, themes, saved drafts, placeholder boxes and Open in Word (24 tests in Chromium). For each supplied template, a browser test edits the draft, switches the interface to French while the edit is still unsaved, and checks that the editor is not remounted, that the download contains the edit, and that a reload resumes the draft. Firefox and WebKit were not re-run after these changes.
+- Microsoft Word 16 on Windows opened every template, its filled draft and the draft after a round trip through the editor, all without a repair prompt (11 templates including the three supplied, 122 checks). Styles, live numbering, tables, headers, footers and margins match. 4 checks are flagged, and all 4 are comparison artefacts. Three are an empty template cell compared by its paragraph mark (11 pt) with the value written into the cell's own 10.5 pt run. The fourth is a repeated `________` matched to the wrong occurrence.
+- Live model (`npm run eval:fixtures`, gemini-3.1-flash-lite, thinking level minimal): 2 runs over the three supplied templates, 39 calls, about 88,000 input and 23,000 output tokens. The live analysis had no detection issue against the manifests, and no conversation turn failed its check on the saved answers. One turn could not be judged because the provider was down. The first runs found three defects, fixed with tests: blanks the model dismissed were dropped, numbers written in words were rejected, and party names were typed as text. Mocked tests are not evidence of live quality; this run is small.
 
 Each run is written up in [docs/DETAILS.md](docs/DETAILS.md#verification).
 
@@ -129,7 +132,10 @@ Each run is written up in [docs/DETAILS.md](docs/DETAILS.md#verification).
 - Word was only run on Windows, not on a Mac or on the web.
 - The live chat evaluation is thirteen cases, run once after the latest fixes.
 - The chat's "Jump to latest" browser test fails about half the time, and did before the latest changes too. The test finishes while one of its network stubs is still running.
-- Without AI, only marked blanks are found, and a blank that appears in both languages is asked twice.
+- Without AI, marked and drawn blanks are found and labelled from their structure, but unmarked gaps are not, and the French wording of bilingual text has to be typed in the Details panel.
+- The pairing of an English blank with its French twin assumes the translation follows directly. Other layouts rely on the model.
+- Units are not converted: "2 weeks" for a field counted in days is asked about.
+- A translation is the model's. Code checks only that its numbers match, so it is shown to the lawyer as a translation.
 - Placeholders inside footnotes and comments are missed.
 - Compare looks at text, bold, italic, underline, styles and list levels. Fonts, spacing and layout are not compared.
 - A saved draft can only be reopened in the browser profile that created it.

@@ -78,7 +78,9 @@ for (const f of fixtures) {
   );
 
   add(
-    `fixtures/${f}.docx`,
+    f.startsWith("lumetryx-")
+      ? `fixtures/lumetryx/${f.slice("lumetryx-".length)}.docx`
+      : `fixtures/${f}.docx`,
     `${f}.docx`,
     free.flatMap((x) => x.placeholders.slice(0, 1)),
   );

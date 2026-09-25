@@ -1,5 +1,5 @@
 try {
-  process.loadEnvFile(".env.local");
+  process.loadEnvFile(".env");
 } catch {}
 
 const { deleteExpired } = await import("../src/server/db/repo");

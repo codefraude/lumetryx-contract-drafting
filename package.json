@@ -26,7 +26,7 @@
     "smoke:gemini": "tsx scripts/gemini-smoke.ts",
     "smoke:gateway": "tsx scripts/gemini-smoke.ts --gateway",
     "eval:conversation": "tsx scripts/eval-conversation.ts",
-    "eval:fixtures": "tsx --conditions=react-server scripts/eval-fixtures.ts"
+    "eval:fixtures": "tsx --env-file=.env --conditions=react-server scripts/eval-fixtures.ts"
   },
   "dependencies": {
     "@ai-sdk/gateway": "4.0.91",

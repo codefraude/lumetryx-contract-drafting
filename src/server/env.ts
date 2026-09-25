@@ -64,7 +64,7 @@ export class ConfigMissingError extends Error {
     purpose: string,
   ) {
     super(
-      `${variable} is not configured, so ${purpose} is unavailable. Add it to .env.local (see .env.example).`,
+      `${variable} is not configured, so ${purpose} is unavailable. Add it to .env (see .env.example).`,
     );
 
     this.name = "ConfigMissingError";

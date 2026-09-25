@@ -11,7 +11,31 @@ const FIXTURES = [
   "synthetic-bilingual-employment",
   "synthetic-lettre-controles-fr",
   "synthetic-supply-agreement",
+  "lumetryx-01_Mutual_NDA",
+  "lumetryx-02_Residential_Lease_Mixed_Placeholders",
+  "lumetryx-03_Bilingual_Services_Agreement",
 ];
+
+const fileOf = (name: string) => {
+  return name.startsWith("lumetryx-")
+    ? `fixtures/lumetryx/${name.slice("lumetryx-".length)}.docx`
+    : `fixtures/${name}.docx`;
+};
+
+const headingOf = (name: string) => {
+  return name.replace(/^lumetryx-/, "");
+};
+
+const bilingual = (f: Field) => {
+  const langs = new Set(f.occurrences.map((o) => o.lang));
+
+  return (
+    f.valueType === "text" &&
+    langs.has("en") &&
+    langs.has("fr") &&
+    !/reference|name|title|email/i.test(f.label + f.id)
+  );
+};
 
 type Field = {
   id: string;
@@ -23,6 +47,7 @@ type Field = {
   occurrences: {
     blockId: string;
     expected: string;
+    lang: string;
   }[];
 };
 
@@ -86,12 +111,12 @@ for (const name of FIXTURES) {
     page,
   }) => {
     await page.goto("/");
-    await page.setInputFiles("input[type=file]", `fixtures/${name}.docx`);
+    await page.setInputFiles("input[type=file]", fileOf(name));
 
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name,
+        name: headingOf(name),
       }),
     ).toBeVisible({
       timeout: 20_000,
@@ -99,17 +124,24 @@ for (const name of FIXTURES) {
 
     let doc = await current(page);
 
+    let day = 1;
+
     for (const f of doc.fields) {
-      doc = await (
-        await page.request.patch(`/api/documents/${doc.id}/fields`, {
-          headers: ORIGIN,
-          data: {
-            fieldsVersion: doc.fieldsVersion,
-            fieldId: f.id,
-            value: answer(f),
-          },
-        })
-      ).json();
+      const date = f.valueType === "date" ? `${day++} October 2026` : null;
+
+      for (const lang of bilingual(f) ? ["en", "fr"] : [null]) {
+        doc = await (
+          await page.request.patch(`/api/documents/${doc.id}/fields`, {
+            headers: ORIGIN,
+            data: {
+              fieldsVersion: doc.fieldsVersion,
+              fieldId: f.id,
+              value: date ?? (lang === "fr" ? `Exemple ${f.label}` : answer(f)),
+              ...(lang ? { lang } : {}),
+            },
+          })
+        ).json();
+      }
     }
 
     expect(

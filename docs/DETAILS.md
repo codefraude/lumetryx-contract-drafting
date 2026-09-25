@@ -33,12 +33,12 @@ Requires Node 20.9+ (tested on 22) and npm.
 
 ```bash
 npm ci
-cp .env.example .env.local       # fill in the values (see comments in the file)
+cp .env.example .env             # fill in the values (see comments in the file)
 npm run db:migrate               # uses DATABASE_URL_UNPOOLED (Neon direct connection), else DATABASE_URL
 npm run dev                      # http://localhost:3000
 ```
 
-`drizzle-kit` does not read `.env.local` by itself. Either export the variables first, or run `node --env-file=.env.local node_modules/.bin/drizzle-kit migrate`. Migration `0001_drafts_retention` only **adds** columns (`title`, `saved_at`, `expires_at` and `sessions.expires_at`) and backfills them from each row's own history; existing drafts keep working. Field-state JSON written by older versions gets its new keys' defaults when read, so no data migration is needed.
+`drizzle-kit` does not read `.env` by itself. Either export the variables first, or run `node --env-file=.env node_modules/.bin/drizzle-kit migrate`. Migration `0001_drafts_retention` only **adds** columns (`title`, `saved_at`, `expires_at` and `sessions.expires_at`) and backfills them from each row's own history; existing drafts keep working. Field-state JSON written by older versions gets its new keys' defaults when read, so no data migration is needed.
 
 | Command | Purpose |
 | --- | --- |
@@ -51,7 +51,7 @@ npm run dev                      # http://localhost:3000
 | `npm run eval:conversation` | A small **live** evaluation against a server with a live AI key (`APP_URL`; `DATABASE_URL` for token counts): messy answers, a correction, an unknown answer, a question about a clause, instructions smuggled into a message and into a template, an ambiguous currency, a relative date and French. It checks what was saved, never the wording, and prints each reply, its latency and the tokens used. About 40 model calls. |
 | `npm run format` / `npm run format:check` | Prettier (width 80, Tailwind classes sorted) on every TypeScript and `.mjs` file. `npm run lint` adds the layout Prettier leaves alone: braces on every `if`, blank lines around multi-line statements, one member per line in objects and types, and a block body for every named function |
 | `npm run db:generate` / `npm run db:migrate` | Drizzle migrations (`drizzle/0000_init.sql` is committed) |
-| `npm run db:cleanup` | Bounded retention cleanup, run from cron or by hand (there is no scheduler service). It removes drafts past their expiry (messages cascade), then expired sessions that own no draft, and drops those drafts' cached analyses. It reads `.env.local`. |
+| `npm run db:cleanup` | Bounded retention cleanup, run from cron or by hand (there is no scheduler service). It removes drafts past their expiry (messages cascade), then expired sessions that own no draft, and drops those drafts' cached analyses. It reads `.env`. |
 | `npm run smoke:gemini` | One small **live** Gemini check (structured output + streaming, prints token usage). |
 | `npm run smoke:gateway` | The same check through the **Vercel AI Gateway** (`AI_GATEWAY_API_KEY`, `AI_GATEWAY_MODEL`). |
 | `npm run fixtures` | Regenerates the synthetic templates (`npm run fixtures -- <name>` for one of them) |
@@ -191,7 +191,7 @@ Checked on the synthetic fixtures:
 - `AI_GATEWAY_MODEL` defaults to `google/gemini-2.5-flash-lite`: the gateway's free tier serves Gemini 2.5 models only and refuses `google/gemini-3.1-flash-lite` (HTTP 403) until paid credits are added. Gemini 2.5 rejects a thinking level (HTTP 400), so only Gemini 3 models are sent one.
 - Errors name the service that failed and what to check (`AI_GATEWAY_API_KEY`, `AI_GATEWAY_MODEL`, credits); when both fail, the message says so. Token usage and the per-session budget count both services alike.
 - Through the gateway, the template text and messages also pass through Vercel; the upload page says so.
-- `vercel ai-gateway setup` is not needed: it configures local coding agents, not this app. The app needs only the key in `.env.local`.
+- `vercel ai-gateway setup` is not needed: it configures local coding agents, not this app. The app needs only the key in `.env`.
 
 **Template analysis (once per session and template, cached).**
 - Markers are detected locally first: `{{x}}`, `[X]`, `____`, four or more underlined spaces (a blank line drawn in Word), empty cells of a fill-in table (a table whose value cells hold at least one marker; the field is named after the row and the column, e.g. "Email address (Party A)"), and Word content controls that still show their placeholder text ("Votre nom"). Signature blanks are excluded. A filled underlined blank loses its underline; the model may not write a value into a row's label cell. Boxes bound to the same data, which Word keeps identical, are one field. A box of more than 12 words, or of the same kind (same title) as one, is the template's sample wording; galleries, pictures and check boxes are never fields.
