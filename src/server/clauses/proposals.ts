@@ -7,10 +7,6 @@ import {
   labelFromId,
 } from "./condition-markers";
 
-/**
- * A clause proposed by the model from ordinary template
- * wording. It never applies until the user confirms it.
- */
 export interface RuleProposal {
   label: string;
   firstBlockId: string;
@@ -21,10 +17,6 @@ export interface RuleProposal {
   evidence: string;
 }
 
-/**
- * Validates a proposal against the real document: blocks exist, are
- * in order, contain whole tables, and the evidence is verbatim.
- */
 export function validateProposal(
   p: RuleProposal,
   blocks: Block[],

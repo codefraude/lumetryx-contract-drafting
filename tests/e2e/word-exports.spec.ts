@@ -1,13 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 
-/**
- * For every fixture, saves the draft exactly as the server filled
- * it and the same draft after a round trip through the editor (a
- * keystroke typed and deleted, then saved and downloaded), plus
- * the answers given. `npm run check:word` then opens them in
- * Microsoft Word. Markers-only mode: no model involved.
- */
 const ORIGIN = { Origin: process.env.APP_URL ?? "http://localhost:3000" };
 const OUT = "tests/output/word";
 const FIXTURES = [
@@ -38,10 +31,6 @@ type Doc = {
   fields: Field[];
 };
 
-/**
- * An answer that validates for each kind of detail (an amount without
- * separators is unambiguous in French too); free-text answers name their field.
- */
 const ANSWERS: Record<string, string> = {
   date: "1 October 2026",
   money: "MUR 25000",
@@ -124,7 +113,6 @@ for (const name of FIXTURES) {
       doc.fields.filter((f) => f.status !== "confirmed").map((f) => f.label),
     ).toEqual([]);
 
-    // The server's own output, before the editor has opened it.
     const generated = await page.request.post(
       `/api/documents/${doc.id}/draft`,
       {
@@ -145,14 +133,9 @@ for (const name of FIXTURES) {
       ).body(),
     );
 
-    // The editor's own save of the same draft: a keystroke
-    // typed and deleted leaves the content as it was.
     await page.reload();
     await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
     await settle(page);
-    // A free-text answer (verbatim in any language, unlike dates and amounts)
-    // that only occurs in the body: a click in the page header does not edit
-    // the body. The painted page comes before the editor's hidden text layer.
     const inBody = doc.fields.find(
       (f) =>
         !(f.valueType in ANSWERS) &&
@@ -164,7 +147,6 @@ for (const name of FIXTURES) {
 
     await target.scrollIntoViewIfNeeded();
 
-    // The first click focuses the editor surface; the second places the caret.
     for (let i = 0; i < 2; i++) {
       await settle(page);
       const box = (await target.boundingBox())!;
@@ -174,8 +156,6 @@ for (const name of FIXTURES) {
 
     await page.keyboard.press("End");
     await page.keyboard.type("x");
-    // Deleting a selection, not Backspace: next to a placeholder
-    // box, Backspace first selects the box, as in Word.
     await page.keyboard.press("Shift+ArrowLeft");
     await page.keyboard.press("Delete");
     await expect(page.getByText("Unsaved changes")).toBeVisible();

@@ -24,10 +24,6 @@ const FLAG_NAMES: Record<string, string> = {
   u: "underline",
 };
 
-/**
- * Formatting changes on text present in both versions
- * (e.g. “Bold added to ‘Strictly’”), word by word.
- */
 export function formattingNotes(
   o: RenderedBlock,
   c: RenderedBlock,
@@ -75,7 +71,6 @@ export function formattingNotes(
         if (key) {
           const list = notes.get(key) ?? [];
 
-          // Consecutive words with the same change read as one phrase.
           if (last === key && list.length) {
             list[list.length - 1] += ` ${tok}`;
           } else {
@@ -128,10 +123,6 @@ export function structureNotes(o: RenderedBlock, c: RenderedBlock): string[] {
   return notes;
 }
 
-/**
- * Where a block is, in the words of the comparison
- * list (clause number, table cell, header…).
- */
 export function location(b: RenderedBlock, body: RenderedBlock[]): string {
   if (b.partKind !== "body") {
     return b.partKind === "header" ? "Header" : "Footer";

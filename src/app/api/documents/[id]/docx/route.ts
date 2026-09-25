@@ -13,10 +13,6 @@ export const runtime = "nodejs";
 const DOCX =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-/**
- * Bytes for the editor: the working draft, or
- * ?which=original for the template preview.
- */
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -42,7 +38,6 @@ export async function GET(
   }
 }
 
-/** Saves the editor's exported DOCX with an optimistic revision check. */
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> },

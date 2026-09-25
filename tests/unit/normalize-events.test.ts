@@ -88,8 +88,6 @@ describe("money", () => {
       amount: "12.5",
     });
 
-    // One separator + three digits: thousands in English,
-    // a decimal in French. Unknown context asks.
     expect(parseMoney("25,000 EUR").status).toBe("needs_clarification");
 
     expect(parseMoney("25,000 EUR").note).toMatch(

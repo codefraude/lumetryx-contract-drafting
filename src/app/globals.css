@@ -1,9 +1,7 @@
 @import "tailwindcss";
 
-/* Theme selection is data-driven: <html data-theme="light|dark"> is set before paint (see lib/theme.ts). */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* ---------- Semantic tokens: every text pair is at least 4.5:1, in both themes ---------- */
 :root {
   color-scheme: light;
   --lx-app: #f7f7f5;
@@ -41,7 +39,6 @@
   --lx-on-tooltip: #f7f7f5;
   --lx-scroll: #cfcec9;
   --lx-backdrop: rgb(20 20 18 / 0.32);
-  /* Only overlays (menus, dialogs, the drawer) and the document page are elevated. */
   --lx-shadow-overlay: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -12px rgb(0 0 0 / 0.16);
   --lx-paper-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 6px 20px -8px rgb(0 0 0 / 0.1);
 }
@@ -119,12 +116,10 @@
   --color-ins-surface: var(--lx-ins-surface);
   --color-del: var(--lx-del);
   --color-del-surface: var(--lx-del-surface);
-  /* The document is paper in every theme. */
   --color-paper: #ffffff;
   --color-paper-ink: #111111;
   --font-sans: var(--font-ui), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-serif: var(--font-display), "Iowan Old Style", Georgia, serif;
-  /* Type scale: metadata 13, interface 14, reading (chat, excerpts) 15, panel titles 17, page title 30. */
   --text-meta: 0.8125rem;
   --text-meta--line-height: 1.125rem;
   --text-ui: 0.875rem;
@@ -143,7 +138,6 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* ---------- Base (layered, so utilities such as outline-none can override it) ---------- */
 @layer base {
   html,
   body {
@@ -166,11 +160,9 @@
     outline: 2px solid var(--lx-focus);
     outline-offset: 2px;
   }
-  /* The page stays white in dark mode, where the light focus colour would be too faint on it. */
   .lx-doc :focus-visible {
     outline-color: #1d6b62;
   }
-  /* The editor keeps the platform's own selection colours on the page. */
   :not(.lx-doc *)::selection {
     background: color-mix(in srgb, var(--lx-accent-ink) 26%, transparent);
   }
@@ -178,7 +170,6 @@
     color: var(--lx-ink-3);
     opacity: 1;
   }
-  /* One stroke weight for every interface icon. */
   svg.lucide {
     stroke-width: 1.75;
   }
@@ -198,7 +189,6 @@
   }
 }
 
-/* ---------- SuperDoc chrome, through its documented theme variables ---------- */
 :root[data-theme] {
   --sd-ui-font-family: var(--font-ui), "Segoe UI", Arial, sans-serif;
   --sd-ui-text: var(--lx-ink);
@@ -243,13 +233,10 @@
   --sd-ui-loader-value-color: var(--lx-ink-2);
   --sd-ui-loader-progress-track-bg: var(--lx-hover);
   --sd-ui-loader-progress-bar-bg: var(--lx-ink-2);
-  /* Page colour cascades from --sd-ui-bg by default; pin it so the document stays paper in dark mode. */
   --sd-layout-page-bg: #ffffff;
   --sd-layout-page-shadow: var(--lx-paper-shadow);
 }
 
-/* The editor's right-click menu has fixed colours and no theme variables, so its own classes are
-   themed here (chrome only; nothing inside the document page is touched). */
 :root[data-theme] .v2-context-menu {
   color: var(--lx-ink);
   background: var(--lx-raised);
@@ -268,13 +255,10 @@
   color: var(--lx-ink-3);
 }
 
-/* Fitting a page to a narrow desk (lx-fit): SuperDoc's layers are a flex item whose default min-width:auto
-   keeps the page's own width, so the scaled page would sit off-centre in a box wider than the screen. */
 .lx-fit .superdoc__layers {
   min-width: 0;
 }
 
-/* ---------- Motion: short transitions that answer an action; loops only while something is loading ---------- */
 @keyframes lx-fade {
   from {
     opacity: 0;
@@ -314,7 +298,6 @@
   animation: lx-shimmer 1.6s linear infinite;
 }
 
-/* Drawers and dialogs: enter on open, leave on close (progressive enhancement). */
 dialog.lx-dialog {
   opacity: 0;
   transform: translateY(6px);
@@ -369,7 +352,6 @@ dialog.lx-drawer[open]::backdrop {
   }
 }
 
-/* Popovers (menus): a short fade from their anchor. */
 .lx-popover {
   opacity: 0;
   transform: translateY(-3px);
@@ -393,7 +375,6 @@ dialog.lx-drawer[open]::backdrop {
   visibility: hidden;
 }
 
-/* Theme changes cross-fade once, as a whole. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 180ms;

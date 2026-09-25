@@ -1,10 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
 
-/**
- * Saved drafts, a second tab and draft switching, in markers-only
- * mode. The last test stubs the chat stream in the browser (no
- * model involved) to finish a reply after another draft was opened.
- */
 const ORIGIN = { Origin: process.env.APP_URL ?? "http://localhost:3000" };
 
 type Doc = {
@@ -52,7 +47,6 @@ async function upload(page: Page, fixture: string) {
   ).toBeVisible({ timeout: 20_000 });
 }
 
-/** Starts a second draft from another template, as a user would. */
 async function uploadAnother(page: Page, fixture: string) {
   await page.getByRole("button", { name: "New template" }).click();
   await page.getByRole("button", { name: "Choose a template" }).click();
@@ -119,7 +113,6 @@ test("saved drafts: open another draft, rename the open one and delete the other
   await uploadAnother(page, "synthetic-mutual-nda");
   await openDraft(page, "synthetic-residential-lease");
 
-  // Renaming the open draft renames it in the header too.
   await page.getByRole("button", { name: "Saved drafts" }).click();
 
   await drawer(page)
@@ -147,7 +140,6 @@ test("saved drafts: open another draft, rename the open one and delete the other
     }),
   ).toBeVisible();
 
-  // Deleting the other draft asks first.
   await drawer(page)
     .getByRole("button", { name: "Actions for synthetic-mutual-nda" })
     .click();
@@ -159,7 +151,6 @@ test("saved drafts: open another draft, rename the open one and delete the other
     drawer(page).getByRole("button", { name: /^synthetic-mutual-nda/ }),
   ).toHaveCount(0);
 
-  // Reopened, the drawer lists what the server has.
   await page.keyboard.press("Escape");
   await expect(drawer(page)).toBeHidden();
   await page.getByRole("button", { name: "Saved drafts" }).click();
@@ -207,8 +198,6 @@ test("an edit saved in another tab is detected, and the newer version can be loa
   await page.getByRole("button", { name: "Save now" }).click();
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 20_000 });
 
-  // The second tab still edits the older revision:
-  // its save is refused, never silently merged.
   await typeAtEndOf(other, "The Tenant shall not:", " FROM-B");
   await other.getByRole("button", { name: "Save now" }).click();
 
@@ -234,8 +223,6 @@ test("an edit saved in another tab is detected, and the newer version can be loa
 test("a reply that finishes after switching drafts does not change the draft opened meanwhile", async ({
   page,
 }) => {
-  // Present documents as AI-analysed so the composer
-  // is enabled (markers-only mode disables it).
   await page.route(
     /\/api\/documents\/(current|[0-9a-f-]{36})$/,
     async (route) => {
@@ -265,7 +252,6 @@ test("a reply that finishes after switching drafts does not change the draft ope
   await uploadAnother(page, "synthetic-mutual-nda");
   await openDraft(page, "synthetic-residential-lease");
 
-  // The lease's reply is held back until the NDA is open.
   let release = () => {
     return undefined as void;
   };
@@ -316,8 +302,6 @@ test("a reply that finishes after switching drafts does not change the draft ope
   release();
   await replied;
 
-  // The late events have been handled once the reply stops
-  // streaming (a check that passes at once proves nothing).
   await expect(
     page.getByRole("button", { name: "Send message" }),
   ).toBeVisible();
@@ -348,8 +332,6 @@ test("a browser whose session is gone starts again, and the previous session's d
 
   await page.keyboard.press("Escape");
 
-  // The session cookie goes away (as when it expires):
-  // the next change is refused by the server.
   await context.clearCookies();
   await page.getByRole("tab", { name: /^Details/ }).click();
   const details = page.locator("#assistant-panel-details");
@@ -373,8 +355,6 @@ test("a browser whose session is gone starts again, and the previous session's d
     }),
   ).toHaveCount(0);
 
-  // The cached list of the old session is gone too:
-  // while the list loads, the old draft never shows.
   await page.route("**/api/drafts", () => undefined);
   await page.getByRole("button", { name: "Saved drafts" }).first().click();
   await expect(drawer(page)).toBeVisible();

@@ -5,18 +5,11 @@ import { useRef, type ReactNode } from "react";
 export interface TabItem<T extends string> {
   id: T;
   label: ReactNode;
-  /**
-   * Accessible name when the visible label carries extra marks such as counts.
-   */
   name?: string;
   badge?: ReactNode;
   disabled?: boolean;
 }
 
-/**
- * Automatic activation with arrow keys and Home/End.
- * The caller renders the panels, with ids `${idBase}-panel-${id}`.
- */
 export function TabBar<T extends string>({
   items,
   value,

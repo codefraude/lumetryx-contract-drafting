@@ -8,12 +8,6 @@ import { mapParagraph, paraIdOf, runSpans } from "./paragraph-text";
 import type { DocxPackage } from "./package";
 import { firstChild, paragraphsOf, parseXml, serializeXml, W_NS } from "./xml";
 
-/**
- * A conditional clause is a run of whole top-level body elements,
- * found by its paragraphs' w14:paraIds. Only whole elements move, so
- * styles and numbering stay intact and Word renumbers what remains.
- */
-
 const BODY_PART = "word/document.xml";
 const MOVABLE = new Set([
   "p",
@@ -35,7 +29,6 @@ export class ClauseStructureError extends Error {
 export interface BodyDoc {
   doc: XmlDocument;
   body: XmlElement;
-  /** Writes the modified body back into the package. */
   commit(): void;
 }
 
@@ -83,10 +76,6 @@ export interface LocatedClause {
   missing: string[];
 }
 
-/**
- * Finds the top-level elements spanning the clause, from
- * the first to the last of its paragraphs that still exist.
- */
 export function locateClause(
   body: XmlElement,
   paraIds: string[],
@@ -123,7 +112,6 @@ export function locateClause(
   };
 }
 
-/** Rejects ranges we cannot move without risking the document's structure. */
 export function unsupportedReason(elements: XmlElement[]): string | null {
   for (const el of elements) {
     if (el.namespaceURI !== W_NS || !MOVABLE.has(el.localName ?? "")) {
@@ -141,10 +129,6 @@ export function unsupportedReason(elements: XmlElement[]): string | null {
   return null;
 }
 
-/**
- * Hash of the clause's visible content (text, basic formatting,
- * style and list level). Serialization details are ignored.
- */
 export function clauseHash(elements: XmlElement[]): string {
   const h = createHash("sha256");
 
@@ -198,17 +182,9 @@ export interface CutResult {
     before: string | null;
     after: string | null;
   };
-  /**
-   * Bookmarks inside the removed clause that Word
-   * cross-reference fields elsewhere still point to.
-   */
   brokenRefs: string[];
 }
 
-/**
- * Removes the clause and returns its exact XML so it
- * can be restored later with any manual edits intact.
- */
 export function cutClause(bd: BodyDoc, elements: XmlElement[]): CutResult {
   const reason = unsupportedReason(elements);
 
@@ -274,7 +250,6 @@ function refersToBookmark(doc: XmlDocument, name: string): boolean {
   );
 }
 
-/** Relationship ids (images, links) a fragment depends on. */
 export const relationshipIds = (xml: string): string[] => {
   return [
     ...new Set(
@@ -296,11 +271,6 @@ export async function documentRelationshipIds(
   );
 }
 
-/**
- * Puts a clause back after the paragraph it originally followed (or
- * before the one it preceded). Throws if neither neighbour still
- * exists: guessing a position could put a clause in the wrong place.
- */
 export function insertClause(
   bd: BodyDoc,
   xml: string,
@@ -341,7 +311,6 @@ export function insertClause(
     if (ref) {
       bd.body.insertBefore(n, ref);
     } else {
-      // Never after the body's final section properties.
       const sectPr = children(bd.body).find((el) => el.localName === "sectPr");
 
       if (sectPr) {

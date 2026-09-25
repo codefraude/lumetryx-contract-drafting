@@ -3,28 +3,11 @@ import type { Block } from "@/server/docx/blocks";
 import { normalizeKey } from "@/server/docx/detect";
 import type { Rule } from "@/server/fields/state";
 
-/**
- * Conditional clause markers, parsed and never executed. Each one sits alone
- * in a body paragraph, not in a table, header or footer:
- *
- *   [[IF name]]            clause included when the yes/no answer `name` is yes
- *   [[IF NOT name]]        included when it is no
- *   [[IF name = value]]    included when the text answer `name` equals value
- *                          (case/accent-insensitive)
- *   [[IF name IN a, b]]    included when it equals one of the listed values
- *   [[END IF]]             closes the clause
- *
- * French spellings work too: [[SI name]], [[SI NON name]], [[FIN SI]].
- * Nesting is rejected. The clause is everything between the markers, whole
- * tables included; marker paragraphs never reach a draft.
- */
-
 const START =
   /^\[\[\s*(?:IF|SI)\s+(NOT\s+|NON\s+)?([\p{L}][\p{L}\p{N}_ ]{0,60}?)\s*(?:(=|\bIN\b|\bDANS\b)\s*(.+?))?\s*\]\]$/iu;
 const END = /^\[\[\s*(?:END\s*IF|ENDIF|FIN\s*SI|FINSI)\s*\]\]$/iu;
 const ANY_CONTROL = /\[\[[^\]]*\]\]/;
 
-/** The answer id a condition name refers to (accent- and case-insensitive). */
 export const conditionFieldId = (name: string) => {
   return normalizeKey(name)
     .replace(/ /g, "_")
@@ -40,10 +23,6 @@ export const labelFromId = (id: string) => {
 
 export interface ParsedConditions {
   rules: Rule[];
-  /**
-   * Yes/no or text answers the rules depend on,
-   * for conditions no other field provides.
-   */
   conditionFields: Field[];
   issues: string[];
 }
@@ -137,10 +116,6 @@ export const clauseLabel = (blocks: Block[]) => {
   return first.length > 80 ? `${first.slice(0, 77)}…` : first;
 };
 
-/**
- * Reads `[[IF …]]` markers from the template body. Invalid,
- * unpaired or nested markers are reported, never guessed at.
- */
 export function parseConditionMarkers(blocks: Block[]): ParsedConditions {
   const issues: string[] = [];
   const body = blocks.filter((b) => b.partKind === "body");

@@ -14,10 +14,6 @@ interface Props {
   busy: boolean;
   error: ActionFailure | null;
   disabledReason: string | null;
-  /**
-   * Resolves false when the message was not sent
-   * at all, so the composer keeps the text.
-   */
   onSend(text: string): Promise<boolean>;
   onStop(): void;
   onRetry(): void;
@@ -41,7 +37,6 @@ export function ChatPanel({
   footer,
 }: Props) {
   const list = useRef<HTMLDivElement>(null);
-  /** Follow new content only while the reader is at the bottom. */
   const stick = useRef(true);
   const [away, setAway] = useState(false);
   const [seen, setSeen] = useState("");
@@ -51,8 +46,6 @@ export function ChatPanel({
   useLayoutEffect(() => {
     const el = list.current;
 
-    // Instant, not smooth: a smooth scroll per
-    // streamed token would fight the reader.
     if (el && stick.current) {
       el.scrollTop = el.scrollHeight;
     }

@@ -1,7 +1,3 @@
-/**
- * Groups reply lines into paragraphs, lists and
- * **bold** spans; the text is never treated as HTML.
- */
 export type MessageBlock =
   | {
       kind: "p";
@@ -17,7 +13,6 @@ const NUMBERED = /^\s*\d{1,2}[.)]\s+(.*)$/;
 
 export function messageBlocks(text: string): MessageBlock[] {
   const out: MessageBlock[] = [];
-  // The last block stays open for more lines of its kind until a blank line.
   let open = false;
 
   for (const raw of text.split("\n")) {

@@ -10,10 +10,6 @@ import type { DraftListItem } from "./contracts";
 
 export const draftKeys = { list: ["drafts", "list"] as const };
 
-/**
- * Re-read whenever the drawer opens, since every
- * save changes it; the last copy shows meanwhile.
- */
 export const draftListQuery = () => {
   return queryOptions({
     queryKey: draftKeys.list,
@@ -42,10 +38,6 @@ type RenameInput = {
   title: string;
 };
 
-/**
- * Renames a draft; the list row and, if it is cached,
- * the draft's own view take the server's answer.
- */
 export function useRenameDraft() {
   const queryClient = useQueryClient();
 

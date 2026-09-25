@@ -4,11 +4,6 @@ import { outstandingFields } from "@/features/documents/progress";
 import { normalizeKey } from "@/server/docx/detect";
 import type { FieldState, Rule } from "@/server/fields/state";
 
-/**
- * Deterministic evaluation of conditional clauses
- * against the answers. There is no expression language.
- */
-
 export interface Evaluation {
   state: ClauseState;
   reason: string;
@@ -18,9 +13,6 @@ const same = (a: string, b: string) => {
   return normalizeKey(a) === normalizeKey(b);
 };
 
-/**
- * An unanswered or unclear condition leaves the rule unresolved, never false.
- */
 export function evaluateRule(rule: Rule, fields: Field[]): Evaluation {
   if (rule.dismissed) {
     return {
@@ -99,19 +91,10 @@ export const evaluateAll = (state: Pick<FieldState, "rules" | "fields">) => {
   return new Map(state.rules.map((r) => [r.id, evaluateRule(r, state.fields)]));
 };
 
-/**
- * Clause content stays in the document unless its rule
- * evaluates to excluded (or is still undecided at draft time).
- */
 export const keepsContent = (s: ClauseState) => {
   return s === "included" || s === "proposed" || s === "dismissed";
 };
 
-/**
- * Fields not needed right now: those that appear only inside
- * excluded or undecided clauses, and condition answers no active
- * rule depends on. Their answers are kept for later reuse.
- */
 export function inactiveFields(
   state: Pick<FieldState, "rules" | "fields">,
 ): Set<string> {
@@ -161,10 +144,6 @@ export const unresolvedRules = (
   );
 };
 
-/**
- * Template blocks to leave out of a draft: control
- * markers always, and content of excluded clauses.
- */
 export function omittedBlocks(
   state: Pick<FieldState, "rules" | "fields">,
 ): Set<string> {
@@ -181,10 +160,6 @@ export function omittedBlocks(
   return out;
 }
 
-/**
- * Required answers still missing, ignoring fields
- * that only live in excluded or undecided clauses.
- */
 export const requiredMissing = (state: FieldState): Field[] => {
   return outstandingFields(state.fields, inactiveFields(state));
 };

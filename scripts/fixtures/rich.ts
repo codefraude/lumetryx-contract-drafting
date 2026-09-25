@@ -1,9 +1,3 @@
-/**
- * A supply agreement that uses the Word features the other fixtures
- * leave out: a logo image in the header, a table of contents, a
- * footnote, a reviewer's comment, tracked changes and a text box holding
- * a placeholder. It checks that filling and the editor keep them.
- */
 import {
   AlignmentType,
   CommentRangeEnd,
@@ -26,7 +20,6 @@ import {
 } from "docx";
 import { bullets, cell, clause, footer, legalNumbering, styles } from "./parts";
 
-/** 60 × 20 px, three bands (navy, teal, grey). */
 const LOGO = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAADwAAAAUCAIAAABeYcl+AAAAOElEQVR42mOQt4onG/GX5ZGNplEAGEYdPeroUUePOnrU0aOOHnX0qKNHHT3q6FFHjzp61NG0cDQAZ9xanMQqrK8AAAAASUVORK5CYII=",
   "base64",
@@ -111,8 +104,6 @@ export function supplyAgreement(): Document {
             alignment: AlignmentType.CENTER,
             children: [new TextRun("SUPPLY AGREEMENT")],
           }),
-          // Cached entries, so Word shows the contents
-          // without being asked to update fields.
           new TableOfContents("Contents", {
             hyperlink: true,
             headingStyleRange: "2-2",

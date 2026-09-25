@@ -1,17 +1,6 @@
-/**
- * Retention cleanup. Removes drafts whose retention has passed (their
- * messages cascade), then anonymous sessions that have expired and own no
- * remaining draft, and drops cached template analyses of the removed drafts.
- * Bounded: at most BATCH × MAX_BATCHES drafts per run. Expired drafts are
- * already never served; this only reclaims space.
- *
- *   npm run db:cleanup            (reads .env.local when present)
- */
 try {
   process.loadEnvFile(".env.local");
-} catch {
-  /* environment provided by the caller */
-}
+} catch {}
 
 const { deleteExpired } = await import("../src/server/db/repo");
 const { cacheDel } = await import("../src/server/cache/redis");

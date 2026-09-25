@@ -1,12 +1,3 @@
-<#
-  Opens .docx files in a hidden Microsoft Word, read-only and without repair, and writes what Word
-  reports about each one as JSON: paragraphs (style, live list number, font, spacing), tables,
-  sections (margins, header and footer text and fields), content controls, notes, comments,
-  revisions, pictures, text boxes and tables of contents; and, for texts listed in -ProbeFile
-  ({ "<file name>": ["text", …] }), the formatting Word applies to them. Optionally exports PDFs.
-  Only the Word instance this script starts is closed; any Word already open is left alone.
-  Run by scripts/word/check.ts (npm run check:word); Windows PowerShell 5.1.
-#>
 param(
   [Parameter(Mandatory = $true)][string]$ListFile,
   [Parameter(Mandatory = $true)][string]$OutFile,
@@ -16,7 +7,6 @@ param(
 )
 $ErrorActionPreference = "Stop"
 
-# Word's methods take by-reference arguments, which PowerShell cannot pass directly; named IDispatch calls can.
 function Invoke-Word($target, [string]$method, [System.Collections.Specialized.OrderedDictionary]$named) {
   $names = [string[]]@($named.Keys)
   $values = [object[]]@($named.Values | ForEach-Object { if ($_ -is [psobject]) { $_.PSObject.BaseObject } else { $_ } })
@@ -31,7 +21,6 @@ function Get-Format($range) {
   [ordered]@{ font = $f.Name; size = $f.Size; bold = Flag $f.Bold; italic = Flag $f.Italic; underline = Flag $f.Underline; color = $f.Color }
 }
 
-# Searches every story (body, headers, footers, notes, text boxes); reports the match and its first character.
 function Find-Probe($doc, [string]$text) {
   foreach ($story in $doc.StoryRanges) {
     for ($r = $story; $null -ne $r; $r = $r.NextStoryRange) {
@@ -102,7 +91,6 @@ $probes = if ($ProbeFile) { Get-Content -Path $ProbeFile -Raw -Encoding UTF8 | C
 try {
   $word.Visible = $false
   $word.DisplayAlerts = 0
-  # Plain strings: Get-Content attaches provider objects that ConvertTo-Json would try to serialise.
   foreach ($path in [string[]](Get-Content -Path $ListFile -Encoding UTF8)) {
     if (-not $path.Trim()) { continue }
     $entry = [ordered]@{ file = $path; opened = $false; error = $null; view = $null }
@@ -126,7 +114,6 @@ try {
   [System.IO.File]::WriteAllText($OutFile, (ConvertTo-Json -InputObject $report -Depth 9), (New-Object System.Text.UTF8Encoding($false)))
   Write-Output "wrote $OutFile"
 } finally {
-  # Quit only a Word this script started; never one the user already had open.
   if ($mine.Count -eq 1) { Invoke-Word $word "Quit" ([ordered]@{ SaveChanges = 0 }) | Out-Null }
   [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($word)
   Write-Output "Word closed"

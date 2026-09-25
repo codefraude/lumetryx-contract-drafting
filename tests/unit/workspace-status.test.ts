@@ -94,8 +94,6 @@ const idle = {
 };
 
 describe("workspace status", () => {
-  // A condition answer that decides a clause counts once, as a
-  // decision; inactive and optional fields are not needed now.
   const doc = view({
     fields: [
       field("landlord_name"),

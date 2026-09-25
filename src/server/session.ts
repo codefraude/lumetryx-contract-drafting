@@ -28,16 +28,10 @@ export class ForbiddenOriginError extends Error {
   }
 }
 
-/**
- * Rejects cross-site state-changing requests
- * (defence in depth beyond SameSite=Lax).
- */
 export function assertSameOrigin(req: Request): void {
   const origin = req.headers.get("origin");
 
   if (!origin) {
-    // Non-browser clients omit Origin; browsers
-    // always send it on cross-origin POST/PUT/PATCH.
     if (req.headers.get("sec-fetch-site") === "cross-site") {
       throw new ForbiddenOriginError();
     }
@@ -61,12 +55,8 @@ const cookieOptions = () => {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    // Secure whenever the app is served over HTTPS;
-    // Safari refuses Secure cookies on http://localhost.
     secure: new URL(env().APP_URL).protocol === "https:",
     path: "/",
-    // Same lifetime as the database expiry, which slides
-    // with activity (see findSession in db/sessions.ts).
     maxAge: env().DRAFT_RETENTION_DAYS * 86_400,
   };
 };
@@ -96,7 +86,6 @@ function parseCookie(value: string | undefined): {
   };
 }
 
-/** Returns the current session, or null. Never creates one. */
 export async function currentSession() {
   const jar = await cookies();
   const parsed = parseCookie(jar.get(COOKIE)?.value);
@@ -112,8 +101,6 @@ export async function currentSession() {
     return null;
   }
 
-  // Constant-time comparison of the stored hash
-  // (lookup already matched; belt and braces).
   if (!timingSafeEqual(Buffer.from(row.secretHash), Buffer.from(hash))) {
     return null;
   }
@@ -121,10 +108,7 @@ export async function currentSession() {
   if (row.refreshed) {
     try {
       jar.set(COOKIE, `${parsed.id}.${parsed.secret}`, cookieOptions());
-    } catch {
-      // Read-only context (not a route handler):
-      // the next API call refreshes it.
-    }
+    } catch {}
   }
 
   return row;
@@ -140,7 +124,6 @@ export async function requireSession() {
   return s;
 }
 
-/** Creates a session on first upload; rate limited per client address. */
 export async function getOrCreateSession(req: Request) {
   const existing = await currentSession();
 

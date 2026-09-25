@@ -1,9 +1,3 @@
-/**
- * Longest-common-subsequence alignment of two sequences (whose
- * items are never undefined), shared by the word diff and the block
- * alignment. On a tie the next item of `a` is taken as removed.
- */
-
 export type LcsStep<T> =
   | {
       op: "both";
@@ -29,7 +23,6 @@ export function lcsSteps<T>(
   same: (x: T, y: T) => boolean,
 ): LcsStep<T>[] {
   const width = b.length + 1;
-  // length(i, j): LCS of a[i:] and b[j:]. The last row and column stay 0.
   const table = new Uint32Array((a.length + 1) * width);
 
   const length = (i: number, j: number) => {

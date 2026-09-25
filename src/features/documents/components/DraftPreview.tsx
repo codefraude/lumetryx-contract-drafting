@@ -58,7 +58,6 @@ function Paragraph({ block }: { block: DraftBlock }) {
   );
 }
 
-/** The desk around the page; it scrolls on its own, never the whole app. */
 export function Canvas({
   children,
   busy,
@@ -76,10 +75,6 @@ export function Canvas({
   );
 }
 
-/**
- * Placeholder page while the editor loads: paper-coloured
- * in both themes, like the document itself.
- */
 export function PaperSkeleton({
   label = "Opening the document…",
 }: {
@@ -113,10 +108,6 @@ export function PaperSkeleton({
   );
 }
 
-/**
- * Built from the same filled document the editor opens afterwards,
- * not a paraphrase. Exact layout only comes with the editor.
- */
 export function DraftPreview({
   blocks,
   generating,
@@ -126,8 +117,6 @@ export function DraftPreview({
 }) {
   const body = blocks.filter((b) => b.partKind === "body");
   const header = blocks.filter((b) => b.partKind === "header" && b.runs.length);
-  // Consecutive cells of one table are drawn
-  // together; every other block on its own.
   const groups: DraftBlock[][] = [];
 
   for (const b of body) {

@@ -46,10 +46,6 @@ export const applyRuleAction = (id: string, body: RuleActionRequest) => {
   );
 };
 
-/**
- * Saves a separate copy, with the editor's current content
- * when given (keeps local edits after a conflict).
- */
 export const copyDocument = (id: string, snapshot: Blob | null) => {
   return requestJson(`/api/documents/${id}/copy`, DocumentView, {
     method: "POST",
@@ -79,10 +75,6 @@ export const saveDocx = (id: string, revision: number, blob: Blob) => {
   );
 };
 
-/**
- * Fetched rather than navigated to, so a failed export
- * is reported in the page instead of replacing it.
- */
 export async function downloadDocx(id: string) {
   const { blob, headers } = await requestBlob(`/api/documents/${id}/download`);
   const disposition = headers.get("Content-Disposition") ?? "";
@@ -95,10 +87,6 @@ export async function downloadDocx(id: string) {
   };
 }
 
-/**
- * A short-lived link to the saved draft for Word on this
- * device (the link is the credential, not the cookie).
- */
 export const requestWordLink = (id: string) => {
   return requestJson(`/api/documents/${id}/word-link`, WordLink, {
     method: "POST",

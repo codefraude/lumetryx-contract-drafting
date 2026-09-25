@@ -33,10 +33,6 @@ const base = {
   seq: z.number().int().nonnegative(),
 };
 
-/**
- * A conditional clause the server removed
- * from or put back into the working draft.
- */
 export const ClauseChange = z.object({
   ruleId: z.string(),
   label: z.string(),

@@ -2,10 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { ApiError } from "@/lib/http";
 
-/**
- * Any 401 means this browser's anonymous session is gone (expired, or
- * its cookie cleared). The caller then drops the cached private data.
- */
 export function useSessionLoss(onLost: (message: string) => void) {
   const queryClient = useQueryClient();
   const handler = useRef(onLost);

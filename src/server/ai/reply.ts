@@ -9,14 +9,6 @@ import type { Block } from "@/server/docx/blocks";
 import type { TurnInput } from "./extraction";
 import { providerOptions, SAFETY_RULES, untrusted } from "./model";
 
-/**
- * Stage 2 of a chat turn: the streamed reply, told
- * exactly what was recorded and what is still needed.
- */
-
-/**
- * Relevant clause text: the referenced blocks plus their nested sub-clauses.
- */
 export function clauseContext(blocks: Block[], ids: string[]): string {
   const body = blocks.filter((b) => b.partKind === "body");
   const parts: string[] = [];
@@ -77,8 +69,6 @@ export function replyPrompt(
   const next = outstanding
     .filter((f) => f.status === "missing" && f.group === nextGroup)
     .slice(0, 3);
-  // Listed by name, not counted: given a count, the model invents questions
-  // to reach it and stops early when two fields have similar names.
   const later = outstanding.filter(
     (f) => !clarify.includes(f) && !next.includes(f),
   );
@@ -108,10 +98,6 @@ export function replyPrompt(
     .join("\n\n");
 }
 
-/**
- * The streamed reply. A failure inside the stream
- * only ends it, so `failure()` says what went wrong.
- */
 export function streamReply(
   model: LanguageModel,
   prompt: string,
@@ -135,10 +121,6 @@ export function streamReply(
   };
 }
 
-/**
- * The analysis' own wording of a field's
- * question, in the conversation language.
- */
 export const questionIn = (f: Field, lang: ChatLanguage) => {
   return lang === "fr" ? (f.questionFr ?? null) : (f.question ?? null);
 };

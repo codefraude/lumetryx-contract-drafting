@@ -73,26 +73,12 @@ const SOURCE: Record<CompareResponse["source"], string> = {
 
 interface Props {
   documentId: string;
-  /**
-   * Current editor content, or null when there
-   * is no open draft; never saved by comparing.
-   */
   snapshot(): Promise<Blob | null>;
-  /**
-   * Changes whenever the server changes the draft or
-   * its answers, so the comparison is recomputed.
-   */
   version: string;
 }
 
-/**
- * Compares content and structure, not layout;
- * nothing shown here enters the document.
- */
 export function ComparePanel({ documentId, snapshot, version }: Props) {
   const comparison = useComparison(documentId, version, snapshot);
-  // Previous/Next position within one result; a
-  // new result starts again at the first change.
   const [cursor, setCursor] = useState({
     result: 0,
     at: 0,
@@ -110,8 +96,6 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
   const refs = useRef<(HTMLLIElement | null)[]>([]);
   const body = useRef<HTMLDivElement>(null);
 
-  // Template and draft side by side only where
-  // the panel is wide enough; inline otherwise.
   useEffect(() => {
     const el = body.current;
 
@@ -141,8 +125,6 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
 
   const items = data?.result.items ?? [];
   const changes = items.filter((i) => i.type !== "clause_included");
-  // Previous/Next step through changes; a clause kept
-  // as in the template is shown but is not a change.
   const stops = items.flatMap((it, i) =>
     it.type === "clause_included" ? [] : [i],
   );
@@ -253,8 +235,6 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
         </div>
       </div>
 
-      {/* Positioned, so the screen-reader markers inside (absolute) are
-          clipped here instead of growing the page. */}
       <div
         ref={body}
         className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5 sm:px-6"
@@ -316,8 +296,6 @@ export function ComparePanel({ documentId, snapshot, version }: Props) {
               const t = TYPE[item.type];
               const split = wide && item.segments.length > 0;
               const on = i === current;
-              // The current item is a filled, outlined row,
-              // so the dividers on both sides of it give way.
               const edge = on || (current !== undefined && i === current - 1);
 
               return (

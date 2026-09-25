@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-/**
- * What scripts/word/inspect.ps1 reports about each
- * document, as Microsoft Word sees it. Validated when read.
- */
-
 const Flag = z.union([z.boolean(), z.literal("mixed")]);
 const Format = z.object({
   font: z.string(),
@@ -21,10 +16,6 @@ export const Paragraph = z.object({
   text: z.string(),
   style: z.string(),
   outline: z.number(),
-  /**
-   * The number Word computes for a list item ("3.1.",
-   * "•"), so live numbering, never typed text.
-   */
   list: z.string(),
   listLevel: z.number(),
   listType: z.number(),
@@ -139,7 +130,6 @@ export const Inspection = z.object({
   ),
 });
 
-/** What tests/e2e/word-exports.spec.ts answered for each field of a fixture. */
 export const Answers = z.object({
   fields: z.array(
     z.object({

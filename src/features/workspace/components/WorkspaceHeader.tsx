@@ -34,9 +34,6 @@ interface Props {
   title: string;
   filename: string;
   status: StatusLine;
-  /**
-   * Secondary note after the status, such as when the answers were last saved.
-   */
   note?: string | null;
   hasDraft: boolean;
   canSaveNow: boolean;
@@ -46,11 +43,9 @@ interface Props {
   onNewTemplate(): void;
   onDownload(): void;
   downloading: boolean;
-  /** Hands the saved draft to Word on this device. */
   onOpenInWord(): void;
   openingInWord: boolean;
   onGenerate(): void;
-  /** Nothing required is missing and no generation is running. */
   canGenerate: boolean;
   generating: boolean;
 }
@@ -74,8 +69,6 @@ export function WorkspaceHeader({
   canGenerate,
   generating,
 }: Props) {
-  // A disabled Generate is described by the status line
-  // itself: a copy of its text would be matched twice.
   const describedBy = hasDraft
     ? generating
       ? "download-hint"

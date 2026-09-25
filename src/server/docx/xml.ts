@@ -8,11 +8,6 @@ import {
 import type { PartKind } from "./blocks";
 import { DocxValidationError, type DocxPackage } from "./package";
 
-/**
- * WordprocessingML namespaces and the small
- * DOM helpers every other docx module uses.
- */
-
 export const W_NS =
   "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 

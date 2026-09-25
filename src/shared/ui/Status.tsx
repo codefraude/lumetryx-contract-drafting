@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 
 export type Tone = "ok" | "warn" | "danger" | "neutral" | "accent";
 
-/** Only the box is tinted; text inside keeps the regular ink colours. */
 export const TONE_BOX: Record<Tone, string> = {
   ok: "border-ok-line bg-ok-surface",
   warn: "border-warn-line bg-warn-surface",
@@ -20,7 +19,6 @@ export const TONE_TEXT: Record<Tone, string> = {
   accent: "text-accent-ink",
 };
 
-/** A status in words, with an icon, so colour is never the only signal. */
 export function StatusText({
   tone,
   icon: Icon,

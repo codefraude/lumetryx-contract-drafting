@@ -36,10 +36,6 @@ interface Props {
   tabs: TabItem<AssistantView>[];
   view: AssistantView;
   onView(view: AssistantView): void;
-  /**
-   * Narrow screens show one region at a time;
-   * true while the document is in front.
-   */
   hidden: boolean;
   hasDraft: boolean;
   chat: ChatControls;

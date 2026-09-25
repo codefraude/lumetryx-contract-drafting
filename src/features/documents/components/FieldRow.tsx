@@ -39,10 +39,6 @@ const STATUS: Record<
   },
 };
 
-/**
- * One detail: its answer, where it appears, and
- * (before a draft exists) a way to fill or dismiss it.
- */
 export function FieldRow({
   documentId,
   f,
@@ -78,8 +74,6 @@ export function FieldRow({
           </StatusText>
         )}
       </div>
-      {/* A filled blank for answers, an empty one
-          for what is still missing. */}
       <p className="mt-1 text-ui">
         {f.displayValue ? (
           <span className="border-b border-accent-ink/40 pb-px text-ink">

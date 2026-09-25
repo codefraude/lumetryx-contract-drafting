@@ -20,15 +20,10 @@ export class StaleRevisionError extends Error {
   }
 }
 
-/**
- * Retention window for drafts and the credential that
- * reaches them (one setting keeps them aligned).
- */
 export const retention = () => {
   return sql`now() + make_interval(days => ${env().DRAFT_RETENTION_DAYS})`;
 };
 
-/** Every successful save extends the draft's retention. */
 const saved = () => {
   return {
     savedAt: sql`now()`,
@@ -67,10 +62,6 @@ const docSummary = {
 
 type RawSummary = { fieldState: unknown } & Record<string, unknown>;
 
-/**
- * JSONB written by older versions lacks
- * newer keys; parsing fills their defaults.
- */
 const withState = <T extends RawSummary>(row: T) => {
   return {
     ...row,
@@ -132,7 +123,6 @@ export async function getLatestDocument(sessionId: string) {
   return row ? withState(row) : null;
 }
 
-/** The saved-drafts list: metadata only, never document bytes. */
 export async function listDocuments(sessionId: string) {
   const rows = await getDb()
     .select({
@@ -201,9 +191,6 @@ export async function updateFieldState(
   return withState(row);
 }
 
-/**
- * Atomically claims draft generation for a specific immutable fields version.
- */
 export async function beginDraft(
   sessionId: string,
   documentId: string,
@@ -280,11 +267,6 @@ export async function abandonDraft(sessionId: string, documentId: string) {
     );
 }
 
-/**
- * Saves the working DOCX, plus the field state in the same
- * statement when the server changed the draft. Guarded by the
- * working revision, and by `expectedFieldsVersion` when given.
- */
 export async function saveWorkingDocx(
   sessionId: string,
   documentId: string,
@@ -376,7 +358,6 @@ export async function addMessage(
     content,
   });
 
-  // A new message counts as a save and extends the draft's retention.
   await db
     .update(documents)
     .set({
@@ -427,10 +408,6 @@ export async function recentMessages(documentId: string, limit: number) {
   return rows.reverse();
 }
 
-/**
- * Copies finalized messages into another draft (used
- * when a conflicting version is saved as a new draft).
- */
 export async function copyMessages(
   fromDocumentId: string,
   toDocumentId: string,
@@ -457,11 +434,6 @@ export async function copyMessages(
   }
 }
 
-/**
- * Removes up to `batch` expired drafts (messages cascade),
- * then expired sessions left with no drafts. Returns the
- * template hashes too, so the caller can drop cached analyses.
- */
 export async function deleteExpired(batch = 500) {
   const db = getDb();
   const expired = await db

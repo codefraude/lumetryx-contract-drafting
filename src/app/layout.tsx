@@ -5,7 +5,6 @@ import { Providers } from "./providers";
 import { THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-// Self-hosted at build time: the browser never contacts a font service.
 const ui = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-ui",
@@ -28,7 +27,6 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  // The on-screen keyboard shrinks the layout, so the composer stays above it.
   interactiveWidget: "resizes-content",
   themeColor: [
     {
@@ -48,8 +46,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    // The head script sets the theme before hydration;
-    // this only silences <html>'s own attributes.
     <html
       lang="en"
       className={`${ui.variable} ${display.variable}`}

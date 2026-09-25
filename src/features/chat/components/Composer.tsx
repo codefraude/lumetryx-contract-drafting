@@ -7,10 +7,6 @@ import { Button, IconButton } from "@/shared/ui/Button";
 interface Props {
   busy: boolean;
   disabledReason: string | null;
-  /**
-   * Resolves false when the message was not
-   * sent at all, so the box keeps the text.
-   */
   onSend(text: string): Promise<boolean>;
   onStop(): void;
   onSubmitted(): void;
@@ -47,8 +43,6 @@ export function Composer({
     setText("");
     onSubmitted();
 
-    // A message that was never sent (for example, an
-    // unsaved edit blocked it) goes back into the box.
     if (!(await onSend(t))) {
       setText((current) => current || t);
     }
@@ -86,8 +80,6 @@ export function Composer({
           aria-describedby="composer-hint"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            // Enter sends and Shift+Enter adds a line,
-            // but not while an IME is composing.
             if (
               e.key === "Enter" &&
               !e.shiftKey &&

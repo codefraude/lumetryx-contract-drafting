@@ -6,34 +6,17 @@ export interface MarkerOccurrence {
   blockId: string;
   start: number;
   end: number;
-  /**
-   * Exact source text, e.g. "{{tenant_name}}", or
-   * the placeholder text of a Word content control.
-   */
   text: string;
   marker: MarkerKind;
-  /**
-   * Grouping key for identical markers; underscore blanks and
-   * unbound controls are keyed by position (never auto-merged).
-   */
   key: string;
   labelHint: string;
   context: string;
-  /** Title of a content control, shown to the analysis only. */
   title?: string;
 }
 
-// Letters may be accented (French templates:
-// {{nom_du_client}}, [date de début]).
 const BRACE = /\{\{\s*(\p{L}[\p{L}\p{N}_ .'’-]{0,60}?)\s*\}\}/gu;
-// Letters, spaces and a few separators; excludes
-// citations like [1], [sic], [emphasis added].
 const BRACKET = /\[(\p{L}[\p{L}\p{N} _/'’.,&-]{0,60})\]/gu;
 const UNDERSCORE = /_{4,}/g;
-/**
- * `[[IF …]]` control markers belong to conditional
- * clauses (clauses/condition-markers.ts), not to fields.
- */
 const CONTROL = /\[\[[^\]]*\]\]/g;
 const NON_FIELD_BRACKETS = new Set([
   "sic",
@@ -49,10 +32,6 @@ const NON_FIELD_BRACKETS = new Set([
 const SIGNATURE_CONTEXT =
   /(sign(ed|ature)?|initials?|signé(e)?|paraphe)\s*(by|par)?[^.:]{0,40}:?\s*$/i;
 
-/**
- * Accent-, case- and separator-insensitive key, so “[Date
- * de début]” and “[date de debut]” group together.
- */
 export const normalizeKey = (raw: string): string => {
   return raw
     .trim()
@@ -64,7 +43,6 @@ export const normalizeKey = (raw: string): string => {
     .trim();
 };
 
-/** Readable label that keeps the template's own spelling and accents. */
 export const humanize = (raw: string): string => {
   const s = raw
     .trim()
@@ -95,28 +73,13 @@ function underscoreLabel(text: string, start: number): string {
   return before ? `Blank after “${before}”` : "Blank";
 }
 
-/**
- * A placeholder this long is sample wording the template
- * offers (e.g. a paragraph of a letter), not a blank.
- */
 const MAX_PLACEHOLDER_WORDS = 12;
-/**
- * Word's generic prompts say nothing about the value; the control's title does.
- */
 const GENERIC_PROMPT =
   /click or tap|click here|enter (any )?(text|a date)|choose an item|cliquez|appuyez ici|entrer (du texte|une date)|choisissez un élément/i;
 
-/**
- * Finds marked fields: {{…}}, […], underscore lines and Word content
- * controls still showing their placeholder. Unmarked fields are left to
- * the AI analysis, whose verbatim quotes are checked against these blocks.
- */
 export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
   const out: MarkerOccurrence[] = [];
   const bindings = new Map<string, number>();
-  // Boxes share a title when they hold the same kind of content: when some
-  // of them hold sample paragraphs (Word's letters title them all “Enter
-  // the body of the letter”), the short ones are sample wording too.
   const sampleTitles = new Set(
     blocks.flatMap((b) =>
       (b.placeholders ?? []).flatMap((ph) =>
@@ -163,8 +126,6 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
         continue;
       }
 
-      // A defined-term style bracket inside
-      // quotes (e.g. ["Buyer"]) is ordinary text.
       if (/^[“"]/.test(inner)) {
         continue;
       }
@@ -186,8 +147,6 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
     for (const m of text.matchAll(UNDERSCORE)) {
       const start = m.index;
 
-      // Signature lines are meant to stay blank for
-      // wet/e-signature; they are not interview fields.
       if (SIGNATURE_CONTEXT.test(text.slice(Math.max(0, start - 50), start))) {
         continue;
       }
@@ -212,8 +171,6 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
       const start = ph.start + raw.indexOf(value);
       const end = start + value.length;
 
-      // A marker typed inside the placeholder is the blank;
-      // a line break cannot be replaced by one value.
       if (
         !value ||
         /[\t\n]/.test(value) ||
@@ -224,8 +181,6 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
         continue;
       }
 
-      // Controls bound to the same data always
-      // show the same value in Word: one field.
       if (ph.binding && !bindings.has(ph.binding)) {
         bindings.set(ph.binding, bindings.size + 1);
       }

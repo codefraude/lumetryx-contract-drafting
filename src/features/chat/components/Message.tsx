@@ -74,7 +74,6 @@ function Thinking() {
   );
 }
 
-/** Memoised: while a reply streams, only the last message re-renders. */
 export const Message = memo(function Message({ m }: { m: ChatMessage }) {
   if (m.role === "notice") {
     return (

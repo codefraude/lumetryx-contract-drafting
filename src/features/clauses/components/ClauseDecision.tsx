@@ -10,7 +10,6 @@ import { useCorrectField } from "@/features/documents/queries";
 import { errorMessage } from "@/lib/http";
 import { Button } from "@/shared/ui/Button";
 
-/** The yes/no (or value) answer an undecided clause waits for. */
 export function ClauseDecision({
   documentId,
   r,

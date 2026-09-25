@@ -28,10 +28,6 @@ const TEMPLATE_LANG: Partial<Record<DocLanguage, string>> = {
   fr: "French template.",
 };
 
-/**
- * Assistant identity and conversation language; progress
- * lives in the header status and the tab counts.
- */
 export function ChatHeader({
   language,
   onLanguage,

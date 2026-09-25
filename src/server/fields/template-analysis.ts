@@ -1,12 +1,7 @@
 import { z } from "zod";
 import { FieldGroup, ValueType } from "@/features/documents/contracts/fields";
 
-/**
- * Schema the model must satisfy for template analysis. Kept small on purpose.
- */
 export const TemplateAnalysis = z.object({
-  // Gemini rejects maxItems on arrays of objects
-  // (HTTP 400); caps are applied in buildFields.
   fields: z.array(
     z.object({
       id: z

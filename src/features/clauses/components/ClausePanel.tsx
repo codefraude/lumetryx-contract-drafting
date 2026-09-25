@@ -15,10 +15,6 @@ interface Props extends Omit<RuleCardProps, "r"> {
   structureIssues: DocumentView["structureIssues"];
 }
 
-/**
- * Conditional clauses with their status and reason,
- * and any problems the document structure raised.
- */
 export const ClausePanel = memo(function ClausePanel({
   rules,
   ruleIssues,

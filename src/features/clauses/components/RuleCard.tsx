@@ -62,18 +62,10 @@ export interface RuleCardProps {
   r: RuleView;
   fields: Field[];
   language: ChatLanguage;
-  /**
-   * A draft exists: answers change through
-   * the chat so the draft is patched safely.
-   */
   locked: boolean;
   onAction(ruleId: string, action: RuleAction): Promise<unknown>;
 }
 
-/**
- * One conditional clause: its state and reason,
- * and the decision or confirmation it waits for.
- */
 export function RuleCard({
   documentId,
   r,

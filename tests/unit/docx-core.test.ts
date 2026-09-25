@@ -99,7 +99,7 @@ describe("indexing and detection", () => {
     const markers = detectMarkers(blocks);
     const keys = new Set(markers.map((m) => m.key));
 
-    expect(keys).toContain("k:disclosing party name"); // split run + table cell
+    expect(keys).toContain("k:disclosing party name");
     expect(keys).toContain("k:receiving party name");
     expect(keys).toContain("k:company number");
 
@@ -107,7 +107,6 @@ describe("indexing and detection", () => {
       markers.filter((m) => m.key === "k:disclosing party name"),
     ).toHaveLength(2);
 
-    // "of ________________" is a field, the "Signed by: ____" lines are not.
     const blanks = markers.filter((m) => m.marker === "underscore");
 
     expect(blanks).toHaveLength(1);
@@ -137,7 +136,6 @@ describe("filling", () => {
 
     expect(doc).toContain("Smith &amp; Sons &lt;Ltd&gt;");
     expect(doc).not.toContain("disclosing_");
-    // Replacement stays inside the first (bold) run of the split placeholder.
     expect(doc).toMatch(/<w:b\/>[\s\S]{0,200}Smith &amp; Sons/);
     expect(await partXml(out, "word/numbering.xml")).toBe(originalNumbering);
     expect(doc).toContain('w:numId w:val="2"');
@@ -362,8 +360,6 @@ describe("Word content controls (placeholder boxes)", () => {
 
     expect(markers.every((m) => m.marker === "control")).toBe(true);
 
-    // Bound to the same document property: one
-    // field, in the body and in the header.
     expect(new Set(byText("Nom du destinataire").map((m) => m.key)).size).toBe(
       1,
     );
@@ -373,11 +369,8 @@ describe("Word content controls (placeholder boxes)", () => {
     );
 
     expect(new Set(byText("Votre nom").map((m) => m.key)).size).toBe(1);
-    // The same wording for two different people is never merged.
     expect(new Set(byText("Adresse postale").map((m) => m.key)).size).toBe(2);
 
-    // A sentence of the letter, a short piece of it in a box of the
-    // same kind, and a table-of-contents gallery are not blanks.
     expect(
       markers.some((m) => m.text.startsWith("J’ai été très surpris")),
     ).toBe(false);
@@ -390,7 +383,6 @@ describe("Word content controls (placeholder boxes)", () => {
 
     expect(markers.some((m) => m.text.startsWith("Aucune entrée"))).toBe(false);
 
-    // Word's generic prompt says nothing about the value; the box's title does.
     expect(
       byText("Cliquez ou appuyez ici pour entrer du texte.")[0]!.labelHint,
     ).toBe("Numéro de police");
@@ -442,7 +434,6 @@ describe("Word content controls (placeholder boxes)", () => {
       return after.find((b) => b.id === id)!.text;
     };
 
-    // The value takes the placeholder's place; the placeholder wording is gone.
     expect(text("word/document.xml#0")).toBe("Camille Martin");
     expect(text("word/document.xml#1")).toBe("12 rue des Lilas");
     expect(text("word/document.xml#8")).toBe("1 place de la Bourse");
@@ -475,8 +466,6 @@ describe("Word content controls (placeholder boxes)", () => {
       "POL-778",
     ]) {
       expect(box(v), v).not.toContain("showingPlcHdr");
-      // Kept, Word would replace the value with the
-      // (empty) bound document property on opening.
       expect(box(v), v).not.toContain("dataBinding");
     }
 
@@ -484,15 +473,12 @@ describe("Word content controls (placeholder boxes)", () => {
       box("Jeanne Dupont", await partXml(bytes, "word/header1.xml")),
     ).not.toContain("showingPlcHdr");
 
-    // No grey placeholder formatting on the answer.
     expect(box("POL-778")).not.toContain("Textedelespacerserv");
 
     expect(xml).toMatch(
       /Rfrencelgre"\/><\/w:rPr><w:t[^>]*>Assurances &amp; Fils</,
-    ); // the template's own formatting stays
+    );
 
-    // Unanswered boxes still show their placeholder,
-    // and are found again for a later answer.
     expect(box("Cordialement")).toContain("showingPlcHdr");
     const again = detectMarkers(after).map((m) => m.text);
 
@@ -573,9 +559,8 @@ describe("placeholder wording without markers", () => {
     const ids = fields.map((x) => x.id);
 
     expect(ids).toContain("use");
-    // Its place is already the answer to "use".
     expect(ids).not.toContain("overlap");
-    expect(ids).not.toContain("on_marker"); // the marker is the field
+    expect(ids).not.toContain("on_marker");
     expect(rejected.some((r) => r.startsWith("overlapping place"))).toBe(true);
 
     Object.assign(

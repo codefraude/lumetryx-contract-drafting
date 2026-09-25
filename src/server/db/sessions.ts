@@ -20,11 +20,6 @@ export async function createSession(secretHash: string): Promise<string> {
   return row.id;
 }
 
-/**
- * Looks up an unexpired session. Activity refreshes the expiry at
- * most hourly (to avoid a write per request); `refreshed` tells
- * the caller to re-issue the cookie with the same lifetime.
- */
 export async function findSession(id: string, secretHash: string) {
   const db = getDb();
   const [row] = await db
@@ -65,10 +60,6 @@ export async function findSession(id: string, secretHash: string) {
   };
 }
 
-/**
- * An unexpired session by id alone, for links signed
- * with its secret hash; it does not count as activity.
- */
 export async function findLiveSession(id: string) {
   const [row] = await getDb()
     .select({

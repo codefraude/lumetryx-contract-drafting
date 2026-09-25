@@ -9,11 +9,6 @@ import { buildDraft } from "@/server/draft/generate";
 import { NotFound } from "@/server/http/responses";
 import { mustGet, mustGetBytes } from "./access";
 
-/**
- * Generating the draft, and reading or saving
- * the working DOCX the editor works on.
- */
-
 export async function generateDraft(
   sessionId: string,
   documentId: string,
@@ -102,7 +97,6 @@ export async function saveEditorDocx(
   expectedRevision: number,
   bytes: Uint8Array,
 ) {
-  // The editor's output must still be a valid, bounded package.
   await loadDocxPackage(bytes);
   const saved = await repo.saveWorkingDocx(
     sessionId,
@@ -117,7 +111,6 @@ export async function saveEditorDocx(
   };
 }
 
-/** The exported file's name: the template's, marked as a draft. */
 export const draftFileName = (filename: string) => {
   return `${
     filename

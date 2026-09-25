@@ -150,8 +150,6 @@ describe("messy answers found by the live evaluation", () => {
       },
     });
 
-    // Two dates in one piece of evidence: which one the model
-    // meant is not guessed; its value is checked instead.
     const two = applyExtraction(
       [date()],
       extract("1 October 2026", "from 01/10/2026 to 30/09/2027"),

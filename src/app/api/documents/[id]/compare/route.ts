@@ -5,10 +5,6 @@ import { assertSameOrigin, requireSession } from "@/server/session";
 
 export const runtime = "nodejs";
 
-/**
- * Read-only: the body may carry the editor's DOCX,
- * so unsaved edits are compared without saving them.
- */
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },

@@ -7,11 +7,6 @@ import { loadDocxPackage } from "@/server/docx/package";
 import { indexBlocks } from "@/server/docx/render";
 import { NotFound } from "@/server/http/responses";
 
-/**
- * Loads a draft for the session that owns
- * it; any other session gets "not found".
- */
-
 export async function mustGet(sessionId: string, documentId: string) {
   const doc = await repo.getDocument(sessionId, documentId);
 
@@ -36,10 +31,6 @@ export const blocksCacheKey = (sessionId: string, templateHash: string) => {
   return `lx:blocks:${sessionId}:${templateHash}:${PARSER_VERSION}`;
 };
 
-/**
- * Parsed template blocks are cached per
- * session + template hash + parser version.
- */
 export async function templateBlocks(
   sessionId: string,
   templateHash: string,

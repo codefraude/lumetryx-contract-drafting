@@ -9,14 +9,7 @@ import {
   wAttr,
 } from "./xml";
 
-/**
- * A paragraph's visible text, mapped back to the w:t nodes that
- * hold it, so an edit at a text offset lands in the right run. Also
- * finds the Word content controls that still show placeholder text.
- */
-
 export interface Segment {
-  /** w:t node, or null for an immutable separator (tab/break). */
   node: XmlElement | null;
   start: number;
   end: number;
@@ -26,10 +19,6 @@ export interface ParagraphMap {
   el: XmlElement;
   text: string;
   segments: Segment[];
-  /**
-   * Content controls inside the paragraph (run
-   * level), with the text range they cover.
-   */
   controls: {
     el: XmlElement;
     start: number;
@@ -51,12 +40,10 @@ export function mapParagraph(p: XmlElement): ParagraphMap {
       const el = n;
 
       if (el.namespaceURI === W_NS) {
-        // Nested paragraphs (text boxes) are indexed as their own blocks.
         if (el.localName === "p") {
           continue;
         }
 
-        // Deleted tracked-change text is not part of visible content.
         if (
           el.localName === "del" ||
           el.localName === "delText" ||
@@ -124,10 +111,6 @@ export function mapParagraph(p: XmlElement): ParagraphMap {
   };
 }
 
-/**
- * Controls that hold something other than text
- * (galleries, pictures, check boxes, …) are never fields.
- */
 const NON_TEXT_CONTROLS = new Set([
   "docPartObj",
   "docPartList",
@@ -157,11 +140,6 @@ const showsPlaceholder = (sdt: XmlElement): boolean => {
   return true;
 };
 
-/**
- * Content controls of this paragraph still showing their placeholder.
- * A control around the whole paragraph counts only if it holds
- * nothing else; among nested controls, the innermost is the blank.
- */
 export function placeholderSpans(map: ParagraphMap): PlaceholderSpan[] {
   const found = map.controls.filter((c) => showsPlaceholder(c.el));
   const outer = nearestAncestor(map.el, "sdt");
@@ -192,7 +170,6 @@ export function placeholderSpans(map: ParagraphMap): PlaceholderSpan[] {
   return found
     .filter((c) => !found.some((o) => o !== c && inside(c.el, o.el)))
     .map(({ el, start, end }) => {
-      // Every control here passed showsPlaceholder, so it has its properties.
       const pr = firstChild(el, "sdtPr");
       const bind = pr && firstChild(pr, "dataBinding");
       const title = pr && (firstChild(pr, "alias") ?? firstChild(pr, "tag"));

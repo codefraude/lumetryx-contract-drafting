@@ -10,14 +10,7 @@ import type { Block } from "@/server/docx/blocks";
 import { chronologyIssues, normalizeValue } from "@/server/fields/normalize";
 import { AiError, SAFETY_RULES, providerOptions, untrusted } from "./model";
 
-/**
- * Stage 1 of a chat turn: the model proposes
- * field values from the user's latest message.
- */
-
 export const Extraction = z.object({
-  // Gemini rejects maxItems on arrays of objects (HTTP
-  // 400); the 40 cap is applied in applyExtraction.
   updates: z.array(
     z.object({
       fieldId: z.string(),
@@ -79,10 +72,6 @@ export interface ApplyResult {
   rejected: string[];
 }
 
-/**
- * Commits an update only if it names a real field, quotes text the user
- * actually wrote and passes validation. Nothing is parsed out of prose.
- */
 export function applyExtraction(
   fields: Field[],
   extraction: Extraction,
@@ -123,8 +112,6 @@ export function applyExtraction(
       userCurrency ??
       templateCurrency ??
       (confirmedCurrency?.kind === "money" ? confirmedCurrency.currency : null);
-    // A date the user wrote in figures is checked as written:
-    // the model must not settle 03/04/2026 by itself.
     const figures =
       f.valueType === "date"
         ? [...u.evidence.matchAll(DATE_IN_FIGURES)].map(([d]) => d)
@@ -204,10 +191,6 @@ export interface TurnInput {
   abortSignal?: AbortSignal;
 }
 
-/**
- * The server's calendar date. ponytail: send the browser's date
- * instead if users work in another time zone than the server.
- */
 const today = () => {
   const d = new Date();
 
@@ -215,7 +198,6 @@ const today = () => {
 };
 
 export async function extract(input: TurnInput) {
-  // Without today's date the model invents one when the user says "today".
   const prompt = `TODAY: ${today()}\n\nFIELDS (id | label | type | status | context):\n${input.fields.map(fieldLine).join("\n")}\n\n${untrusted("template", `CLAUSE OUTLINE (id | start of text):\n${outline(input.blocks)}`)}\n\nRECENT CONVERSATION:\n${input.history
     .slice(-6)
     .map((m) => `${m.role}: ${m.content.slice(0, 600)}`)

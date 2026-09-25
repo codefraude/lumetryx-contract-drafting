@@ -5,21 +5,12 @@ import type {
 } from "@/features/documents/contracts/stream-events";
 import { errorBody, PRIVATE_HEADERS } from "./responses";
 
-/**
- * Encodes one SSE frame. JSON never contains
- * raw newlines, so one `data:` line suffices.
- */
 export const encodeEvent = (
   e: EventPayload & Pick<StreamEvent, "requestId" | "seq">,
 ) => {
   return `event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`;
 };
 
-/**
- * Streams typed events as numbered SSE frames tagged with the request id.
- * The abort signal (disconnect or Stop) reaches the producer so AI and
- * document work stop; a failure ends the stream with an `error` event.
- */
 export function sseResponse(
   req: Request,
   requestId: string,
@@ -68,9 +59,7 @@ export function sseResponse(
 
         try {
           controller.close();
-        } catch {
-          /* already closed by disconnect */
-        }
+        } catch {}
       }
     },
   });

@@ -1,7 +1,3 @@
-/**
- * French and bilingual templates: a services agreement, a bilingual
- * lease and a bilingual employment contract with a conditional clause.
- */
 import {
   AlignmentType,
   Document,
@@ -25,10 +21,6 @@ import {
   styles,
 } from "./parts";
 
-/**
- * French-only services agreement: accented placeholders, a placeholder
- * split across runs, underscore blanks, a table and legal numbering.
- */
 export function contratPrestation(): Document {
   return new Document({
     creator: "Lumetryx synthetic fixture",
@@ -71,8 +63,6 @@ export function contratPrestation(): Document {
           }),
           para([
             new TextRun("Le présent contrat est conclu le "),
-            // Accented placeholder deliberately split
-            // across differently formatted runs.
             new TextRun({
               text: "{{date_de_",
               bold: true,
@@ -149,10 +139,6 @@ export function contratPrestation(): Document {
   });
 }
 
-/**
- * Bilingual (English/French) lease: the same
- * tenant, date and rent appear in both languages.
- */
 export function bilingualLease(): Document {
   return new Document({
     creator: "Lumetryx synthetic fixture",
@@ -263,10 +249,6 @@ export function bilingualLease(): Document {
   });
 }
 
-/**
- * Bilingual employment contract with a conditional
- * non-compete clause marked with [[IF …]] / [[END IF]].
- */
 export function bilingualEmployment(): Document {
   return new Document({
     creator: "Lumetryx synthetic fixture",

@@ -5,10 +5,6 @@ import type { ConfirmOptions } from "@/shared/ui/ConfirmDialog";
 
 export type ExportAction = "download" | "word";
 
-/**
- * What the last export left to say: it failed,
- * or Word was asked to open the draft.
- */
 export type ExportNotice =
   | {
       kind: "failed";
@@ -18,20 +14,13 @@ export type ExportNotice =
   | { kind: "word" };
 
 interface Options {
-  /** Saves pending editor edits: both exports are the saved working draft. */
   flush(): Promise<void>;
-  /**
-   * Asks before exporting a draft with open issues; resolves true to go ahead.
-   */
   confirm(warnings: string[], action: ExportAction): Promise<boolean>;
   onNotSaved(message: string): void;
   announce(text: string): void;
   ask(options: ConfirmOptions): Promise<boolean>;
 }
 
-// Pages can't replace the browser's "open this app?" prompt,
-// so our dialog explains it the first time. The flag is only
-// a UI preference; nothing about the draft is stored.
 const WORD_INTRO = "lx-word-intro";
 
 const introduced = () => {
@@ -45,12 +34,9 @@ const introduced = () => {
 const remember = () => {
   try {
     localStorage.setItem(WORD_INTRO, "1");
-  } catch {
-    // Storage is blocked (private window): the dialog shows again next time.
-  }
+  } catch {}
 };
 
-/** Follows a link as a click would, without leaving an element in the page. */
 function follow(href: string, filename?: string) {
   const a = document.createElement("a");
 
@@ -65,10 +51,6 @@ function follow(href: string, filename?: string) {
   a.remove();
 }
 
-/**
- * Exports of the working draft, including an edit made just
- * before clicking: a download, or the draft opened in Word.
- */
 export function useExport(
   documentId: string,
   { flush, confirm, onNotSaved, announce, ask }: Options,
@@ -76,8 +58,6 @@ export function useExport(
   const [busy, setBusy] = useState<ExportAction | null>(null);
   const [notice, setNotice] = useState<ExportNotice | null>(null);
 
-  // The Word notice only explains what just
-  // happened, so it goes away by itself.
   useEffect(() => {
     if (notice?.kind !== "word") {
       return;
@@ -130,11 +110,7 @@ export function useExport(
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
         announce(`Downloaded ${filename}.`);
       } else {
-        // Word's own URL scheme ("ofv" opens it for viewing): Word
-        // on this device fetches the link and opens its copy.
         follow(`ms-word:ofv|u|${(await requestWordLink(documentId)).url}`);
-        // The notice is a live status region, so it
-        // is announced without a separate message.
         setNotice({ kind: "word" });
       }
     } catch (e) {

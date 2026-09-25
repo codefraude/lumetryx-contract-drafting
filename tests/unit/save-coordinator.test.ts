@@ -4,9 +4,6 @@ import {
   type SaveStatus,
 } from "@/features/documents/editor/save-coordinator";
 
-/**
- * A server that answers saves only when told to, so ordering can be controlled.
- */
 function setup(opts: { conflict?: boolean } = {}) {
   const statuses: SaveStatus[] = [];
   const sent: {
@@ -105,8 +102,8 @@ describe("autosave", () => {
     const { saver, statuses, sent, edit, answer } = setup();
 
     edit("first");
-    await vi.advanceTimersByTimeAsync(150); // save 1 is in flight
-    edit("second"); // typed during save 1
+    await vi.advanceTimersByTimeAsync(150);
+    edit("second");
     await answer();
     await vi.waitFor(() => expect(statuses).toContain("unsaved"));
     expect(statuses.at(-1)).toBe("unsaved");

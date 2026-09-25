@@ -2,19 +2,10 @@ import { Element as XmlElement } from "@xmldom/xmldom";
 import type { ParagraphMap } from "./paragraph-text";
 import { firstChild, toggleOn, W_NS, wAttr, XML_NS } from "./xml";
 
-/**
- * One text edit inside a paragraph, applied
- * through the runs that hold the text.
- */
-
 export interface TextEdit {
   blockId: string;
   start: number;
   end: number;
-  /**
-   * The text that must currently occupy [start,
-   * end); guards against stale anchors.
-   */
   expected: string;
   value: string;
 }
@@ -32,11 +23,6 @@ export class AnchorConflictError extends Error {
   }
 }
 
-/**
- * Does what Word does when someone types into a placeholder:
- * drops the placeholder flag and style, and the data binding
- * too, or Word would put the empty bound value back on open.
- */
 function commitControl(
   sdt: XmlElement,
   placeholderStyles: ReadonlySet<string>,
@@ -100,8 +86,6 @@ export function applyToParagraph(
         ]
       : [],
   );
-  // Insertion at a point prefers the preceding
-  // run so the value inherits its formatting.
   const first =
     edit.start === edit.end
       ? (textSegs.find((s) => s.end === edit.start) ?? textSegs[0])
@@ -134,8 +118,6 @@ export function applyToParagraph(
     node.setAttributeNS(XML_NS, "xml:space", "preserve");
   });
 
-  // An identity edit only anchors a still-unanswered
-  // blank; a real value turns a placeholder into content.
   if (value === edit.expected) {
     return;
   }

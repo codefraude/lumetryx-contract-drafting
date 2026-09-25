@@ -11,10 +11,6 @@ import {
 } from "drizzle-orm/pg-core";
 import type { FieldState } from "@/server/fields/state";
 
-/**
- * Raw DOCX bytes. Bounded by upload limits
- * (see DOCX_LIMITS); never cached in Redis.
- */
 const bytea = customType<{
   data: Buffer;
   driverData: Buffer;
@@ -24,7 +20,6 @@ const bytea = customType<{
 
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  /** SHA-256 of the cookie secret. The secret itself is never stored. */
   secretHash: text("secret_hash").notNull().unique(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -32,10 +27,6 @@ export const sessions = pgTable("sessions", {
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-  /**
-   * Sliding expiry, refreshed together with the
-   * cookie's max-age on authorised activity.
-   */
   expiresAt: timestamp("expires_at", { withTimezone: true })
     .notNull()
     .default(sql`now() + interval '30 days'`),
@@ -54,11 +45,9 @@ export const documents = pgTable(
       .notNull()
       .references(() => sessions.id, { onDelete: "cascade" }),
     filename: text("filename").notNull(),
-    /** User-facing draft name (defaults to the template's file name). */
     title: text("title").notNull().default(""),
     templateHash: text("template_hash").notNull(),
     originalDocx: bytea("original_docx").notNull(),
-    /** Latest editable draft; null until the first draft is generated. */
     workingDocx: bytea("working_docx"),
     workingRevision: integer("working_revision").notNull().default(0),
     fieldState: jsonb("field_state").$type<FieldState>().notNull(),
@@ -67,9 +56,6 @@ export const documents = pgTable(
       .$type<DraftStatus>()
       .notNull()
       .default("none"),
-    /**
-     * fieldsVersion used for the current draft; a draft is stale if it differs.
-     */
     draftFieldsVersion: integer("draft_fields_version"),
     analysis: text("analysis").$type<"ai" | "markers_only">().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -78,17 +64,9 @@ export const documents = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    /**
-     * Last successful save of anything in this
-     * draft (answers, conversation, document).
-     */
     savedAt: timestamp("saved_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
-    /**
-     * Retention: the draft is not served after
-     * this and is removed by `npm run db:cleanup`.
-     */
     expiresAt: timestamp("expires_at", { withTimezone: true })
       .notNull()
       .default(sql`now() + interval '30 days'`),

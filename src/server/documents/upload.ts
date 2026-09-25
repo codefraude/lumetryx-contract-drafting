@@ -23,11 +23,6 @@ import { documentLanguage } from "@/server/fields/lang";
 import type { FieldState } from "@/server/fields/state";
 import { documentView } from "./views";
 
-/**
- * A new draft from an uploaded template: markers, the (cached)
- * AI analysis, fields, rules and the opening question.
- */
-
 export async function createFromUpload(
   session: SessionUsage,
   filename: string,

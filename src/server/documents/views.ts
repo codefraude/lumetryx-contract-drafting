@@ -15,12 +15,6 @@ import { replyLanguage } from "@/server/fields/lang";
 import type { FieldState } from "@/server/fields/state";
 import { mustGet } from "./access";
 
-/** The document view the browser receives, built from the persisted draft. */
-
-/**
- * A generation older than this with no completion
- * was interrupted (the lock TTL is 60 s).
- */
 const INTERRUPTED_AFTER_MS = 90_000;
 
 export function phaseOf(doc: {

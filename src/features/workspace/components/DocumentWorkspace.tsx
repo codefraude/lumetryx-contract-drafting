@@ -44,27 +44,17 @@ import { WorkspaceHeader } from "./WorkspaceHeader";
 import { NextStep, SaveBanner } from "./WorkspaceNotices";
 
 export interface DocumentWorkspaceHandle {
-  /**
-   * Saves pending editor edits before leaving this
-   * draft; asks before discarding them if saving fails.
-   */
   leave(): Promise<boolean>;
 }
 
 interface Props {
   doc: DocumentView;
   onShowDrafts(): void;
-  /** Back to the choice of a template (this draft stays saved). */
   onClose(): void;
-  /** Show another draft (a copy of this one, or a newer version of it). */
   onOpenDocument(view: DocumentView): void;
   announce(text: string): void;
 }
 
-/**
- * Mounted per draft and per reload, so the conversation,
- * editor and views start from its saved state.
- */
 export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
   function DocumentWorkspace(
     { doc, onShowDrafts, onClose, onOpenDocument, announce },
@@ -78,8 +68,6 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
     }>({
       status: "loading",
     });
-    // Changes only when the server wrote a new revision
-    // of the draft; the editor then reloads it.
     const [editorKey, setEditorKey] = useState(
       `${doc.id}:${doc.workingRevision}`,
     );
@@ -88,8 +76,6 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
     const [pane, setPane] = useState<DocPane>("document");
     const [confirmDialog, ask] = useConfirm();
 
-    // A reply or generation still streaming after this
-    // draft was closed finishes for it, silently.
     const mounted = useRef(false);
 
     useEffect(() => {
@@ -189,8 +175,6 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
 
     useImperativeHandle(ref, () => ({ leave }), [leave]);
 
-    // Stable handlers keep the memoised panels and the
-    // editor from re-rendering on every streamed token.
     const onEditorStatus = useCallback(
       (status: SaveStatus, message?: string) =>
         setSave({
@@ -282,7 +266,6 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
       await generation.generate();
     };
 
-    // One failure is shown at a time, with the retry that belongs to it.
     const failure = generation.failure ?? chat.failure;
     const retry = generation.failure
       ? () => void startGeneration()
@@ -319,8 +302,6 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
     };
 
     return (
-      // The shell never scrolls as a whole (not even through
-      // scrollIntoView); each pane scrolls on its own.
       <div className="flex h-dvh flex-col overflow-clip bg-app">
         <WorkspaceHeader
           title={doc.title}

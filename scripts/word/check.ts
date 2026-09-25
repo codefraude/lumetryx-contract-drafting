@@ -1,14 +1,3 @@
-/**
- * Opens exported drafts in Microsoft Word and checks them against their
- * templates: `npm run check:word` (add `-- --pdf` to keep Word's PDF of
- * each file, `-- --dir <folder>` to check other exports). Needs Windows
- * with Word, natively or from WSL. Run the markers-only browser specs
- * first: word-exports.spec.ts writes a filled draft and its editor round
- * trip for every fixture; flow.spec.ts writes the lease edited in the
- * browser. Word opens every file read-only, without repair, in a hidden
- * instance of its own (inspect.ps1). Writes tests/output/word/report.md
- * and views.json; exits 1 when a check fails.
- */
 import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
@@ -55,7 +44,6 @@ if (!fixtures.length) {
   process.exit(2);
 }
 
-// Word reads the files from Windows' own temp folder.
 const temp = output("powershell.exe", [
   "-NoProfile",
   "-Command",
@@ -85,8 +73,6 @@ const answers = new Map(
 );
 
 for (const f of fixtures) {
-  // Free-text answers read the same in every language,
-  // so Word can find them and their placeholders.
   const free = (answers.get(f)?.fields ?? []).filter((x) =>
     x.answer.startsWith("Sample "),
   );
@@ -144,8 +130,6 @@ const ps = spawnSync(
 );
 
 if (!existsSync(join(dir, "views.json"))) {
-  // Word stuck on a dialog: stop the instance
-  // this run started, and only that one.
   const pid = existsSync(join(dir, "pid.txt"))
     ? readFileSync(join(dir, "pid.txt"), "utf8").trim()
     : "";

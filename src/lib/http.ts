@@ -7,7 +7,6 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly status: number,
-    /** The server said the failure is temporary (or it was a server error). */
     readonly retryable: boolean,
   ) {
     super(message);
@@ -21,10 +20,6 @@ export const errorMessage = (
   return error instanceof Error && error.message ? error.message : fallback;
 };
 
-/**
- * Worth retrying: the network failed, or the server said so.
- * Validation, authorization and revision conflicts never are.
- */
 export const isTransient = (error: unknown): boolean => {
   return error instanceof ApiError
     ? error.retryable
@@ -37,10 +32,6 @@ const ErrorBody = z.object({
   retryable: z.boolean().optional(),
 });
 
-/**
- * Uses the server's error body when there is
- * one; without it, any 5xx counts as retryable.
- */
 export async function apiError(res: Response): Promise<ApiError> {
   const parsed = ErrorBody.safeParse(await res.json().catch(() => null));
   const body = parsed.success ? parsed.data : {};

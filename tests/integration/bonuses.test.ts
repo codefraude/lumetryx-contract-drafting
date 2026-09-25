@@ -1,8 +1,3 @@
-/**
- * Integration tests for the four bonuses: real PostgreSQL (local
- * test database), real DOCX processing, real service layer. The
- * language model is a MOCK (see helpers.ts) that counts calls.
- */
 process.env.DATABASE_URL ??=
   "postgres://postgres:postgres@localhost:5432/lumetryx_test";
 
@@ -75,10 +70,6 @@ const f = (
   };
 };
 
-/**
- * What a correct analysis of the bilingual lease looks like:
- * English and French occurrences of the same value grouped.
- */
 const LEASE_ANALYSIS: TemplateAnalysis = {
   notFields: [],
   fields: [
@@ -330,11 +321,8 @@ describe("French and bilingual templates", () => {
 
     expect(v.language.effective).toBe("fr");
     expect(lastReplyPrompt).toContain("REPLY LANGUAGE: French");
-    // The next question, in French.
     expect(lastReplyPrompt).toContain("Qui est le bailleur ?");
 
-    // Switching to English: deterministic confirmation,
-    // no model call, nothing re-asked or lost.
     const before = { ...calls };
     const en = await setConversationLanguage(s.id, d.id, {
       fieldsVersion: v.fieldsVersion,
@@ -377,7 +365,7 @@ describe("French and bilingual templates", () => {
 
     expect(text).toContain(
       "Le Bailleur donne à bail au Locataire le bien situé 4 Sea View Lane",
-    ); // clause wording untouched
+    );
   });
 
   it("asks about an ambiguous separator instead of guessing, and never infers a currency from the language", async () => {
@@ -488,7 +476,6 @@ describe("conditional clauses", () => {
       }),
     ]);
 
-    // "No": the clause's own fields no longer block completion.
     await say(s, d.id, "non", {
       updates: [u("employee_is_senior", "no", "non")],
     });
@@ -507,8 +494,6 @@ describe("conditional clauses", () => {
     expect(text).not.toContain("Non-competition");
     expect(text).not.toMatch(/\[\[/);
 
-    // "Yes" after drafting: the clause comes
-    // back (from the template), exactly once.
     const ev = await say(s, d.id, "Actually yes, he is senior", {
       updates: [u("employee_is_senior", "yes", "yes")],
     });
@@ -523,8 +508,6 @@ describe("conditional clauses", () => {
     expect(v.inactiveFieldIds).not.toContain("restricted_area");
     expect(v.rules[0]!.applied).toBe("included");
 
-    // An explicit override is persisted and
-    // visible, and wins over the condition.
     v = await ruleAction(s.id, d.id, {
       fieldsVersion: v.fieldsVersion,
       ruleId: "clause_employee_is_senior",
@@ -681,8 +664,6 @@ describe("saved drafts", () => {
     await deleteDraft(a.id, d1.id);
     await expect(getView(a.id, d1.id)).rejects.toBeInstanceOf(NotFound);
 
-    // The copy still uses the lease template, so its cached
-    // analysis is kept; deleting its last user drops it.
     const cached = (hash: string) => {
       return [...store.data.keys()].filter((k) =>
         k.startsWith(`lx:analysis:${a.id}:${hash}`),
@@ -768,13 +749,10 @@ describe("saved drafts", () => {
 
     expect(saved.workingRevision).toBe(w.workingRevision + 1);
 
-    // A second tab still holding the old
-    // revision cannot overwrite the newer save.
     await expect(
       saveEditorDocx(s.id, d.id, w.workingRevision, new Uint8Array(w.bytes)),
     ).rejects.toBeInstanceOf(repo.StaleRevisionError);
 
-    // Unsaved editor content can be compared without being saved.
     const pkg = await loadDocxPackage(new Uint8Array(w.bytes));
     const blk = (await indexBlocks(pkg)).find((x) =>
       x.text.startsWith("The monthly rent"),
@@ -806,7 +784,6 @@ describe("saved drafts", () => {
       saved.workingRevision,
     );
 
-    // Drafting, saving and comparing never call the model.
     expect(calls).toEqual(before);
 
     await pool.query(
@@ -837,7 +814,7 @@ describe("Word content controls", () => {
     analysis = {
       notFields: [],
       fields: [],
-    }; // every placeholder box becomes its own field
+    };
 
     const s = await newSession();
     let d = await createFromUpload(
@@ -876,7 +853,7 @@ describe("Word content controls", () => {
 
     expect(
       await bodyText((await readDocx(s.id, d.id, "working")).bytes),
-    ).toContain("Titre"); // still the placeholder
+    ).toContain("Titre");
 
     const events = await say(
       s,

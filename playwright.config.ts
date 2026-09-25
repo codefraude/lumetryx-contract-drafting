@@ -1,12 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
 
-/**
- * E2E runs against a running server (`npm run build && npm start`,
- * or `npm run dev`). E2E_BROWSERS picks the engines (default
- * "chromium"; e.g. "chromium,firefox,webkit"). CHROMIUM_PATH and
- * WEBKIT_PATH point at other executables when Playwright's own
- * download is unavailable or cannot load its system libraries.
- */
 const viewport = {
   width: 1400,
   height: 900,

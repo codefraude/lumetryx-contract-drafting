@@ -18,7 +18,6 @@ import { ThemeControl } from "@/shared/ui/ThemeControl";
 const DOCX_TYPE =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-/** Synthetic fixtures shipped in public/examples. */
 const EXAMPLES: {
   file: string;
   title: string;
@@ -55,7 +54,6 @@ const EXAMPLES: {
 
 interface Props {
   onFile(file: File): void;
-  /** Name of the file being read, while its upload and analysis run. */
   busy: string | null;
   error: string | null;
   onShowDrafts(): void;
@@ -96,7 +94,6 @@ export function UploadPanel({
     onFile(f);
   };
 
-  /** Uploads a bundled example exactly like a file the person picked. */
   const tryExample = async (ex: (typeof EXAMPLES)[number]) => {
     setLocal(null);
     setFetching(ex.file);

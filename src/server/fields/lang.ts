@@ -4,11 +4,6 @@ import type {
   Lang,
 } from "@/features/documents/contracts/fields";
 
-/**
- * Deterministic language detection for English/French contract
- * text. It counts common function words and accented words; short
- * or balanced text is reported as "unknown" rather than guessed.
- */
 const EN = new Set(
   "the and of to in is are shall be by for with this that any or as on at from which will may not its their such each all under between hereby agreement party parties tenant landlord employee employer company services provider client date".split(
     " ",
@@ -20,7 +15,6 @@ const FR = new Set(
   ),
 );
 
-// Words present in both sets carry no signal.
 for (const w of [...EN]) {
   if (FR.has(w)) {
     EN.delete(w);
@@ -48,7 +42,7 @@ export function scoreText(text: string): LangScore {
 
     if (raw !== w) {
       fr += 1;
-    } // elision: l', d', qu' …
+    }
 
     if (EN.has(w)) {
       en += 1;
@@ -88,10 +82,6 @@ export function detectLanguage(text: string): Lang {
 const SHORT_FR = /^(oui|non|bonjour|merci|d'accord|exact|voilà|si)\b/i;
 const SHORT_EN = /^(yes|no|hello|hi|thanks|thank you|okay|ok|correct|sure)\b/i;
 
-/**
- * Language of a chat message; only confident
- * results change the conversation language.
- */
 export function messageLanguage(text: string): Lang {
   const t = text.trim();
   const l = detectLanguage(t);
@@ -111,7 +101,6 @@ export function messageLanguage(text: string): Lang {
   return "unknown";
 }
 
-/** Dominant language of a template from per-block scores weighted by length. */
 export function documentLanguage(texts: string[]): {
   document: DocLanguage;
   en: number;
@@ -160,10 +149,6 @@ export function documentLanguage(texts: string[]): {
   };
 }
 
-/**
- * Conversation language: explicit choice, then the
- * user's latest confident message, then the template.
- */
 export function replyLanguage(
   explicit: ChatLanguage | null,
   message: string | null,
@@ -182,7 +167,6 @@ export function replyLanguage(
   return doc === "fr" ? "fr" : "en";
 }
 
-/** How a value is rendered at an occurrence whose own language is unknown. */
 export const renderLang = (occurrence: Lang, doc: DocLanguage): "en" | "fr" => {
   return occurrence !== "unknown" ? occurrence : doc === "fr" ? "fr" : "en";
 };
@@ -236,11 +220,6 @@ export const stripAccents = (s: string) => {
   return s.normalize("NFD").replace(/\p{M}/gu, "");
 };
 
-/**
- * Month number (1–12) for an English or French month
- * name/abbreviation, or 0. French needs the full name or
- * a standard abbreviation (juin/juillet share a prefix).
- */
 export function monthNumber(name: string): number {
   const n = stripAccents(name.toLowerCase().replace(/\.$/, ""));
   const fr = MONTHS_FR.findIndex(
@@ -257,7 +236,6 @@ export function monthNumber(name: string): number {
 }
 
 export function formatDate(iso: string, lang: "en" | "fr"): string {
-  // A normalized date is always YYYY-MM-DD.
   const [y = 0, m = 0, d = 0] = iso.split("-").map(Number);
 
   if (lang === "fr") {
@@ -271,7 +249,6 @@ export function formatDate(iso: string, lang: "en" | "fr"): string {
 
 const NBSP = " ";
 
-/** Renders an exact decimal string; no floating point is involved. */
 export function formatAmount(amount: string, lang: "en" | "fr"): string {
   const [int = "", frac] = amount.split(".");
   const showFrac = frac && /[1-9]/.test(frac) ? frac.padEnd(2, "0") : "";
@@ -283,7 +260,6 @@ export function formatAmount(amount: string, lang: "en" | "fr"): string {
   return `${int.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}${showFrac ? `.${showFrac}` : ""}`;
 }
 
-/** English: "EUR 1,250.50"; French: "1 250,50 EUR" (non-breaking spaces). */
 export const formatMoney = (
   amount: string,
   symbol: string,
@@ -305,11 +281,6 @@ export type AmountParse =
       note: string;
     };
 
-/**
- * Reads "1 250,50", "1,250.50", "25,000" or "1.250" as an exact decimal.
- * One separator before exactly three digits is thousands in English but
- * a decimal in French, so the language must settle it, or we ask.
- */
 export function parseAmount(raw: string, lang: Lang): AmountParse {
   const s = raw.trim().replace(/[   ']/g, " ");
 
@@ -381,8 +352,6 @@ export function parseAmount(raw: string, lang: Lang): AmountParse {
       if (frac.length === 3) {
         const thousands = `${int}${frac}`;
         const decimal = `${int}.${frac}`;
-        // English writes thousands with commas;
-        // French writes decimals with commas.
         const settled =
           sep === ","
             ? lang === "en"

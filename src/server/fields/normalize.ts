@@ -27,7 +27,6 @@ const isValidYmd = (y: number, m: number, d: number): boolean => {
     return false;
   }
 
-  // UTC only, so a date-only value never shifts.
   const dt = new Date(Date.UTC(y, m - 1, d));
 
   return (
@@ -45,10 +44,6 @@ export const formatLongDate = (isoDate: string): string => {
   return formatDate(isoDate, "en");
 };
 
-/**
- * Parses an English or French date without any timezone.
- * Numeric d/m ambiguity is surfaced, never guessed.
- */
 export function parseDate(input: string): NormalizeResult {
   const s = input
     .trim()
@@ -154,10 +149,6 @@ const UNAMBIGUOUS: Record<string, string> = {
   sgd: "SGD",
   pkr: "PKR",
 };
-/**
- * Symbols shared by several currencies: resolved
- * only by an explicit hint, never guessed.
- */
 const RUPEES = {
   display: "Rs",
   candidates: ["MUR", "INR", "PKR", "LKR", "NPR"],
@@ -189,11 +180,6 @@ const DISPLAY: Record<string, string> = {
   NPR: "Rs",
 };
 
-/**
- * Parses money as an exact decimal string, never a float. A bare number
- * or an ambiguous symbol (“Rs”, “$”) needs a currency from the template
- * or the user; `lang` settles whether "25,000" is thousands or a decimal.
- */
 export function parseMoney(
   input: string,
   currencyHint?: string | null,
@@ -272,7 +258,6 @@ export function parseMoney(
     };
   }
 
-  // Every path that sets a code also sets how it is written.
   const shown = display ?? code;
 
   return {
@@ -288,7 +273,6 @@ export function parseMoney(
   };
 }
 
-/** Infers a currency only when the template itself names one unambiguously. */
 export function templateCurrencyHint(allText: string): string | null {
   const found = new Set<string>();
 
@@ -347,10 +331,6 @@ export function parseBoolean(input: string): NormalizeResult {
   };
 }
 
-/**
- * Deterministic validation applied to every value
- * the model proposes, before anything is committed.
- */
 export function normalizeValue(
   valueType: ValueType,
   raw: string,
@@ -402,11 +382,6 @@ export function normalizeValue(
   }
 }
 
-/**
- * The text written at one occurrence. Dates and amounts follow
- * the occurrence's language (“1 October 2026” / “1 octobre
- * 2026”); names, addresses and identifiers are written as given.
- */
 export function renderAt(
   f: Field,
   occurrenceLang: Lang,
@@ -434,10 +409,6 @@ export function renderAt(
   return f.displayValue;
 }
 
-/**
- * Flags start/end date pairs that are out
- * of order. Returns field ids with a note.
- */
 export function chronologyIssues(fields: Field[]): {
   fieldId: string;
   note: string;

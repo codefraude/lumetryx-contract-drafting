@@ -37,10 +37,6 @@ const noop = () => {
   return undefined;
 };
 
-/**
- * Follows OS and other-tab changes, and re-applies
- * the theme after React's dev remount clears <html>.
- */
 export function ThemeSync() {
   useLayoutEffect(() => {
     applyTheme();
@@ -51,10 +47,6 @@ export function ThemeSync() {
   return null;
 }
 
-/**
- * Light / Dark / System as a native radio group, so
- * arrow keys and screen readers work as expected.
- */
 export function ThemeControl({ className = "" }: { className?: string }) {
   const preference = useSyncExternalStore(
     subscribeTheme,

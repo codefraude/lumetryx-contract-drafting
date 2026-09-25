@@ -2,11 +2,6 @@ import { expect, test, type Page } from "@playwright/test";
 import JSZip from "jszip";
 import { readFileSync } from "node:fs";
 
-/**
- * Light / dark / system theme, in markers-only mode (no Gemini key
- * needed). Checks the behaviour the theme must not change: the editor
- * instance, the document requests, the paper and the exported DOCX.
- */
 const ORIGIN = { Origin: process.env.APP_URL ?? "http://localhost:3000" };
 
 const theme = (page: Page) => {
@@ -87,8 +82,6 @@ test("switching theme keeps the editor, unsaved input and the exported document"
   await expect(page.getByText(/still needed/)).toBeVisible({ timeout: 20_000 });
   await page.locator(".superdoc-page").first().waitFor();
 
-  // Before a draft: an unsaved Details value and the
-  // template view survive a theme change and a tab switch.
   await page.getByRole("tab", { name: /^Details/ }).click();
   await page.getByRole("button", { name: "Fill in" }).first().click();
 
@@ -133,8 +126,6 @@ test("switching theme keeps the editor, unsaved input and the exported document"
     await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
   ).toBe("rgb(25, 25, 24)");
 
-  // With a draft: switching theme fetches and saves
-  // nothing, and the export is identical in both themes.
   const values: Record<string, string> = {
     "Tenant name": "John Smith",
     "Landlord name": "Ravi Ramdin",

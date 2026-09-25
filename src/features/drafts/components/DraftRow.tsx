@@ -67,11 +67,9 @@ function remaining(d: DraftListItem) {
 interface Props {
   d: DraftListItem;
   current: boolean;
-  /** Some action on the list is running; rows can't be opened meanwhile. */
   busy: boolean;
   rowBusy: boolean;
   onOpen(): void;
-  /** Resolves once the new name is saved. */
   onRename(title: string): Promise<boolean>;
   onDelete(): void;
 }

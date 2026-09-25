@@ -1,12 +1,5 @@
 import { GROUP_ORDER, type Field } from "./contracts/fields";
 
-/**
- * What's still needed before generating; the server and the browser
- * both count from here. `inactive`: fields used only in excluded or
- * undecided clauses, and conditions no active clause needs.
- */
-
-/** Required, unconfirmed fields in questioning order. */
 export const outstandingFields = (
   fields: Field[],
   inactive: ReadonlySet<string> = new Set(),
@@ -20,10 +13,6 @@ export const outstandingFields = (
     );
 };
 
-/**
- * A yes/no answer that decides a clause
- * counts as a decision instead, never twice.
- */
 export const detailsLeft = (
   fields: Field[],
   inactive: ReadonlySet<string>,
@@ -38,10 +27,6 @@ export interface DetailProgress {
   total: number;
 }
 
-/**
- * Required details (not clause decisions) that
- * are needed now, and how many are confirmed.
- */
 export function detailProgress(
   fields: Field[],
   inactive: ReadonlySet<string>,

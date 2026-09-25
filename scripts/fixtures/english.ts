@@ -1,7 +1,3 @@
-/**
- * English templates: a mutual NDA and a residential lease
- * (placeholders split across runs, legal numbering, bullets, tables).
- */
 import {
   AlignmentType,
   Document,
@@ -53,8 +49,6 @@ export function nda(): Document {
               new TextRun(
                 "This Agreement is made on {{effective_date}} between ",
               ),
-              // Placeholder deliberately split
-              // across runs with mixed formatting.
               new TextRun({
                 text: "{{disclosing_",
                 bold: true,

@@ -1,9 +1,3 @@
-/**
- * One small, bounded LIVE check of the configured model, direct to Gemini
- * or (with --gateway) through the Vercel AI Gateway: a structured-output
- * call and a streamed call, printing token usage. Costs a few hundred
- * tokens. Run: npm run smoke:gemini, or npm run smoke:gateway
- */
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createGateway, generateText, Output, streamText } from "ai";
 import { z } from "zod";
@@ -26,8 +20,6 @@ const model = viaGateway
 const thinkingLevel = z
   .enum(["minimal", "low", "medium", "high"])
   .parse(process.env.GEMINI_THINKING_LEVEL ?? "minimal");
-// Gemini 2.5 rejects a thinking level, so only Gemini
-// 3 models get one (as in src/server/ai/model.ts).
 const providerOptions: Record<
   string,
   { thinkingConfig: { thinkingLevel: typeof thinkingLevel } }

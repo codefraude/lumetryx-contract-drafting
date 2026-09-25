@@ -7,28 +7,12 @@ export interface SaveCoordinatorOptions {
   exportDocx(): Promise<Blob>;
   persist(revision: number, docx: Blob): Promise<SavedRevision>;
   onStatus(status: SaveStatus, message?: string): void;
-  /**
-   * Called only after the server confirmed the exact revision that was sent.
-   */
   onSaved(revision: number, savedAt: string): void;
-  /**
-   * The save was refused because the draft changed
-   * elsewhere (another tab, or an answer update).
-   */
   isConflict(error: unknown): boolean;
   debounceMs?: number;
-  /**
-   * While someone types continuously the debounce
-   * keeps resetting; save at least this often.
-   */
   maxWaitMs?: number;
 }
 
-/**
- * Saves run one at a time, each on the revision the previous one
- * returned, so a stale response never overwrites a newer revision or
- * marks later edits saved. A failed save leaves the edits unsaved.
- */
 export function createSaveCoordinator(options: SaveCoordinatorOptions) {
   const {
     exportDocx,
@@ -63,10 +47,9 @@ export function createSaveCoordinator(options: SaveCoordinatorOptions) {
 
         revision = saved.workingRevision;
         onSaved(saved.workingRevision, saved.savedAt);
-        // Edits typed while this save was in flight are not covered by it.
         onStatus(dirty ? "unsaved" : "saved");
       } catch (err) {
-        dirty = true; // the edit is still in the editor
+        dirty = true;
 
         if (isConflict(err)) {
           onStatus(
@@ -91,14 +74,9 @@ export function createSaveCoordinator(options: SaveCoordinatorOptions) {
   }
 
   return {
-    /** The revision the editor was loaded from. */
     setRevision(value: number) {
       revision = value;
     },
-    /**
-     * An edit was made: save after a pause in typing,
-     * or at once when edits have waited too long.
-     */
     markDirty() {
       dirty = true;
       firstDirtyAt ??= Date.now();
@@ -111,10 +89,6 @@ export function createSaveCoordinator(options: SaveCoordinatorOptions) {
         overdue ? 0 : debounceMs,
       );
     },
-    /**
-     * Resolves once every edit made so far
-     * is persisted; rejects if saving fails.
-     */
     async flush() {
       clearTimeout(timer);
       timer = undefined;
@@ -127,10 +101,6 @@ export function createSaveCoordinator(options: SaveCoordinatorOptions) {
         await save();
       }
     },
-    /**
-     * Best effort (the tab is being hidden):
-     * a save started now usually completes.
-     */
     saveSoon() {
       if (dirty) {
         void save().catch(() => undefined);

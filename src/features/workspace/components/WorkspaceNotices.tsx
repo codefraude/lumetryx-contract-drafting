@@ -43,7 +43,6 @@ function Banner({
 }
 
 interface SaveBannerProps {
-  /** The editor's save state once a draft exists; null before. */
   draftSave: {
     status: SaveStatus;
     message?: string;
@@ -56,10 +55,6 @@ interface SaveBannerProps {
   onDismissExportNotice(): void;
 }
 
-/**
- * A problem with the draft's copy on the server (changed
- * elsewhere, not saved, not exported), or Word being opened.
- */
 export function SaveBanner({
   draftSave: save,
   exportNotice,
@@ -206,10 +201,6 @@ interface NextStepProps {
   onStop(): void;
 }
 
-/**
- * What to do next about the draft, shown above the message
- * box. Generating a first draft is the header's action.
- */
 export function NextStep({
   generating,
   filledSoFar,

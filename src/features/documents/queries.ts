@@ -24,10 +24,6 @@ export const documentKeys = {
   },
 };
 
-/**
- * Updated only by write responses and stream ends, never on focus or by
- * polling: this tab is the writer, and server revision checks catch other tabs.
- */
 export const documentQuery = (id: string) => {
   return queryOptions({
     queryKey: documentKeys.detail(id),
@@ -45,10 +41,6 @@ export const storeDocument = (queryClient: QueryClient, view: DocumentView) => {
   return queryClient.setQueryData(documentKeys.detail(view.id), view);
 };
 
-/**
- * Resolves to the latest draft's id; its view goes under
- * that draft's own key, one cache entry per draft.
- */
 export const currentDocumentQuery = (queryClient: QueryClient) => {
   return queryOptions({
     queryKey: documentKeys.current(),
@@ -66,10 +58,6 @@ export const currentDocumentQuery = (queryClient: QueryClient) => {
   });
 };
 
-/**
- * Changes part of a cached view (from a streamed
- * event); does nothing when that draft is not cached.
- */
 export const patchDocument = (
   queryClient: QueryClient,
   id: string,
@@ -81,10 +69,6 @@ export const patchDocument = (
   );
 };
 
-/**
- * The answers' version a write is based on, read
- * when the write starts (never from an old render).
- */
 export function fieldsVersionOf(queryClient: QueryClient, id: string): number {
   const view = queryClient.getQueryData<DocumentView>(documentKeys.detail(id));
 
@@ -95,10 +79,6 @@ export function fieldsVersionOf(queryClient: QueryClient, id: string): number {
   return view.fieldsVersion;
 }
 
-/**
- * A correction from the Details or Clauses panel:
- * a value, or whether the field is required.
- */
 export function useCorrectField(documentId: string) {
   const queryClient = useQueryClient();
 
@@ -112,10 +92,6 @@ export function useCorrectField(documentId: string) {
   });
 }
 
-/**
- * The server may rewrite the draft, so pending editor edits are saved first.
- * The editor reloads only if the revision actually changed.
- */
 export function useRuleAction(
   documentId: string,
   {

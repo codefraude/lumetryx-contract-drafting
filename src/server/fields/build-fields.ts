@@ -27,20 +27,12 @@ const slug = (s: string) => {
   );
 };
 
-/**
- * The model sometimes copies the marker as the label (“{{tenant_name}}”,
- * “LANDLORD NAME”); the lawyer sees a readable name.
- */
 const readableLabel = (label: string) => {
   return /^\s*(\{\{.*\}\}|\[.*\])\s*$|_|^[^a-z]*$/.test(label)
     ? humanize(label.replace(/[{}[\]]/g, ""))
     : label;
 };
 
-/**
- * Types a marker the model did not describe, from English or French wording.
- * Words match from their start, so “employer” never matches “loyer”.
- */
 export function guessType(label: string): {
   valueType: ValueType;
   group: FieldGroup;
@@ -132,20 +124,10 @@ export function guessType(label: string): {
 export interface BuildResult {
   fields: Field[];
   rules: Rule[];
-  /** Condition markers that were rejected, shown to the user. */
   ruleIssues: string[];
-  /**
-   * Model claims that failed verification
-   * against the document, for logging/tests.
-   */
   rejected: string[];
 }
 
-/**
- * Merges detected markers with the optional model analysis. A
- * location the model claims is dropped unless the block text bears it
- * out; clauses the model proposes stay unconfirmed until accepted.
- */
 export function buildFields(
   blocks: Block[],
   markers: MarkerOccurrence[],
@@ -189,9 +171,6 @@ export function buildFields(
     return id;
   };
 
-  // Models often echo a key without its "k:" prefix or with other
-  // spacing; resolve it against the real markers (never invent
-  // one). Underscore keys are positional and must match exactly.
   const resolveKey = (key: string) => {
     return byKey.has(key)
       ? key
@@ -201,10 +180,6 @@ export function buildFields(
   };
 
   const notFields = new Set((analysis?.notFields ?? []).map(resolveKey));
-  /**
-   * Places given to implicit values so far;
-   * two answers never share or overlap one.
-   */
   const taken: Occurrence[] = [];
 
   for (const af of (analysis?.fields ?? []).slice(0, 80)) {
@@ -232,9 +207,6 @@ export function buildFields(
         continue;
       }
 
-      // Placeholder wording (e.g. a line reading “Nom du destinataire”)
-      // is replaced by the value; otherwise the value goes right after
-      // the quote. A placeholder is short and on one line.
       if (imp.replace && (imp.quote.length > 80 || /[\t\n]/.test(imp.quote))) {
         rejected.push(`not a placeholder in ${imp.blockId}: ${imp.quote}`);
         continue;
@@ -244,8 +216,6 @@ export function buildFields(
         ? [at, at + imp.quote.length]
         : [at + imp.quote.length, at + imp.quote.length];
 
-      // Don't write where a marker already sits (or
-      // right before one): that marker is the field.
       if (
         markers.some(
           (m) => m.blockId === block.id && m.start <= end + 1 && m.end >= start,
@@ -312,9 +282,6 @@ export function buildFields(
     });
   }
 
-  // The model may call a marker ordinary text (a citation, a
-  // cross-reference), but never a {{variable}} or an ALL-CAPS
-  // [PLACEHOLDER]: a dismissed one would go unfilled into the draft.
   const dismissible = (m: MarkerOccurrence) => {
     return (
       m.marker !== "brace" &&
@@ -326,8 +293,6 @@ export function buildFields(
     );
   };
 
-  // Markers the model didn't account for still
-  // become fields (never silently lost).
   for (const [key, ms] of byKey) {
     const [m] = ms;
 
@@ -371,8 +336,6 @@ export function buildFields(
     const existing = fields.find((f) => f.id === cf.id);
 
     if (existing) {
-      // A template field with the same name decides
-      // the clause; it must hold a comparable value.
       if (existing.valueType !== cf.valueType && cf.valueType === "boolean") {
         existing.valueType = "boolean";
       }
@@ -421,17 +384,12 @@ export function buildFields(
     rules.push(v.rule);
     v.rule.blockIds.forEach((id) => inRules.add(id));
 
-    // Its yes/no answer exists from the start but is
-    // only asked once the user confirms the rule.
     if (!ids.has(v.field.id)) {
       ids.add(v.field.id);
       fields.push(v.field);
     }
   }
 
-  // Two answers never share a name (a template may say
-  // “Adresse postale” for two parties), or neither the
-  // assistant nor the lawyer could tell which one is meant.
   const seen = new Map<string, number>();
 
   for (const f of fields) {

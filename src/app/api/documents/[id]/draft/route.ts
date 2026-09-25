@@ -28,7 +28,7 @@ export async function POST(
       );
     }
 
-    await getView(session.id, id); // ownership check before any stream opens
+    await getView(session.id, id);
 
     return sseResponse(req, body.data.requestId, (emit, signal) =>
       generateDraft(session.id, id, body.data, emit, signal),

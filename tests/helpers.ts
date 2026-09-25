@@ -1,8 +1,3 @@
-/**
- * TEST DOUBLES — the mocked language model and in-memory KV
- * store below are used only by automated tests. They never
- * run in the application and prove nothing about live Gemini.
- */
 import { APICallError } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import type { KeyValueStore } from "@/server/cache/redis";
@@ -24,18 +19,9 @@ const usage = (i: number, o: number) => {
 };
 
 export interface MockScript {
-  /**
-   * Returns the JSON object for a structured
-   * (generateText) call, given the prompt text.
-   */
   object: (prompt: string) => unknown;
-  /** Reply text, streamed in several chunks. */
   reply?: (prompt: string) => string;
   failGenerate?: boolean;
-  /**
-   * The reply call fails the way an overloaded Gemini
-   * does (503), after the answers were extracted.
-   */
   failStream?: boolean;
 }
 

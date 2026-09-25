@@ -125,7 +125,6 @@ export async function analyzeTemplate(opts: {
       throw mapNoObject(err);
     }
 
-    // A single repair attempt, not a retry loop.
     try {
       result = await run(
         "\n\nYour previous reply did not match the required JSON schema. Reply again with valid JSON only.",

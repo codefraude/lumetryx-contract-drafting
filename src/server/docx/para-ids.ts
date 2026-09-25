@@ -13,11 +13,6 @@ import {
   W14_NS,
 } from "./xml";
 
-/**
- * Gives each paragraph lacking a w14:paraId a deterministic one from
- * its part and ordinal, so the server finds it again after the editor
- * re-exports. Existing ids are kept. Returns blockId → paraId.
- */
 export async function ensureParaIds(
   pkg: DocxPackage,
 ): Promise<Map<string, string>> {
@@ -62,7 +57,6 @@ export async function ensureParaIds(
       let id = paraIdOf(p);
 
       if (!id) {
-        // Word requires values below 0x80000000; each part gets its own range.
         let n = 0x10000000 + partIndex * 0x00100000 + ord;
 
         while (used.has(n.toString(16).toUpperCase().padStart(8, "0"))) {
@@ -87,10 +81,6 @@ export async function ensureParaIds(
   return map;
 }
 
-/**
- * Declares the w14 namespace on the part's root and
- * marks it ignorable for older consumers, as Word does.
- */
 function declareW14(doc: XmlDocument): void {
   const root = doc.documentElement;
 

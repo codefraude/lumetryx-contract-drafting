@@ -66,19 +66,12 @@ export interface DocumentProgress {
   confirmed: number;
   total: number;
   detailsLeft: number;
-  /** Clause decisions still to make. */
   decisions: number;
-  /** Nothing required is missing: the draft can be generated. */
   ready: boolean;
   hasClauses: boolean;
-  /** Clauses and clause problems that need the lawyer. */
   attention: number;
 }
 
-/**
- * What is still needed. A yes/no answer that settles
- * an undecided clause counts once, as a decision.
- */
 export function documentProgress(
   doc: DocumentView,
   inactive: ReadonlySet<string>,
@@ -98,10 +91,6 @@ export function documentProgress(
   };
 }
 
-/**
- * The header's status: generating, the editor's save
- * state once a draft exists, or what is still needed.
- */
 export function statusLine(
   p: DocumentProgress,
   {
@@ -149,10 +138,6 @@ export function statusLine(
       };
 }
 
-/**
- * Issues the lawyer should see before exporting
- * a contract that may be incomplete or broken.
- */
 export const exportWarnings = (d: DocumentView): string[] => {
   return [
     ...d.rules

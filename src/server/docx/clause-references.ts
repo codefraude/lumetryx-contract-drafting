@@ -1,22 +1,8 @@
 import type { RenderedBlock } from "./blocks";
 import type { TextEdit } from "./edit";
 
-/**
- * Plain-text clause references (“see clause 6”) tracked from the
- * template, so that removing or restoring a conditional clause
- * keeps the numbers written in the text in line with the numbering.
- */
-
-/**
- * “clause 6”, “clauses 6.1”, “article 3”,
- * “paragraphe 2.1” … followed by a clause number.
- */
 const REFERENCE =
   /\b(clauses?|articles?|sections?|paragraphs?|paragraphes?)\s+(\d+(?:\.\d+)*)\b/giu;
-/**
- * “section 3 of the Companies Act”, “article 1240 du Code
- * civil”: references to other instruments are never rewritten.
- */
 const EXTERNAL =
   /^\s*(of|du|de la|de l’|de l'|des)\s+(the\s+|la\s+|le\s+)?\p{Lu}/u;
 
@@ -24,7 +10,6 @@ const cleanLabel = (label: string) => {
   return label.replace(/[.)\s]+$/, "");
 };
 
-/** The sentence holding a reference, shortened at word boundaries. */
 function sentenceAround(text: string, at: number): string {
   const start = Math.max(text.lastIndexOf(". ", at) + 2, 0);
   const endDot = text.indexOf(".", at);
@@ -54,30 +39,13 @@ function labelsByParaId(blocks: RenderedBlock[]): Map<string, string> {
   return m;
 }
 
-/**
- * A plain-text clause reference, tracked from
- * the template so later updates stay reversible.
- */
 export interface TrackedReference {
-  /**
-   * Paragraph holding the reference, and
-   * which reference in that paragraph it is.
-   */
   paraId: string;
   nth: number;
-  /** Paragraph of the clause it points to (by the template's own numbering). */
   target: string;
-  /**
-   * Number currently written in the draft; if the text no longer
-   * says this, the user changed it and we leave it alone.
-   */
   written: string;
 }
 
-/**
- * Finds references in the template whose
- * number matches exactly one numbered clause.
- */
 export function trackReferences(template: RenderedBlock[]): TrackedReference[] {
   const labels = labelsByParaId(template);
   const byLabel = new Map<string, string[]>();
@@ -124,10 +92,6 @@ export interface ReferenceSync {
   issues: string[];
 }
 
-/**
- * Brings every untouched reference in line with the current
- * numbering; reports references to clauses that are gone.
- */
 export function syncReferences(
   refs: TrackedReference[],
   current: RenderedBlock[],
@@ -165,7 +129,6 @@ export function syncReferences(
       return r;
     }
 
-    // m[2] is r.written here (checked above).
     const start = m.index + m[0].length - r.written.length;
 
     edits.push({

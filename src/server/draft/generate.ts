@@ -60,7 +60,6 @@ export type DraftStep =
       state: FieldState;
     };
 
-/** Hashes of included clauses as they stand in `pkg`, keyed by rule id. */
 export async function hashes(
   pkg: DocxPackage,
   rules: Rule[],
@@ -83,11 +82,6 @@ export async function hashes(
   return out;
 }
 
-/**
- * Fills the template with confirmed values and yields each block
- * as it is done. Excluded clauses and `[[IF]]` marker paragraphs
- * are dropped, and clause references follow the new numbering.
- */
 export async function* buildDraft(
   original: Uint8Array,
   state: FieldState,
@@ -109,8 +103,6 @@ export async function* buildDraft(
         block: toDraftBlock(ev.block, filledBlocks.has(ev.block.id)),
       };
 
-      // Yield to the event loop so each block
-      // is flushed as its own network write.
       await new Promise<void>((r) => setImmediate(r));
       continue;
     }
@@ -218,10 +210,6 @@ export async function* buildDraft(
   };
 }
 
-/**
- * Renders a draft without streaming (used for
- * the comparison preview before a draft exists).
- */
 export async function renderDraft(
   original: Uint8Array,
   state: FieldState,

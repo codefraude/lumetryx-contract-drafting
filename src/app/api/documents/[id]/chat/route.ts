@@ -31,7 +31,7 @@ export async function POST(
     }
 
     await rateLimit("ai", session.id);
-    await getView(session.id, id); // ownership check before any stream opens
+    await getView(session.id, id);
     assertAiAvailable();
 
     return sseResponse(req, body.data.requestId, (emit, signal) =>

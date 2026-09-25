@@ -151,9 +151,6 @@ export async function cacheSet(
   }
 }
 
-/**
- * Best-effort invalidation; a failure only means the entry lives until its TTL.
- */
 export async function cacheDel(keys: string[]): Promise<void> {
   const s = getStore();
 
@@ -170,10 +167,6 @@ export async function cacheDel(keys: string[]): Promise<void> {
   }
 }
 
-/**
- * Rate limits or request deduplication are required
- * (production) but Redis is missing or failing.
- */
 export class ProtectionUnavailableError extends Error {
   override name = "ProtectionUnavailableError";
 }
@@ -257,7 +250,7 @@ export async function rateLimit(
 ): Promise<void> {
   if (override !== undefined) {
     return;
-  } // a test store skips rate limits
+  }
 
   getStore();
 

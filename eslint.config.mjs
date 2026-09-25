@@ -2,10 +2,6 @@ import coreWebVitals from "eslint-config-next/core-web-vitals";
 import typescript from "eslint-config-next/typescript";
 import stylistic from "@stylistic/eslint-plugin";
 
-/**
- * An import rule for one layer; see docs/ARCHITECTURE.md.
- * For a file matched by several, the last one applies.
- */
 const layer = (files, patterns) => {
   return {
     files,
@@ -24,9 +20,6 @@ const otherFeatures = {
     "A feature depends only on the documents feature; the workspace composes features together.",
 };
 
-/**
- * Statements that span several lines: each one is set apart by a blank line.
- */
 const multiline = [
   "block-like",
   "multiline-expression",
@@ -64,8 +57,6 @@ const config = [
           destructuredArrayIgnorePattern: "^_",
         },
       ],
-      // Layout Prettier leaves alone: braces on every branch, blank
-      // lines around blocks, after declarations and before return.
       curly: ["error", "all"],
       "@stylistic/padding-line-between-statements": [
         "error",
@@ -127,8 +118,6 @@ const config = [
           ],
         },
       ],
-      // An object or type literal with more than
-      // one member gets one member per line.
       "@stylistic/object-curly-newline": [
         "error",
         {
@@ -144,8 +133,6 @@ const config = [
           },
         },
       ],
-      // A named function gets a block body; only
-      // inline callbacks may stay one-line arrows.
       "no-restricted-syntax": [
         "error",
         {
@@ -162,8 +149,6 @@ const config = [
       ],
     },
   },
-  // Production code proves its types (schemas at trust boundaries, narrowing
-  // elsewhere) instead of asserting them. `as const` stays allowed.
   {
     files: ["src/**/*.{ts,tsx}", "scripts/**/*.ts"],
     rules: {
@@ -210,8 +195,6 @@ const config = [
       },
     ],
   ),
-  // Contracts (and the progress rules) are imported by both
-  // sides, so they depend on zod and other contracts only.
   layer(
     [
       "src/features/*/contracts.ts",

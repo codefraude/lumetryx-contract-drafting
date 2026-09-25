@@ -6,18 +6,11 @@ import type { DraftBlock, StreamEvent } from "./contracts/stream-events";
 import { documentKeys, fieldsVersionOf, patchDocument } from "./queries";
 
 interface Options {
-  /** The draft exists: the editor must open this revision. */
   onCompleted(revision: number): void;
-  /** Generation failed; the reason is in `failure`. */
   onFailed(): void;
   announce(text: string): void;
 }
 
-/**
- * A stopped or failed generation never replaces the previous
- * draft. If the draft is closed mid-way the server still
- * finishes it, and its events only update this draft's entry.
- */
 export function useDraftGeneration(
   documentId: string,
   { onCompleted, onFailed, announce }: Options,

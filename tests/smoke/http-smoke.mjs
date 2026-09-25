@@ -1,5 +1,3 @@
-// HTTP smoke test against a running server
-// (markers-only mode: no Gemini, no Redis configured).
 import { readFileSync } from "node:fs";
 
 const BASE = process.env.APP_URL ?? "http://localhost:3000";
@@ -30,7 +28,6 @@ const log = (k, v) => {
   return console.log(k.padEnd(46), v);
 };
 
-// Invalid upload
 let form = new FormData();
 
 form.set("file", new Blob(["not a zip"]), "fake.docx");
@@ -41,7 +38,6 @@ let r = await req("a", "/api/documents", {
 });
 
 log("fake .docx rejected", `${r.status} ${(await r.json()).code}`);
-// Cross-origin mutation
 form = new FormData();
 
 form.set(
@@ -57,7 +53,6 @@ r = await req("a", "/api/documents", {
 });
 
 log("cross-origin upload rejected", r.status);
-// Real upload
 form = new FormData();
 
 form.set(
@@ -81,7 +76,6 @@ log(
 
 log("opening message", doc.messages[0].content.slice(0, 90) + "…");
 
-// Chat without Gemini -> clear 503
 r = await req("a", `/api/documents/${doc.id}/chat`, {
   method: "POST",
   headers: {
@@ -102,7 +96,6 @@ log(
   `${r.status} ${chatBody.includes("GEMINI_API_KEY") ? "names GEMINI_API_KEY" : chatBody.slice(0, 80)}`,
 );
 
-// Fill every field via the field panel API
 const values = {
   "Landlord name": "Ravi Ramdin",
   "Tenant name": "John Smith",
@@ -140,7 +133,6 @@ log(
   `${doc.fields.filter((f) => f.status === "confirmed").length}/${doc.fields.length}`,
 );
 
-// Draft stream: record arrival times of each network chunk and event
 const t0 = performance.now();
 
 r = await req("a", `/api/documents/${doc.id}/draft`, {
@@ -193,7 +185,6 @@ log(
   `${chunks} network chunks, ${blocks} block events; first block in chunk ${firstBlockChunk} @${times.first}ms, complete in chunk ${completeChunk} @${times.complete}ms`,
 );
 
-// Save editor output (simulate) with correct and stale revisions
 r = await req("a", `/api/documents/${doc.id}/docx`);
 const working = new Uint8Array(await r.arrayBuffer());
 const rev = Number(r.headers.get("x-working-revision"));
@@ -218,18 +209,14 @@ r = await req("a", `/api/documents/${doc.id}/docx?rev=${rev}`, {
 });
 
 log("save stale rev", `${r.status} ${(await r.json()).code}`);
-// Download
 r = await req("a", `/api/documents/${doc.id}/download`);
-const dl = new Uint8Array(
-  await r.arrayBuffer(),
-); /* downloaded bytes verified above */
+const dl = new Uint8Array(await r.arrayBuffer());
 
 log(
   "download",
   `${r.status} ${r.headers.get("content-disposition")} ${dl.length} bytes`,
 );
 
-// Isolation: session b
 form = new FormData();
 
 form.set(
@@ -292,7 +279,6 @@ r = await req("none", `/api/documents/${doc.id}/download`);
 log("no cookie download", r.status);
 r = await req("b", "/api/documents/current");
 log("b's current doc", (await r.json()).document.filename);
-// Bonus routes: every one is owner-scoped and origin-checked.
 const J = {
   ...ORIGIN,
   "Content-Type": "application/json",

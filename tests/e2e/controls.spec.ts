@@ -2,12 +2,6 @@ import { expect, test, type Page } from "@playwright/test";
 import JSZip from "jszip";
 import { readFileSync } from "node:fs";
 
-/**
- * A letter whose blanks are Word content controls (placeholder boxes,
- * as in Word's own letter templates), in markers-only mode: every
- * answer takes the place of its placeholder in the editor and in the
- * downloaded file, also after the editor has re-exported the document.
- */
 const ORIGIN = { Origin: process.env.APP_URL ?? "http://localhost:3000" };
 
 type Doc = {
@@ -34,10 +28,6 @@ const VALUES: Record<string, string> = {
   Cordialement: "Bien à vous",
 };
 
-/**
- * Waits until SuperDoc has painted every pending
- * change, so measured positions are current.
- */
 async function settle(page: Page) {
   await page.waitForFunction(() => {
     const s = document.querySelector(".v2-super-editor__stage");
@@ -115,8 +105,6 @@ test("placeholder boxes are replaced by the answers, before and after the editor
     ).toHaveCount(0);
   }
 
-  // An edit makes the editor re-export the document;
-  // download right away (the save is flushed first).
   await settle(page);
   const closing = stage.getByText("Bien à vous", { exact: true }).first();
 
@@ -177,8 +165,6 @@ test("placeholder boxes are replaced by the answers, before and after the editor
     expect.arrayContaining(["Jeanne Dupont", "24 septembre 2026"]),
   );
 
-  // Values sit where the placeholders were: no
-  // placeholder wording is left next to them.
   for (const placeholder of [
     "Votre nom",
     "Adresse postale",
@@ -190,8 +176,6 @@ test("placeholder boxes are replaced by the answers, before and after the editor
     expect(body.join("\n"), placeholder).not.toContain(placeholder);
   }
 
-  // Word must not show a filled box as a placeholder,
-  // or refill it from the (empty) bound property.
   for (const value of ["Camille Martin", "Jeanne Dupont", "POL-778"]) {
     const at = xml.indexOf(value);
     const sdt =

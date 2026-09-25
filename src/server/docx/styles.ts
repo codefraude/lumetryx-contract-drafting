@@ -3,11 +3,6 @@ import type { NumberingRef } from "./blocks";
 import type { DocxPackage } from "./package";
 import { firstChild, parseXml, W_NS, wAttr } from "./xml";
 
-/**
- * Paragraph styles and list numbering: heading
- * levels, list levels and Word-like number labels.
- */
-
 interface StyleInfo {
   headingLevel: number | null;
   numbering: NumberingRef | null;
@@ -21,12 +16,7 @@ interface NumberingLevel {
 
 export interface DocContext {
   styles: Map<string, StyleInfo>;
-  /** numId -> levels */
   numbering: Map<string, NumberingLevel[]>;
-  /**
-   * Ids of Word's “Placeholder Text” style
-   * (the id is localised, the name is not).
-   */
   placeholderStyles: Set<string>;
 }
 
@@ -172,10 +162,6 @@ function formatCounter(n: number, fmt: string): string {
   }
 }
 
-/**
- * Computes display labels (e.g. "1.1.2.") the way Word would for
- * sequential paragraphs. Used for the streaming preview only.
- */
 export class NumberingCounter {
   private counters = new Map<string, number[]>();
 

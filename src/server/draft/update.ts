@@ -24,10 +24,6 @@ import type { StructureIssue } from "@/features/documents/contracts/fields";
 import type { FieldState, Rule } from "@/server/fields/state";
 import { hashes } from "./generate";
 
-/**
- * One clause filled from the template with current answers, for
- * putting back a clause that was excluded when the draft was made.
- */
 async function templateClause(
   original: Uint8Array,
   state: FieldState,
@@ -62,28 +58,14 @@ async function templateClause(
 }
 
 export interface DraftUpdate {
-  /** New working bytes, or null when nothing changed. */
   bytes: Uint8Array | null;
   state: FieldState;
-  /** Changed answers written into the draft. */
   appliedFields: string[];
-  /**
-   * Changed answers not written because the
-   * user edited the text where they appear.
-   */
   conflicts: string[];
   clauseChanges: ClauseChange[];
-  /**
-   * Clause changes waiting for the user because the clause was edited by hand.
-   */
   needsConfirmation: ClauseChange[];
 }
 
-/**
- * Brings a hand-edited working draft in line with the current answers and
- * clauses, without regenerating it. Only untouched values are rewritten;
- * an edited clause goes only once confirmed, and returns with its edits.
- */
 export async function updateWorkingDraft(input: {
   working: Uint8Array;
   original: Uint8Array;
@@ -143,8 +125,6 @@ export async function updateWorkingDraft(input: {
       const loc = locateClause(bd.body, r.paraIds);
 
       if (!loc) {
-        // Already gone (deleted by hand): record it so a
-        // later include restores it from the template.
         Object.assign(r, {
           applied: "excluded",
           removedXml: null,
@@ -252,7 +232,6 @@ export async function updateWorkingDraft(input: {
     bd.commit();
   }
 
-  // Write changed answers, plus current values into restored clauses.
   let blocks = await indexBlocks(pkg);
   const restoredParas = new Set(
     state.rules.filter((r) => restored.has(r.id)).flatMap((r) => r.paraIds),
@@ -298,8 +277,6 @@ export async function updateWorkingDraft(input: {
     }),
   );
 
-  // Clauses the server wrote (or that were untouched)
-  // stay "clean"; hand-edited ones keep their old hash.
   const after = await hashes(pkg, state.rules);
 
   for (const r of state.rules) {

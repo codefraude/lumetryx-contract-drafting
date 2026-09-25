@@ -10,15 +10,6 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-/**
- * Integrated bonus scenario in a real browser against a running server WITH a
- * live Gemini key (the French answer and the later English correction go
- * through the real model): bilingual employment template → answer in French →
- * non-compete included → edit a table cell and a paragraph → Compare
- * (includes unsaved edits) → Save now → close and reopen the browser with the
- * same profile → resume → switch the chat to English → exclude the clause (it
- * was edited, so confirm) → Compare again → export → inspect the DOCX.
- */
 const BASE = process.env.APP_URL ?? "http://localhost:3000";
 const ORIGIN = { Origin: BASE };
 
@@ -140,8 +131,6 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
 
   await page.goto("/");
 
-  // The live model is occasionally unavailable (5xx); the app then
-  // says so and falls back to markers only. Retry the upload.
   for (let attempt = 1; ; attempt++) {
     await page.setInputFiles(
       "input[type=file]",
@@ -172,7 +161,6 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
     page.getByText("Bilingual template.", { exact: false }),
   ).toBeVisible();
 
-  // 1. Answer in French, including the condition that decides the non-compete.
   await chat(
     page,
     "L'employeur est Lumetryx Ltée et la salariée est Hélène Dupré-Lefèvre. Elle commence le 1er octobre 2026. Oui, elle est bien classée senior pour ce contrat.",
@@ -192,8 +180,6 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
 
   expect(doc.rules[0]).toMatchObject({ state: "included" });
 
-  // Remaining details through the Details panel
-  // API (keeps the live-model part short).
   for (let guard = 0; guard < 40; guard++) {
     doc = await current(page);
     const next = doc.fields.find(
@@ -228,14 +214,12 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 60_000 });
   await expect(stage(page).getByText("Non-competition").first()).toBeVisible();
 
-  // 2. Edit a table cell and a paragraph inside the conditional clause.
   await clickEndOf(page, "Annual salary / Salaire annuel");
   await clickEndOf(page, "Annual salary / Salaire annuel");
   await page.keyboard.type(" (gross)");
   await clickEndOf(page, "after leaving, the Employee shall not work");
   await page.keyboard.type(" EDIT-P");
 
-  // 3. Compare right away: the unsaved edits are included, read-only.
   await page.getByRole("tab", { name: "Compare with template" }).click();
 
   await expect(page.getByText(/changes? from the template/)).toBeVisible({
@@ -266,7 +250,6 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
   await page.screenshot({ path: "tests/output/e2e-compare.png" });
   await page.getByRole("tab", { name: "Draft" }).click();
 
-  // 4. Save now, then close the browser and reopen the same profile.
   await page.getByRole("button", { name: "Save now" }).click();
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
   const savedId = (await current(page)).id;
@@ -296,7 +279,6 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
     .getByRole("button", { name: "Close" })
     .click();
 
-  // 5. Continue in English; nothing is re-asked.
   await page
     .getByRole("group", { name: "Conversation language" })
     .getByRole("button", { name: "English" })
@@ -304,8 +286,6 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
 
   await expect(page.getByText(/continue in English/)).toBeVisible();
 
-  // 6. Change the condition: the clause was edited, so its
-  //    removal waits for confirmation.
   await chat(page, "Correction: the employee is not senior after all.");
   doc = await current(page);
 
@@ -332,7 +312,6 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 60_000 });
   await expect(stage(page).getByText("Non-competition")).toHaveCount(0);
 
-  // 7. Compare again: the exclusion appears with its reason.
   await page.getByRole("tab", { name: "Compare with template" }).click();
 
   await expect(page.getByText("Excluded: Employee is senior = No")).toBeVisible(
@@ -341,8 +320,6 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
 
   await page.getByRole("tab", { name: "Draft" }).click();
 
-  // 8. Export (the dialog listing the dangling reference is
-  //    accepted) and inspect the DOCX.
   const downloading = page.waitForEvent("download");
 
   await page.getByRole("button", { name: "Download Word file" }).click();

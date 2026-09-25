@@ -15,7 +15,6 @@ import { NotFound } from "@/server/http/responses";
 import { blocksCacheKey, mustGet, mustGetBytes } from "./access";
 import { documentView, getView, phaseOf } from "./views";
 
-/** Saved drafts of this browser's anonymous identity (metadata only). */
 export async function listDrafts(sessionId: string): Promise<DraftListItem[]> {
   const rows = await repo.listDocuments(sessionId);
 
@@ -53,10 +52,6 @@ export async function renameDraft(
   return getView(sessionId, documentId);
 }
 
-/**
- * Deletes a draft and drops cached analyses of its template
- * unless another draft of this browser still uses it.
- */
 export async function deleteDraft(sessionId: string, documentId: string) {
   const gone = await repo.deleteDocument(sessionId, documentId);
 
@@ -76,11 +71,6 @@ export async function deleteDraft(sessionId: string, documentId: string) {
   }
 }
 
-/**
- * Saves a separate copy of a draft, optionally with the browser's
- * current editor content (used to keep local edits when another
- * tab saved a newer version). Nothing in the source draft changes.
- */
 export async function copyDraft(
   sessionId: string,
   documentId: string,

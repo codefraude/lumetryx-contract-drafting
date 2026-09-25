@@ -11,12 +11,6 @@ import { alignBlocks } from "./align-blocks";
 import { formattingNotes, location, structureNotes } from "./change-notes";
 import { diffTokens } from "./token-diff";
 
-/**
- * Read-only comparison of the template with a draft snapshot: word-level
- * text, bold, italic, underline, paragraph style, heading and list
- * level. Fonts, sizes, colours, spacing, images and layout are ignored.
- */
-
 export interface CompareContext {
   fields: Field[];
   rules: Rule[];
@@ -67,8 +61,6 @@ export function compareBlocks(
     }
   }
 
-  // Deleted blocks grouped by the conditional
-  // clause (or control markers) they belong to.
   const clauseOf = new Map<string, Rule>();
   const markerIds = new Set<string>();
 
@@ -236,7 +228,6 @@ export function compareBlocks(
     const notes = [...structureNotes(o, c), ...formattingNotes(o, c, segs)];
 
     if (o.text !== c.text || notes.length) {
-      // Which of the template's placeholders were replaced in this block.
       const filled = new Set<string>();
       let pos = 0;
 
@@ -284,7 +275,6 @@ export function compareBlocks(
     emit(deletedAt.get(j));
   });
 
-  // Also list the conditional clauses the draft includes, with the reason.
   for (const r of ctx.rules) {
     if (r.applied !== "included" || !r.confirmed || r.dismissed) {
       continue;

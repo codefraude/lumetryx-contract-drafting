@@ -10,11 +10,6 @@ import { DocxValidationError } from "@/server/docx/package";
 import { ConfigMissingError } from "@/server/env";
 import { ForbiddenOriginError, UnauthorizedError } from "@/server/session";
 
-/**
- * Responses of the API: private, never cached,
- * with errors as `{ code, message, retryable }`.
- */
-
 export const PRIVATE_HEADERS = {
   "Cache-Control": "private, no-store, max-age=0",
   "X-Content-Type-Options": "nosniff",
@@ -122,8 +117,6 @@ export function errorBody(err: unknown): ErrorBody {
     };
   }
 
-  // Database drivers report connection problems with their
-  // own error types; their messages are the common ground.
   if (
     err instanceof Error &&
     /DATABASE|ECONNREFUSED|connect|terminat/i.test(err.message)
@@ -173,10 +166,6 @@ export const json = (data: unknown, status = 200) => {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-/**
- * The document id of an `/api/documents/[id]/…` route.
- * Anything that is not a UUID is simply not found.
- */
 export async function documentIdParam(
   params: Promise<{ id: string }>,
 ): Promise<string> {

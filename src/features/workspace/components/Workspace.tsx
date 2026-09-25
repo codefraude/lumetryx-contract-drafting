@@ -21,10 +21,6 @@ import {
   type DocumentWorkspaceHandle,
 } from "./DocumentWorkspace";
 
-/**
- * Bumping `generation` remounts the workspace,
- * e.g. when a draft is reopened or reloaded.
- */
 interface OpenDraft {
   id: string;
   generation: number;
@@ -41,15 +37,9 @@ function Splash() {
   );
 }
 
-/**
- * The page: the upload screen or one open draft,
- * and the saved-drafts drawer over either.
- */
 export function Workspace({ maxUploadMb }: { maxUploadMb: number }) {
   const queryClient = useQueryClient();
   const latest = useQuery(currentDocumentQuery(queryClient));
-  // Until the person picks something (undefined), the browser's
-  // latest draft is shown; null is the upload screen.
   const [open, setOpen] = useState<OpenDraft | null>();
   const active =
     open === undefined
@@ -82,16 +72,12 @@ export function Workspace({ maxUploadMb }: { maxUploadMb: number }) {
     mutationFn: uploadTemplate,
     onMutate: () => setUploadError(null),
     onSuccess: (doc) => {
-      // An upload may start a new browser session,
-      // whose drafts list is not the one cached.
       queryClient.removeQueries({ queryKey: draftKeys.list });
       show(doc);
     },
     onError: (e) => setUploadError(errorMessage(e)),
   });
 
-  // The server no longer knows this browser: nothing
-  // cached for the old session may be shown again.
   useSessionLoss((message) => {
     setOpen(null);
     setUploadError(message);

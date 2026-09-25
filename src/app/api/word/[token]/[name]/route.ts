@@ -11,10 +11,6 @@ type Context = {
   }>;
 };
 
-/**
- * The saved draft for Word, which fetches it without the
- * browser's cookie; the link itself is the credential.
- */
 async function serve({ params }: Context, withBody: boolean) {
   try {
     const { bytes, filename } = await readWordLink((await params).token);
@@ -38,7 +34,6 @@ export const GET = (_req: Request, ctx: Context) => {
   return serve(ctx, true);
 };
 
-// Word asks for the headers before it downloads the file.
 export const HEAD = (_req: Request, ctx: Context) => {
   return serve(ctx, false);
 };

@@ -23,14 +23,7 @@ import {
 export type { SaveStatus };
 
 export interface EditorHandle {
-  /**
-   * Resolves once every edit made so far is persisted. Rejects if saving fails.
-   */
   flush(): Promise<void>;
-  /**
-   * The editor's current content as DOCX, without
-   * saving it (for Compare and "save as a new draft").
-   */
   snapshot(): Promise<Blob | null>;
 }
 
@@ -38,12 +31,8 @@ interface Props {
   documentId: string;
   filename: string;
   source: "working" | "original";
-  /** Changing this reloads the document from the server. */
   loadKey: string;
   onStatus(status: SaveStatus, message?: string): void;
-  /**
-   * Called only after the server confirmed the exact revision that was sent.
-   */
   onSaved?(revision: number, savedAt: string): void;
 }
 
@@ -51,16 +40,8 @@ type SuperDocInstance = import("superdoc").SuperDoc;
 
 const DOCX =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-/**
- * Narrower than this, a page no longer fits at its true
- * size: it is scaled down to the width of the desk.
- */
 const FIT_WIDTH = "(max-width: 899px)";
 
-/**
- * Memoised with stable callbacks from the parent, so
- * streamed chat updates never re-render the editor.
- */
 export const SuperDocEditor = memo(
   forwardRef<EditorHandle, Props>(function SuperDocEditor(
     { documentId, filename, source, loadKey, onStatus, onSaved },
@@ -111,8 +92,6 @@ export const SuperDocEditor = memo(
       let cancelled = false;
 
       ready.current = false;
-      // One coordinator per loaded revision; it
-      // saves only while this document is open.
       const coordinator = editable
         ? createSaveCoordinator({
             exportDocx: async () => {
@@ -161,17 +140,11 @@ export const SuperDocEditor = memo(
                 : "manual",
               fitWidth: { max: 100 },
             },
-            // SuperDoc sends a document-open event to its own
-            // endpoint by default; client documents stay private.
             telemetry: { enabled: false },
-            // Editor chrome (toolbar, menus, loader) in the
-            // app font; document text keeps its own fonts.
             uiDisplayFallbackFont:
               'var(--font-ui), "Segoe UI", Arial, sans-serif',
             ui: {
               comments: false,
-              // Only controls we rely on and have exercised;
-              // every exposed action is a real editor command.
               toolbar: editable
                 ? {
                     container: toolbar.current,
@@ -239,8 +212,6 @@ export const SuperDocEditor = memo(
       };
     }, [documentId, filename, source, loadId, editable]);
 
-    // Rotating a tablet or resizing a window across the
-    // breakpoint switches between fitting and the true size.
     useEffect(() => {
       const narrow = window.matchMedia(FIT_WIDTH);
 
@@ -267,8 +238,6 @@ export const SuperDocEditor = memo(
         }
       };
 
-      // Best effort: a save started on hide usually completes, but an abrupt
-      // close can lose it. Saves the server already acknowledged are durable.
       const hidden = () => {
         if (document.visibilityState === "hidden") {
           saver.current?.saveSoon();
@@ -298,13 +267,7 @@ export const SuperDocEditor = memo(
           aria-label="Formatting toolbar"
         />
         <div className="relative min-h-0 flex-1">
-          {/* Scrolls on its own; on narrow screens
-              the page is scaled to its width. */}
           <div className="lx-doc h-full overflow-auto overscroll-contain bg-canvas px-2 py-5 sm:px-6 sm:py-8">
-            {/* Shrink-to-fit once pages exist, so the page is centred on
-                the desk. Full width while opening (the host is still empty
-                and SuperDoc's loading card takes its width from it) and
-                when fitting (the fit measures it). */}
             <div
               ref={host}
               className={`mx-auto ${fit ? "lx-fit w-full" : readyId === loadId ? "w-fit" : "w-full"}`}

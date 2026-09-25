@@ -34,11 +34,6 @@ import {
   wAttr,
 } from "./xml";
 
-/**
- * The single walk over body, headers and footers
- * that applies edits and renders blocks.
- */
-
 function describeParagraph(
   p: XmlElement,
   ctx: DocContext,
@@ -134,7 +129,6 @@ function renderParagraph(
   };
 }
 
-/** Indexes every paragraph in body, headers and footers. */
 export async function indexBlocks(pkg: DocxPackage): Promise<RenderedBlock[]> {
   const blocks: RenderedBlock[] = [];
 
@@ -151,9 +145,6 @@ export async function indexBlocks(pkg: DocxPackage): Promise<RenderedBlock[]> {
 
 export interface AppliedEdit {
   edit: TextEdit;
-  /**
-   * Anchor of the inserted value after all edits in its paragraph are applied.
-   */
   result: {
     blockId: string;
     start: number;
@@ -172,11 +163,6 @@ export type FillEvent =
       applied: AppliedEdit[];
     };
 
-/**
- * Applies edits through the XML DOM, which escapes values, and yields
- * rendered blocks in document order. One bad anchor aborts before any
- * output; a paragraph's edits run from its end so offsets stay valid.
- */
 export async function* fillAndRender(
   pkg: DocxPackage,
   edits: TextEdit[],
@@ -207,7 +193,6 @@ export async function* fillAndRender(
     }
   }
 
-  // Validate every anchor before mutating anything.
   for (const [blockId, pe] of byBlock) {
     const part = blockId.slice(0, blockId.lastIndexOf("#"));
     const doc = docs.get(part);
@@ -277,9 +262,6 @@ export async function* fillAndRender(
         }
       }
 
-      // Omitted blocks (excluded clauses, condition markers) are
-      // about to be removed: they are not shown and do not advance
-      // list numbering, exactly as in the resulting document.
       if (!omit.has(`${part}#${ord}`)) {
         yield {
           type: "block",
@@ -299,7 +281,6 @@ export async function* fillAndRender(
   };
 }
 
-/** `fillAndRender` without the streamed blocks. */
 export async function applyTextEdits(
   pkg: DocxPackage,
   edits: TextEdit[],

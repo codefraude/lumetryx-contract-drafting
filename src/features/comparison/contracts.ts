@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-/**
- * Response of `POST /api/documents/:id/compare`,
- * produced by the server's diff engine.
- */
-
 export const DIFF_SCHEMA_VERSION = 1;
 
 export const Segment = z.object({
@@ -25,9 +20,6 @@ export const DiffItem = z.object({
     "markers_removed",
   ]),
   location: z.string(),
-  /**
-   * Word-level before/after for modified blocks; whole text for added/deleted.
-   */
   segments: z.array(Segment),
   notes: z.array(z.string()),
 });
@@ -49,10 +41,6 @@ export const DiffResult = z.object({
 export type DiffResult = z.infer<typeof DiffResult>;
 
 export const CompareResponse = z.object({
-  /**
-   * What the template was compared with: the editor's unsaved
-   * content, the saved draft, or a preview from the answers.
-   */
   source: z.enum(["editor", "working", "preview"]),
   result: DiffResult,
 });

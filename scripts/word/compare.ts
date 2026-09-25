@@ -1,12 +1,5 @@
 import type { Answers, Format, Paragraph, Story, View } from "./views";
 
-/**
- * Checks of an export against what it came from, as Microsoft Word
- * reports both. Filling may only change text where placeholders were (and
- * drop [[IF …]] marker lines); the editor round trip may change nothing.
- * A check lists every problem it found; an empty list means it passed.
- */
-
 export interface Check {
   name: string;
   problems: string[];
@@ -38,10 +31,6 @@ function differences<T extends object>(
     );
 }
 
-/**
- * Paragraphs side by side; filling and saving
- * never add or remove any besides marker lines.
- */
 function pairs(
   from: Paragraph[],
   to: Paragraph[],
@@ -209,7 +198,6 @@ function layoutChecks(from: View, to: View): Check[] {
   ];
 }
 
-/** The server's filled draft against its template. */
 export function fillChecks(
   template: View,
   filled: View,
@@ -293,9 +281,6 @@ export function fillChecks(
   ];
 }
 
-/**
- * The editor's export against the filled draft it opened: nothing may change.
- */
 export function roundTripCheck(filled: View, roundTrip: View): Check {
   const problems: string[] = [];
 
@@ -349,10 +334,6 @@ export function roundTripCheck(filled: View, roundTrip: View): Check {
   };
 }
 
-/**
- * The edits flow.spec.ts makes in the browser,
- * as Word shows them in the downloaded lease.
- */
 export function editChecks(template: View, edited: View): Check {
   const problems: string[] = [];
 

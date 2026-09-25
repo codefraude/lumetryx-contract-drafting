@@ -1,8 +1,3 @@
-/**
- * Integration tests: real PostgreSQL (DATABASE_URL must point
- * at a local test database), real DOCX processing, real service
- * layer. The language model is a MOCK (see helpers.ts).
- */
 process.env.DATABASE_URL ??=
   "postgres://postgres:postgres@localhost:5432/lumetryx_test";
 
@@ -325,7 +320,6 @@ describe("guided conversation", () => {
     expect(rent.status).toBe("needs_clarification");
     expect(rent.note).toMatch(/several currencies/);
 
-    // The currency is resolved only once the user names it.
     await say(s, d.id, "Mauritian rupees", {
       updates: [u("monthly_rent", "Rs 25,000", "Mauritian rupees", "MUR")],
     });
@@ -370,7 +364,6 @@ describe("guided conversation", () => {
     });
 
     expect(lastReplyPrompt).toContain("payable in advance on the first day");
-    // Nested sub-clause included.
     expect(lastReplyPrompt).toContain("attract interest");
     expect(lastReplyPrompt).toContain("NEXT TO ASK");
   });
@@ -486,8 +479,6 @@ async function completeLease(
 
   const view = await getView(s.id, docId);
 
-  // The unmarked-in-analysis underscore blank
-  // becomes its own field; fill via the field panel.
   for (const f of view.fields.filter((x) => x.status !== "confirmed")) {
     const latest = await getView(s.id, docId);
 
@@ -536,7 +527,7 @@ describe("progressive drafting, editing and export", () => {
     const all = blocks.map((b) => b.text).join("\n");
 
     expect(all).not.toMatch(/\{\{|\[LANDLORD|\[address\]/);
-    expect(all).toContain("LX-7 & Co"); // header, escaped correctly in XML
+    expect(all).toContain("LX-7 & Co");
     expect(blocks.filter((b) => b.text.includes("John Smith")).length).toBe(2);
 
     expect(
@@ -553,8 +544,6 @@ describe("progressive drafting, editing and export", () => {
       generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig),
     );
 
-    // Correction with no manual edits: all
-    // occurrences updated in the working draft.
     const ev = await say(s, d.id, "Actually the tenant is Jane Doe", {
       updates: [u("tenant_name", "Jane Doe")],
     });
@@ -577,8 +566,6 @@ describe("progressive drafting, editing and export", () => {
     expect(text).not.toContain("John Smith");
     expect(text.match(/Jane Doe/g)).toHaveLength(2);
 
-    // Simulate a browser edit that rewrites the
-    // landlord's name, saved through the editor path.
     const w = await readDocx(s.id, d.id, "working");
     const pkg = await loadDocxPackage(new Uint8Array(w.bytes));
     const b = (await indexBlocks(pkg)).find((x) =>
@@ -630,7 +617,7 @@ describe("progressive drafting, editing and export", () => {
       .map((x) => x.text)
       .join("\n");
 
-    expect(text).toContain("R. Ramdin (edited)"); // the manual edit survived
+    expect(text).toContain("R. Ramdin (edited)");
   });
 
   it("cancelling mid-stream never marks a partial draft complete", async () => {
@@ -703,7 +690,6 @@ describe("links for Word", () => {
     const other = await newSession();
     const d = await createFromUpload(a, "lease.docx", lease);
 
-    // No draft yet.
     await expect(createWordLink(a, d.id)).rejects.toBeInstanceOf(NotFound);
     const ready = await completeLease(a, d.id);
 

@@ -14,15 +14,10 @@ interface Props {
   open: boolean;
   currentId: string | null;
   onClose(): void;
-  /** Opening another draft; the caller saves pending edits first. */
   onOpen(id: string): Promise<void>;
   onDeleted(id: string): void;
 }
 
-/**
- * A native modal dialog, so focus trapping,
- * Escape and focus restore come built in.
- */
 export function DraftsDrawer({
   open,
   currentId,
@@ -34,7 +29,6 @@ export function DraftsDrawer({
   const list = useDraftList(open);
   const rename = useRenameDraft();
   const remove = useDeleteDraft();
-  // One action at a time; its failure is shown above the list.
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmDialog, ask] = useConfirm();
@@ -98,8 +92,6 @@ export function DraftsDrawer({
   return (
     <dialog
       ref={dialog}
-      // The nested delete confirmation is a dialog too;
-      // its close event must not close the drawer.
       onClose={(e) => e.target === e.currentTarget && onClose()}
       aria-labelledby={titleId}
       className="lx-drawer fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-full max-w-md rounded-none border-l border-line bg-surface p-0 text-ink shadow-overlay sm:w-[28rem]"

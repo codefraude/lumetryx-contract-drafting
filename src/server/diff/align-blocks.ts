@@ -1,12 +1,6 @@
 import type { RenderedBlock } from "@/server/docx/blocks";
 import { lcsSteps } from "./lcs";
 
-/**
- * Pairs template blocks with draft blocks: by Word's paragraph
- * ids (kept by the editor) first, then by text inside each
- * gap, so serialization differences never show up as changes.
- */
-
 const words = (s: string) => {
   return new Set(s.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []);
 };
@@ -32,13 +26,7 @@ function similarity(a: string, b: string): number {
 
 type Pair = [number, number];
 
-/**
- * Longest increasing subsequence of pairs by current index:
- * drops crossing matches (moved paragraphs become delete + add).
- */
 function monotonic(pairs: Pair[]): Pair[] {
-  // tails[n]: the pair (by position k, and its current
-  // index j) ending the best run of length n + 1.
   const tails: {
     k: number;
     j: number;
@@ -104,8 +92,6 @@ export function alignBlocks(o: RenderedBlock[], c: RenderedBlock[]): Pair[] {
   let pj = 0;
 
   for (const [ai, aj] of [...anchors, end]) {
-    // Fallback inside each gap: exact-text LCS
-    // first, then similar blocks in order.
     const leftO: {
       i: number;
       block: RenderedBlock;

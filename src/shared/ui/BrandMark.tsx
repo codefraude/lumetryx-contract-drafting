@@ -1,4 +1,3 @@
-/** The product mark is the section sign, in the accent colour. */
 export function BrandMark({
   className = "size-7 text-[18px]",
 }: {

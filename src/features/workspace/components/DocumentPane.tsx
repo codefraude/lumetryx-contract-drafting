@@ -15,7 +15,6 @@ import { Button } from "@/shared/ui/Button";
 import { TabBar } from "@/shared/ui/TabBar";
 import { TabPanel } from "@/shared/ui/TabPanel";
 
-// The editor is large; load it only when a document is on screen.
 const SuperDocEditor = dynamic(
   () =>
     import("@/features/documents/editor/SuperDocEditor").then(
@@ -27,10 +26,6 @@ const SuperDocEditor = dynamic(
   },
 );
 
-/**
- * The template before a draft exists, the streamed
- * preview while it is generated, then the editor.
- */
 export type DocMode = "template" | "preview" | "editor";
 export type DocPane = "document" | "compare";
 
@@ -43,16 +38,8 @@ interface Props {
   blocks: DraftBlock[];
   pane: DocPane;
   onPane(pane: DocPane): void;
-  /**
-   * Narrow screens show one region at a time;
-   * true while the assistant is in front.
-   */
   hidden: boolean;
   editorRef: Ref<EditorHandle>;
-  /**
-   * Changing it reloads the draft from the
-   * server (a new revision the server wrote).
-   */
   editorKey: string;
   onEditorStatus(status: SaveStatus, message?: string): void;
   onEditorSaved(revision: number, savedAt: string): void;

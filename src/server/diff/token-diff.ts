@@ -1,10 +1,6 @@
 import type { Segment } from "@/features/comparison/contracts";
 import { lcsSteps } from "./lcs";
 
-/**
- * Words, spaces and punctuation; template placeholders ({{x}},
- * [X]) stay whole so a filled value reads as one replacement.
- */
 export const tokenize = (s: string) => {
   return (
     s.match(
@@ -13,10 +9,6 @@ export const tokenize = (s: string) => {
   );
 };
 
-/**
- * Longest-common-subsequence diff over tokens; exact
- * comparison (accents, digits and punctuation all count).
- */
 export function diffTokens(a: string, b: string): Segment[] {
   const x = tokenize(a);
   const y = tokenize(b);

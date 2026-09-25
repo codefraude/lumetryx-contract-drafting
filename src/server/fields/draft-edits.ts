@@ -5,11 +5,6 @@ import type { AppliedEdit } from "@/server/docx/render";
 import { renderAt } from "./normalize";
 import type { DraftAnchor, FieldState } from "./state";
 
-/**
- * Edits that turn the template into a draft, each value rendered in
- * its occurrence's language. An unanswered occurrence gets an identity
- * edit so a later answer has an anchor; omitted blocks are skipped.
- */
 export function draftEdits(
   fields: Field[],
   docLang: DocLanguage,
@@ -39,10 +34,6 @@ export function draftEdits(
   return edits;
 }
 
-/**
- * Anchors for every occurrence written by `draftEdits`,
- * keyed by field, located by paragraph id.
- */
 export function anchorsFrom(
   fields: Field[],
   applied: AppliedEdit[],
@@ -83,11 +74,6 @@ export type AnchoredUpdate = {
   conflicts: string[];
 };
 
-/**
- * Rewrites a changed answer only where its previous value or marker
- * still sits untouched; a user edit there is reported as a conflict.
- * Anchors inside an excluded clause wait until it is restored.
- */
 export function anchoredUpdates(
   state: FieldState,
   changed: Field[],
@@ -161,11 +147,6 @@ export function anchoredUpdates(
   };
 }
 
-/**
- * Keeps every anchor correct after server-side text edits: edited
- * anchors take their new range and text, and anchors later in the
- * same paragraph shift by the length change of the edits before them.
- */
 export function rebaseAnchors(
   anchors: FieldState["draftAnchors"],
   applied: AppliedEdit[],

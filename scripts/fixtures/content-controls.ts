@@ -1,12 +1,5 @@
 import JSZip from "jszip";
 
-// ---------- Word content controls ---------- The docx library cannot write
-// text content controls, so this letter is written as WordprocessingML. It
-// follows the shape of Word's own letter templates: every blank is a
-// placeholder box, some boxes are bound to document properties (Word repeats
-// their value), some are temporary, the header repeats two of them, the letter
-// body is sample wording in boxes too, and one box shows Word's generic prompt.
-
 const W = `xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`;
 
 const esc = (s: string) => {
@@ -60,12 +53,10 @@ const boxPr = (b: Box) => {
   return `<w:sdtPr><w:alias w:val="${esc(b.title)}"/><w:tag w:val="${esc(b.title)}"/><w:id w:val="${boxId++}"/>${b.gallery ? `<w:docPartObj><w:docPartGallery w:val="${b.gallery}"/><w:docPartUnique/></w:docPartObj>` : ""}${b.temporary ? "<w:temporary/>" : ""}<w:showingPlcHdr/>${b.bind ? `<w:dataBinding w:prefixMappings="${b.bind.ns}" w:xpath="${b.bind.xpath}" w:storeItemID="${b.bind.store}"/><w:text w:multiLine="1"/>` : ""}</w:sdtPr>`;
 };
 
-/** A box inside a paragraph. */
 const inBox = (b: Box) => {
   return `<w:sdt>${boxPr(b)}<w:sdtContent>${run(b.text, b.style)}</w:sdtContent></w:sdt>`;
 };
 
-/** A box around a whole paragraph. */
 const boxPara = (b: Box) => {
   return `<w:sdt>${boxPr(b)}<w:sdtContent><w:p>${run(b.text, b.style)}</w:p></w:sdtContent></w:sdt>`;
 };

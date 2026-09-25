@@ -13,10 +13,6 @@ export const runtime = "nodejs";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-/**
- * Resume a saved draft: returns its persisted state
- * and conversation. No AI call and no regeneration.
- */
 export async function GET(_req: Request, { params }: Ctx) {
   try {
     const id = await documentIdParam(params);

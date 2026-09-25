@@ -11,8 +11,6 @@ export default defineConfig({
       ),
     },
   },
-  // Integration files share one test database whose
-  // schema they reset, so files run one after another.
   test: {
     include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
     environment: "node",

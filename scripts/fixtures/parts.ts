@@ -1,7 +1,3 @@
-/**
- * Building blocks shared by the docx-library fixtures: numbering,
- * clause and table helpers, header, footer and styles.
- */
 import {
   AlignmentType,
   Footer,
@@ -226,10 +222,6 @@ export const para = (
   });
 };
 
-/**
- * Bilingual pair: the English paragraph, then its French
- * version in italics (a common layout for bilingual contracts).
- */
 export const pair = (
   en: string | TextRun[],
   fr: string | TextRun[],

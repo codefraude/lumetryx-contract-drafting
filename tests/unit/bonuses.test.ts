@@ -1,7 +1,3 @@
-/**
- * Unit tests for the four bonuses' deterministic cores: language,
- * conditional clauses, structure and diff. No database, no model.
- */
 import { readFileSync } from "node:fs";
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
@@ -245,8 +241,6 @@ describe("language", () => {
         .occurrences.map((o) => o.lang),
     ).toEqual(["fr"]);
 
-    // Live Gemini echoes marker keys without their "k:"
-    // prefix; they must still resolve to the real markers.
     const grouped = buildFields(lease, detectMarkers(lease), {
       notFields: [],
       fields: [
@@ -274,7 +268,6 @@ describe("language", () => {
     ).toEqual(["en", "fr"]);
 
     expect(grouped.fields.some((x) => x.id === "nom_du_locataire")).toBe(false);
-    // "employer" must not be read as the French word "loyer" (rent).
     expect(guessType("Employer name").valueType).toBe("party");
   });
 });
@@ -334,7 +327,6 @@ describe("conditional clause markers", () => {
     const rule = state.rules[0]!;
 
     expect(evaluateRule(rule, state.fields).state).toBe("unresolved");
-    // Undecided content is not drafted.
     expect(omittedBlocks(state).size).toBeGreaterThan(rule.blockIds.length);
     const exclusive = [
       "non_compete_period",
@@ -448,9 +440,7 @@ describe("model-proposed conditional clauses", () => {
     };
 
     expect(evaluateRule(state.rules[0]!, state.fields).state).toBe("proposed");
-    // The clause stays as written.
     expect(omittedBlocks(state).has(lawText.id)).toBe(false);
-    // Its question is not asked yet.
     expect(inactiveFields(state).has("foreign_client")).toBe(true);
     const confirmed = {
       ...state,
@@ -479,7 +469,6 @@ describe("structural clause changes on a real DOCX", () => {
     const draft = await renderDraft(original, yes);
     let text = await bodyText(draft.bytes);
 
-    // Control markers never reach the draft.
     expect(text.join("\n")).not.toMatch(/\[\[/);
     expect(text.filter((t) => t === "Non-competition")).toHaveLength(1);
     expect(text.join("\n")).toContain("subject to clause 4");
@@ -501,8 +490,6 @@ describe("structural clause changes on a real DOCX", () => {
       /Clause 3 survives termination.*no longer in the draft/,
     );
 
-    // Numbering definitions are untouched; Word
-    // renumbers the remaining clauses itself.
     const numbering = async (b: Uint8Array) => {
       return (await JSZip.loadAsync(b))
         .file("word/numbering.xml")!
@@ -519,7 +506,6 @@ describe("structural clause changes on a real DOCX", () => {
     });
 
     expect(await bodyText(again.bytes!)).toEqual(await bodyText(draft.bytes));
-    // Applying the same decision again changes nothing (idempotent).
     const same = await updateWorkingDraft({
       working: again.bytes!,
       original,
@@ -539,8 +525,6 @@ describe("structural clause changes on a real DOCX", () => {
       original,
       answerAll(answer(s0, "employee_is_senior", "yes")),
     );
-    // Simulate an edit inside the conditional
-    // clause, as the browser editor would save it.
     const pkg = await loadDocxPackage(draft.bytes);
     const b = (await indexBlocks(pkg)).find((x) => x.text.startsWith("For "))!;
 

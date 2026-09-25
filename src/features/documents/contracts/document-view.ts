@@ -7,15 +7,6 @@ import {
   StructureIssue,
 } from "./fields";
 
-/**
- * A draft as `GET /api/documents/:id` and every
- * write return it, built from persisted state.
- */
-
-/**
- * How a conditional clause stands. "unresolved"
- * (an answer is missing) is never treated as "no".
- */
 export const ClauseState = z.enum([
   "included",
   "excluded",
@@ -48,16 +39,8 @@ export const RuleView = z.object({
   evidence: z.string().nullable(),
   state: ClauseState,
   reason: z.string(),
-  /** What the working draft contains (null before a draft exists). */
   applied: z.enum(["included", "excluded"]).nullable(),
-  /**
-   * The draft differs from what the condition calls for and
-   * waits for confirmation (the clause was edited by hand).
-   */
   pending: z.boolean(),
-  /**
-   * Excluded text the user edited, kept so re-including the clause restores it.
-   */
   hasEditedVariant: z.boolean(),
 });
 
@@ -89,7 +72,6 @@ export const DocumentView = z.object({
   fieldsVersion: z.number().int(),
   workingRevision: z.number().int(),
   draftStatus: z.enum(["none", "generating", "ready"]),
-  /** The answers changed after the draft was made. */
   draftStale: z.boolean(),
   phase: Phase,
   analysis: z.enum(["ai", "markers_only"]),
@@ -120,10 +102,6 @@ export const SavedRevision = z.object({
 
 export type SavedRevision = z.infer<typeof SavedRevision>;
 
-/**
- * A short-lived link to the saved draft that
- * Word can open without the browser's cookie.
- */
 export const WordLink = z.object({
   url: z.string().url(),
   expiresAt: z.string(),

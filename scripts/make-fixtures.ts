@@ -1,8 +1,3 @@
-/**
- * SYNTHETIC fixtures. These are NOT the employer's sample templates; they
- * exist so the full flow can be tested before those templates arrive.
- * `npm run fixtures -- <name> …` rewrites only those fixtures.
- */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { Packer } from "docx";
 import { lettreControles } from "./fixtures/content-controls";

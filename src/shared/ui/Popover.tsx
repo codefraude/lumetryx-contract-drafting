@@ -10,10 +10,6 @@ import {
   type ReactNode,
 } from "react";
 
-/**
- * The panel sits in the top layer, so scroll containers never clip it.
- * Light dismiss and Escape are native; scroll or resize closes it.
- */
 export function Popover({
   label,
   icon: Icon,

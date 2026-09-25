@@ -20,16 +20,11 @@ const Del = ({ text }: { text: string }) => {
   );
 };
 
-/**
- * One highlight per run of changed words
- * ("Lumetryx Ltée", not "Lumetryx" and "Ltée").
- */
 function merge(segments: Segment[]): Segment[] {
   const out: Segment[] = [];
 
   segments.forEach((s, i) => {
     const prev = out.at(-1);
-    // Spaces between two changes of the same kind belong to the change.
     const joins =
       s.op === "eq" &&
       !s.text.trim() &&
@@ -50,9 +45,6 @@ function merge(segments: Segment[]): Segment[] {
   return out;
 }
 
-/**
- * One paragraph of document text; `side` keeps only what that version contains.
- */
 export function DiffText({
   segments,
   side,

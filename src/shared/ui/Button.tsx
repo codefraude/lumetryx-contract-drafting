@@ -5,8 +5,6 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 const VARIANT: Record<ButtonVariant, string> = {
-  // A disabled primary action turns neutral but stays
-  // legible (it is often the one people look for).
   primary:
     "bg-primary text-on-primary hover:bg-primary-hover disabled:bg-hover disabled:text-ink-3 disabled:opacity-100",
   secondary:
@@ -14,7 +12,6 @@ const VARIANT: Record<ButtonVariant, string> = {
   ghost: "text-ink-2 hover:bg-hover hover:text-ink",
   danger: "bg-danger text-on-danger hover:opacity-90",
 };
-// Touch screens get 44px targets.
 const SIZE: Record<Size, string> = {
   sm: "h-8 gap-1.5 px-2.5 text-ui pointer-coarse:h-11 pointer-coarse:min-w-11",
   md: "h-9 gap-2 px-3.5 text-ui pointer-coarse:h-11 pointer-coarse:min-w-11",
@@ -30,7 +27,6 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: Size;
   icon?: LucideIcon;
-  /** Shows a spinner and disables the button while its action runs. */
   busy?: boolean;
 }
 
@@ -75,7 +71,6 @@ const BOX: Record<Size, string> = {
   lg: "size-11",
 };
 
-/** An icon-only button; `label` is its accessible name and tooltip. */
 export const IconButton = forwardRef<
   HTMLButtonElement,
   Omit<ButtonProps, "children"> & {

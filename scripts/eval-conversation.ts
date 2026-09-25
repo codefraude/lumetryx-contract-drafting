@@ -1,14 +1,3 @@
-/**
- * A small LIVE evaluation of the conversation: casual and messy answers, an
- * ambiguous date, a correction, an unknown answer, a question about a clause,
- * an instruction smuggled into a message or into the template itself, an
- * ambiguous currency, a relative date and French. Runs against a server with a
- * real Gemini key (APP_URL, default http://localhost:3000) and checks what was
- * saved after each turn, never the wording of the reply. Prints each reply for
- * review, the time to the first reply token and to the end of each turn, and,
- * when DATABASE_URL points at the server's database, the model requests and
- * tokens each case used. About 40 model calls. Run: npm run eval:conversation
- */
 import { readFileSync } from "node:fs";
 import JSZip from "jszip";
 import pg from "pg";
@@ -24,10 +13,6 @@ const today = new Date().toLocaleDateString("en-GB", {
 });
 
 interface Expect {
-  /**
-   * Matches the field's label (labels come from
-   * the model, so they are matched loosely).
-   */
   field: RegExp;
   status: "missing" | "needs_clarification" | "confirmed";
   value?: RegExp;
@@ -36,12 +21,7 @@ interface Expect {
 interface Case {
   name: string;
   fixture: string;
-  /**
-   * A paragraph added to the template's text before
-   * upload, as a hostile template would carry.
-   */
   inject?: string;
-  /** No answer may ever take a value matching this. */
   forbid?: RegExp;
   turns: {
     say: string;
@@ -238,9 +218,6 @@ const CASES: Case[] = [
   },
 ];
 
-/**
- * The fixture as uploaded, with the case's injected paragraph when it has one.
- */
 async function template(c: Case): Promise<Blob> {
   const bytes = readFileSync(`fixtures/${c.fixture}.docx`);
 
@@ -290,10 +267,6 @@ function session() {
   };
 }
 
-/**
- * One chat turn: when the extraction finished (first
- * event), when the reply's first token came, and the reply.
- */
 async function turn(
   call: ReturnType<typeof session>["call"],
   doc: DocumentView,

@@ -1,10 +1,6 @@
 import type { z } from "zod";
 import { apiError } from "./http";
 
-/**
- * Handles frames and multi-byte characters split
- * across chunks; invalid frames are dropped.
- */
 export class SseDecoder<T> {
   private decoder = new TextDecoder("utf-8");
   private buffer = "";
@@ -49,10 +45,6 @@ export class SseDecoder<T> {
   }
 }
 
-/**
- * Adds a fresh request id. Events from another request or with an already
- * seen `seq` are dropped, so a replayed frame never applies twice.
- */
 export async function postEventStream<
   T extends {
     requestId: string;

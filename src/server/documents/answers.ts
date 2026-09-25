@@ -27,20 +27,10 @@ import { NotFound } from "@/server/http/responses";
 import { mustGet, mustGetBytes, templateBlocks } from "./access";
 import { documentView } from "./views";
 
-/**
- * Changes to a draft's answers or clause decisions: panel corrections,
- * chat turns, language, clause actions. An existing draft gets the
- * change in the same statement, except where the user edited the text.
- */
-
 const docLangAsLang = (d: FieldState["language"]["document"]): Lang => {
   return d === "en" || d === "fr" ? d : "unknown";
 };
 
-/**
- * Manual correction from the field panel.
- * Deterministically validated like chat answers.
- */
 export async function correctField(
   sessionId: string,
   documentId: string,
@@ -110,10 +100,6 @@ export async function correctField(
   return documentView(sessionId, updated);
 }
 
-/**
- * Applies answer and clause changes to an existing working
- * draft, persisting document and state in one statement.
- */
 async function syncDraft(
   sessionId: string,
   doc: repo.DocumentSummary,
@@ -186,8 +172,6 @@ export async function chatTurn(
     bytes.originalDocx,
   );
   const recent = await repo.recentMessages(documentId, 8);
-  // Retrying a failed turn resends a message that was
-  // stored but never answered: keep a single copy.
   const retry =
     recent.at(-1)?.role === "user" && recent.at(-1)?.content === input.message;
   const history = retry ? recent.slice(0, -1) : recent;
@@ -204,7 +188,6 @@ export async function chatTurn(
     state.language.document,
   );
 
-  // Only extracted values that fully validate are committed.
   const { extraction, usage } = await extract({
     model: m,
     fields: state.fields,
@@ -277,7 +260,6 @@ export async function chatTurn(
     }
   }
 
-  // Answers saved above stay saved if the reply fails.
   const clauseText = clauseContext(blocks, extraction.clauseBlockIds);
   const inactive = inactiveFields({
     rules: state.rules,
@@ -314,8 +296,6 @@ export async function chatTurn(
       text += "…";
     }
   } catch (err) {
-    // The stream reports "no output" when the call behind
-    // it failed; that failure is the one to classify.
     const cause = classifyAiError(reply.failure() ?? err);
 
     throw applied.changed.length && cause.retryable && cause.code !== "aborted"
@@ -368,8 +348,6 @@ export async function setConversationLanguage(
     state,
   );
 
-  // Deterministic confirmation in the new
-  // language; no model call, nothing is re-asked.
   if (input.language) {
     await repo.addMessage(
       documentId,
@@ -385,11 +363,6 @@ export async function setConversationLanguage(
   return documentView(sessionId, saved);
 }
 
-/**
- * Confirms/dismisses a proposed rule, sets or clears an explicit
- * override, or (`apply`) confirms removing a clause the user had
- * edited. When a draft exists, the change is applied to it at once.
- */
 export async function ruleAction(
   sessionId: string,
   documentId: string,

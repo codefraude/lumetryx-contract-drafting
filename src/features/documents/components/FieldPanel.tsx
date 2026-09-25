@@ -10,17 +10,8 @@ import { FieldRow } from "./FieldRow";
 interface Props {
   documentId: string;
   fields: Field[];
-  /**
-   * When a draft exists, answers change through
-   * chat so the draft is patched safely.
-   */
   locked: boolean;
-  /** The assistant can answer for this template (its AI analysis ran). */
   assistant: boolean;
-  /**
-   * Fields only used by excluded or undecided
-   * clauses: kept, but not needed now.
-   */
   inactive: ReadonlySet<string>;
 }
 
@@ -52,10 +43,6 @@ function Section({
   );
 }
 
-/**
- * Details: what is still needed first, then
- * confirmed answers, then fields not needed now.
- */
 export const FieldPanel = memo(function FieldPanel({
   documentId,
   fields,
@@ -63,8 +50,6 @@ export const FieldPanel = memo(function FieldPanel({
   assistant,
   inactive,
 }: Props) {
-  // Yes/no answers that decide clauses live under
-  // Clauses, so they are not counted twice.
   const details = fields.filter((f) => f.source !== "condition");
   const active = details.filter((f) => !inactive.has(f.id));
   const needed = active

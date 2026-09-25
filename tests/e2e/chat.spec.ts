@@ -1,15 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
 
-/**
- * The chat surface, with the chat STREAM STUBBED in the browser: no
- * model is involved, and nothing here says anything about extraction
- * quality (the service's integration tests and the live scenario cover
- * that). The document is presented as AI-analysed so the composer is
- * enabled; every other request reaches the real server. Checks:
- * thinking indicator, inline failure with a retry that does not repeat
- * the message, the "details updated" acknowledgement, list formatting,
- * and that new content does not drag a reader who scrolled up.
- */
 type Field = {
   id: string;
   label: string;
@@ -26,8 +16,6 @@ const LONG =
   );
 
 async function open(page: Page) {
-  // Present the document as AI-analysed so the composer
-  // is enabled (markers-only mode disables it).
   await page.route(
     /\/api\/documents\/(current|[0-9a-f-]{36})$/,
     async (route) => {

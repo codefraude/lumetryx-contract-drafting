@@ -5,11 +5,6 @@ import type {
 import { outstandingFields } from "@/features/documents/progress";
 import { questionIn } from "./reply";
 
-/**
- * Messages the assistant posts without a model call:
- * the opening question and the language switch.
- */
-
 const GROUP_NAMES: Record<ChatLanguage, Record<Field["group"], string>> = {
   en: {
     parties: "the parties",
@@ -33,7 +28,6 @@ const joinList = (items: string[], lang: ChatLanguage = "en") => {
     : `${items.slice(0, -1).join(", ")} ${lang === "fr" ? "et" : "and"} ${items.at(-1)}`;
 };
 
-/** Deterministic next question (no LLM call), in the conversation language. */
 function nextQuestion(out: Field[], lang: ChatLanguage): string {
   const [head] = out;
 
@@ -59,7 +53,6 @@ function nextQuestion(out: Field[], lang: ChatLanguage): string {
     : `Let's start with ${GROUP_NAMES.en[group]}: ${joinList(first.map((f) => f.label.toLowerCase()))}.`;
 }
 
-/** Opening message; asks the first group without an LLM call. */
 export function openingMessage(
   fields: Field[],
   lang: ChatLanguage = "en",
@@ -82,10 +75,6 @@ export function openingMessage(
   return `I found ${out.length} item${out.length === 1 ? "" : "s"} to complete in this template. ${nextQuestion(out, "en")}`;
 }
 
-/**
- * Posted when the user switches the conversation language:
- * confirms, keeps every answer, and asks the next open question.
- */
 export function languageSwitchMessage(
   fields: Field[],
   lang: ChatLanguage,

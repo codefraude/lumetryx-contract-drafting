@@ -5,10 +5,6 @@ import { assertSameOrigin, requireSession } from "@/server/session";
 
 export const runtime = "nodejs";
 
-/**
- * Saves a separate copy of a draft; the body may carry the
- * editor's current DOCX (keeps local edits after a conflict).
- */
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },

@@ -7,11 +7,6 @@ import { indexBlocks } from "@/server/docx/render";
 import { renderDraft } from "@/server/draft/generate";
 import { mustGet, mustGetBytes } from "./access";
 
-/**
- * Compares the template with the newest draft snapshot: the editor's
- * unsaved export when sent, else the saved working draft, else a
- * preview built from the current answers. No model call is made.
- */
 export async function compare(
   sessionId: string,
   documentId: string,
@@ -21,7 +16,6 @@ export async function compare(
   const bytes = await mustGetBytes(sessionId, documentId);
   const originalPkg = await loadDocxPackage(new Uint8Array(bytes.originalDocx));
 
-  // The same deterministic ids the draft was given.
   await ensureParaIds(originalPkg);
   const original = await indexBlocks(originalPkg);
   let source: CompareResponse["source"];

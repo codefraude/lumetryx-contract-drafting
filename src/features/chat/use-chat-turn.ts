@@ -17,20 +17,13 @@ export interface ChatMessage {
   role: "user" | "assistant" | "notice";
   content: string;
   streaming?: boolean;
-  /** How many details this turn validated and saved; shown under the reply. */
   updated?: number;
 }
 
-/** A failed turn, with the message to send again when retrying can help. */
 export type TurnFailure = ActionFailure & { resend?: string };
 
 interface Options {
-  /**
-   * Saves pending editor edits before the server
-   * may change the draft; rejects when that fails.
-   */
   beforeSend(): Promise<void>;
-  /** The server changed the saved draft: the editor must load that revision. */
   onDraftReplaced(revision: number): void;
   announce(text: string): void;
 }
@@ -43,9 +36,6 @@ const fromServer = (messages: DocumentMessage[]): ChatMessage[] => {
   }));
 };
 
-/**
- * What an answer changed in a draft that already exists, in the lawyer's words.
- */
 function patchNotices(
   e: Extract<StreamEvent, { type: "draft_patch" }>,
 ): string[] {
@@ -72,11 +62,6 @@ function patchNotices(
   return notes;
 }
 
-/**
- * Messages start from the persisted conversation and are owned
- * here afterwards. A reply still streaming after the draft closes
- * only reaches this draft's cache, not the one opened next.
- */
 export function useChatTurn(
   documentId: string,
   initial: DocumentMessage[],
@@ -92,10 +77,6 @@ export function useChatTurn(
     setMessages((all) => all.map((m) => (m.id === id ? change(m) : m)));
   };
 
-  /**
-   * `retry` sends a failed message again without adding it to the
-   * conversation twice. Resolves false when nothing was sent.
-   */
   async function send(text: string, retry = false): Promise<boolean> {
     setFailure(null);
 
@@ -249,8 +230,6 @@ export function useChatTurn(
           .filter((m) => m.role !== "assistant" || m.content),
       );
 
-      // Server-derived parts of the view (rules,
-      // inactive fields, issues) follow the turn.
       void queryClient.invalidateQueries({
         queryKey: documentKeys.detail(documentId),
       });
@@ -268,8 +247,6 @@ export function useChatTurn(
       ),
     onSuccess: (view) => {
       storeDocument(queryClient, view);
-      // The server posted a confirmation in the new language;
-      // the conversation is the persisted one again.
       setMessages(fromServer(view.messages));
     },
     onError: (e) => setFailure(toFailure(e)),

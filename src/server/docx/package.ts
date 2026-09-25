@@ -5,10 +5,6 @@ export const DOCX_LIMITS = {
   maxCompressedBytes: 5 * 1024 * 1024,
   maxUncompressedBytes: 40 * 1024 * 1024,
   maxEntries: 400,
-  /**
-   * Characters of indexed text sent for analysis;
-   * larger documents are rejected, never truncated.
-   */
   maxIndexedChars: 120_000,
   maxBlocks: 2_500,
 } as const;
@@ -40,10 +36,6 @@ interface CentralEntry {
   encrypted: boolean;
 }
 
-/**
- * Reads the ZIP central directory directly so
- * size limits are enforced before any inflation.
- */
 function readCentralDirectory(bytes: Uint8Array): CentralEntry[] {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const minEocd = 22;
@@ -117,14 +109,9 @@ function readCentralDirectory(bytes: Uint8Array): CentralEntry[] {
 
 export interface DocxPackage {
   zip: JSZip;
-  /** Names of parts present, for relationship-aware operations. */
   partNames: string[];
 }
 
-/**
- * Validates the actual package contents (not the extension) and returns a
- * loaded zip. Never executes macros and never resolves external relationships.
- */
 export async function loadDocxPackage(bytes: Uint8Array): Promise<DocxPackage> {
   if (bytes.byteLength > DOCX_LIMITS.maxCompressedBytes) {
     throw new DocxValidationError(

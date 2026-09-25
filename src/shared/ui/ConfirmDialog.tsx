@@ -23,10 +23,6 @@ type Request = ConfirmOptions & {
   open: boolean;
 };
 
-/**
- * A themed replacement for window.confirm. Render
- * `dialog` once; `ask()` resolves true on confirm.
- */
 export function useConfirm(): [
   ReactNode,
   (o: ConfirmOptions) => Promise<boolean>,
@@ -82,8 +78,6 @@ function ConfirmDialog({
 
     if (open && !d.open) {
       d.showModal();
-      // Destructive confirmations start on
-      // Cancel, others on the confirm action.
       d.querySelector<HTMLElement>("[data-default]")?.focus();
     }
 

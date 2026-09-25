@@ -89,8 +89,6 @@ const answering = (text: string) => {
   });
 };
 
-// Each failing model gets its own id, because
-// a failure rests that model for a minute.
 let nextId = 0;
 
 const failing = (error: () => unknown) => {
@@ -128,8 +126,6 @@ describe("Gemini with the Vercel AI Gateway as fallback", () => {
     expect(r.text).toBe("from the gateway");
     expect(onFallback).toHaveBeenCalledOnce();
 
-    // Gemini 2.5 on the gateway rejects a thinking
-    // level, so the Gemini 3 option is not forwarded.
     expect(gateway.doGenerateCalls[0]?.providerOptions).toEqual({
       other: { a: 1 },
     });
