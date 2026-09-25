@@ -1,3 +1,15 @@
+import type {
+  DocLanguage,
+  Field,
+  FieldStatus,
+  Issue,
+  Lang,
+  NormalizedValue,
+  Unit,
+  ValueType,
+} from "@/features/documents/contracts/fields";
+import { AMBIGUOUS_SYMBOLS, currencyOf } from "./currency";
+import { issue, issueNote } from "./issues";
 import {
   formatBoolean,
   formatDate,
@@ -5,22 +17,41 @@ import {
   monthNumber,
   parseAmount,
   renderLang,
-} from "@/server/fields/lang";
-import type {
-  DocLanguage,
-  Field,
-  FieldStatus,
-  Lang,
-  NormalizedValue,
-  ValueType,
-} from "@/features/documents/contracts/fields";
+} from "./lang";
 
 export interface NormalizeResult {
   status: FieldStatus;
   displayValue: string | null;
   normalized: NormalizedValue | null;
   note: string | null;
+  issue: Issue | null;
 }
+
+const confirmed = (
+  displayValue: string,
+  normalized: NormalizedValue,
+): NormalizeResult => {
+  return {
+    status: "confirmed",
+    displayValue,
+    normalized,
+    note: null,
+    issue: null,
+  };
+};
+
+const unclear = (
+  i: Issue,
+  normalized: NormalizedValue | null = null,
+): NormalizeResult => {
+  return {
+    status: "needs_clarification",
+    displayValue: null,
+    normalized,
+    note: issueNote(i),
+    issue: i,
+  };
+};
 
 const isValidYmd = (y: number, m: number, d: number): boolean => {
   if (m < 1 || m > 12 || d < 1 || y < 1900 || y > 2200) {
@@ -52,17 +83,15 @@ export function parseDate(input: string): NormalizeResult {
     .replace(/,/g, " ")
     .replace(/\s+/g, " ");
 
-  const bad = (note: string): NormalizeResult => {
-    return {
-      status: "needs_clarification",
-      displayValue: null,
-      normalized: null,
-      note,
-    };
+  const invalid = () => {
+    return unclear(issue("invalid_date", { input }));
   };
 
-  const invalid = () => {
-    return bad(`“${input}” is not a valid calendar date.`);
+  const ok = (isoDate: string) => {
+    return confirmed(formatLongDate(isoDate), {
+      kind: "date",
+      iso: isoDate,
+    });
   };
 
   let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
@@ -99,8 +128,14 @@ export function parseDate(input: string): NormalizeResult {
     const mdy = isValidYmd(y, a, b);
 
     if (dmy && mdy && a !== b) {
-      return bad(
-        `“${input}” could be ${formatLongDate(iso(y, b, a))} or ${formatLongDate(iso(y, a, b))}. Which did you mean?`,
+      return unclear(
+        issue("ambiguous_date", {
+          input,
+          a: formatLongDate(iso(y, b, a)),
+          b: formatLongDate(iso(y, a, b)),
+          aIso: iso(y, b, a),
+          bIso: iso(y, a, b),
+        }),
       );
     }
 
@@ -115,21 +150,7 @@ export function parseDate(input: string): NormalizeResult {
     return invalid();
   }
 
-  return bad(
-    `“${input}” could not be read as a date. Write it like 1 October 2026 or 1 octobre 2026.`,
-  );
-
-  function ok(isoDate: string): NormalizeResult {
-    return {
-      status: "confirmed",
-      displayValue: formatLongDate(isoDate),
-      normalized: {
-        kind: "date",
-        iso: isoDate,
-      },
-      note: null,
-    };
-  }
+  return unclear(issue("unreadable_date", { input }));
 }
 
 const UNAMBIGUOUS: Record<string, string> = {
@@ -148,29 +169,12 @@ const UNAMBIGUOUS: Record<string, string> = {
   cad: "CAD",
   sgd: "SGD",
   pkr: "PKR",
+  chf: "CHF",
 };
-const RUPEES = {
-  display: "Rs",
-  candidates: ["MUR", "INR", "PKR", "LKR", "NPR"],
-};
-const DOLLARS = {
-  display: "$",
-  candidates: ["USD", "AUD", "CAD", "SGD", "NZD"],
-};
-const AMBIGUOUS: Record<
-  string,
-  {
-    display: string;
-    candidates: string[];
-  }
-> = {
-  rs: RUPEES,
-  "rs.": RUPEES,
-  "₨": RUPEES,
-  rupees: RUPEES,
-  roupies: RUPEES,
-  $: DOLLARS,
-  dollars: DOLLARS,
+const SYMBOL_SHOWN: Record<string, string> = {
+  $: "$",
+  dollar: "$",
+  dollars: "$",
 };
 const DISPLAY: Record<string, string> = {
   MUR: "Rs",
@@ -192,27 +196,18 @@ export function parseMoney(
     .replace(/\b(monthly|mensuel(le)?s?)\b/i, "")
     .trim();
   const m =
-    /^([^\d\s.,]{1,8}\.?)?\s?(\d[\d,.\s  ]*\d|\d)\s?([\p{L}€£$₨]{1,9}\.?)?$/iu.exec(
+    /^([^\d\s.,]{1,8}\.?)?\s?(\d[\d,.\s  ]*\d|\d)\s?([\p{L}€£$₨]{1,9}\.?)?$/iu.exec(
       s,
     );
 
-  const unreadable = (note: string): NormalizeResult => {
-    return {
-      status: "needs_clarification",
-      displayValue: null,
-      normalized: null,
-      note,
-    };
-  };
-
   if (!m) {
-    return unreadable(`I couldn't read “${input}” as an amount.`);
+    return unclear(issue("unreadable_amount", { input }));
   }
 
   const parsed = parseAmount(m[2] ?? "", lang);
 
   if (!parsed.ok) {
-    return unreadable(parsed.note);
+    return unclear(parsed.issue);
   }
 
   const amount = parsed.amount;
@@ -220,23 +215,25 @@ export function parseMoney(
   const hint = currencyHint?.toUpperCase() ?? null;
   let code: string | null = UNAMBIGUOUS[symbol] ?? null;
   let display = code;
-  const amb = AMBIGUOUS[symbol];
+  const candidates = AMBIGUOUS_SYMBOLS[symbol];
 
-  if (amb) {
-    display = amb.display;
-    code = hint && amb.candidates.includes(hint) ? hint : null;
+  if (candidates) {
+    display = SYMBOL_SHOWN[symbol] ?? "Rs";
+    code = hint && candidates.includes(hint) ? hint : null;
 
     if (!code) {
-      return {
-        status: "needs_clarification",
-        displayValue: null,
-        normalized: {
+      return unclear(
+        issue("ambiguous_currency", {
+          symbol: display,
+          candidates: candidates.join(", "),
+          amount,
+        }),
+        {
           kind: "money",
           amount,
           currency: "XXX",
         },
-        note: `“${amb.display}” is used by several currencies (${amb.candidates.join(", ")}). Which one is it?`,
-      };
+      );
     }
   }
 
@@ -246,31 +243,21 @@ export function parseMoney(
   }
 
   if (!code) {
-    return {
-      status: "needs_clarification",
-      displayValue: null,
-      normalized: {
-        kind: "money",
-        amount,
-        currency: "XXX",
-      },
-      note: `Which currency is ${amount} in?`,
-    };
+    return unclear(issue("missing_currency", { amount }), {
+      kind: "money",
+      amount,
+      currency: "XXX",
+    });
   }
 
   const shown = display ?? code;
 
-  return {
-    status: "confirmed",
-    displayValue: formatMoney(amount, shown, "en"),
-    normalized: {
-      kind: "money",
-      amount,
-      currency: code,
-      ...(shown !== code ? { symbol: shown } : {}),
-    },
-    note: null,
-  };
+  return confirmed(formatMoney(amount, shown, "en"), {
+    kind: "money",
+    amount,
+    currency: code,
+    ...(shown !== code ? { symbol: shown } : {}),
+  });
 }
 
 export function templateCurrencyHint(allText: string): string | null {
@@ -312,23 +299,168 @@ export function parseBoolean(input: string): NormalizeResult {
       : null;
 
   if (val === null) {
-    return {
-      status: "needs_clarification",
-      displayValue: null,
-      normalized: null,
-      note: `Answer yes or no (oui ou non): “${input}” does not settle it.`,
-    };
+    return unclear(issue("invalid_boolean", { input }));
   }
 
-  return {
-    status: "confirmed",
-    displayValue: formatBoolean(val, "en"),
-    normalized: {
-      kind: "boolean",
-      value: val,
-    },
-    note: null,
-  };
+  return confirmed(formatBoolean(val, "en"), {
+    kind: "boolean",
+    value: val,
+  });
+}
+
+const EMAIL = /^[^\s@<>()[\],;:"]+@[^\s@<>()[\],;:"]+\.[^\s@<>()[\],;:".]{2,}$/;
+
+export function parseEmail(input: string): NormalizeResult {
+  const value = input.trim().replace(/^mailto:/i, "");
+
+  return EMAIL.test(value)
+    ? confirmed(value, {
+        kind: "text",
+        value,
+      })
+    : unclear(issue("invalid_email", { input }));
+}
+
+export function parseCurrency(input: string): NormalizeResult {
+  const symbol = input.trim().toLowerCase();
+  const candidates = AMBIGUOUS_SYMBOLS[symbol];
+
+  if (candidates) {
+    return unclear(
+      issue("ambiguous_currency", {
+        symbol: input.trim(),
+        candidates: candidates.join(", "),
+      }),
+    );
+  }
+
+  const code = UNAMBIGUOUS[symbol] ?? currencyOf(input);
+
+  return code
+    ? confirmed(code, {
+        kind: "text",
+        value: code,
+      })
+    : unclear(issue("unknown_currency", { input }));
+}
+
+const WORDS: Record<string, number> = {
+  zero: 0,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  fifteen: 15,
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  "forty-five": 45,
+  sixty: 60,
+  ninety: 90,
+  zéro: 0,
+  un: 1,
+  une: 1,
+  deux: 2,
+  trois: 3,
+  quatre: 4,
+  cinq: 5,
+  sept: 7,
+  huit: 8,
+  neuf: 9,
+  dix: 10,
+  onze: 11,
+  douze: 12,
+  quinze: 15,
+  vingt: 20,
+  trente: 30,
+  quarante: 40,
+  soixante: 60,
+  "quatre-vingt-dix": 90,
+};
+
+const UNIT_TEXT: Record<Unit, RegExp> = {
+  days: /^(calendar )?days?$|^jours?( calendaires)?$/,
+  business_days:
+    /^(business|working) days?$|^jours? (ouvrés|ouvres|ouvrables)$/,
+  hours: /^hours?$|^heures?$/,
+  weeks: /^weeks?$|^semaines?$/,
+  months: /^months?$|^mois$/,
+  years: /^years?$|^ans?$|^années?$/,
+  persons: /^(persons?|people|occupants?|personnes?)$/,
+};
+
+const UNIT_NAMES: Record<Unit, string> = {
+  days: "days",
+  business_days: "business days",
+  hours: "hours",
+  weeks: "weeks",
+  months: "months",
+  years: "years",
+  persons: "persons",
+};
+
+export function parseCount(
+  input: string,
+  unit: Unit | null,
+  decimals = false,
+): NormalizeResult {
+  const s = input
+    .trim()
+    .toLowerCase()
+    .replace(/^(the|le|la)\s+/, "")
+    .replace(/\s*%\s*$/, "");
+  const m =
+    /^(\d+(?:[.,]\d+)?|[\p{L}-]+?)(?:st|nd|rd|th|er|ème)?(?:\s+(.+))?$/u.exec(
+      s,
+    );
+  const unitName = unit ? UNIT_NAMES[unit] : "";
+
+  if (!m) {
+    return unclear(
+      issue("invalid_number", {
+        input,
+        unit: unitName,
+      }),
+    );
+  }
+
+  const [, head = "", tail] = m;
+  const n = /^\d/.test(head)
+    ? Number(head.replace(",", "."))
+    : (WORDS[head] ?? Number.NaN);
+
+  if (!Number.isFinite(n) || n < 0 || (!decimals && !Number.isInteger(n))) {
+    return unclear(
+      issue("invalid_number", {
+        input,
+        unit: unitName,
+      }),
+    );
+  }
+
+  if (tail && unit && !UNIT_TEXT[unit].test(tail.trim())) {
+    return unclear(
+      issue("unit_mismatch", {
+        input,
+        unit: unitName,
+      }),
+    );
+  }
+
+  const value = String(n);
+
+  return confirmed(unit ? value : input.trim(), {
+    kind: "number",
+    value,
+  });
 }
 
 export function normalizeValue(
@@ -337,6 +469,7 @@ export function normalizeValue(
   opts: {
     currencyHint?: string | null;
     lang?: Lang;
+    unit?: Unit | null;
   } = {},
 ): NormalizeResult {
   const value = raw.trim();
@@ -347,6 +480,7 @@ export function normalizeValue(
       displayValue: null,
       normalized: null,
       note: null,
+      issue: null,
     };
   }
 
@@ -357,28 +491,26 @@ export function normalizeValue(
       return parseMoney(value, opts.currencyHint, opts.lang);
     case "boolean":
       return parseBoolean(value);
+    case "email":
+      return parseEmail(value);
+    case "currency":
+      return parseCurrency(value);
     case "number":
-    case "percentage":
+      return parseCount(value, opts.unit ?? null, !opts.unit);
     case "duration":
-      return {
-        status: "confirmed",
-        displayValue: value,
-        normalized: {
-          kind: "number",
-          value,
-        },
-        note: null,
-      };
+      return opts.unit
+        ? parseCount(value, opts.unit)
+        : confirmed(value, {
+            kind: "number",
+            value,
+          });
+    case "percentage":
+      return parseCount(value, null, true);
     default:
-      return {
-        status: "confirmed",
-        displayValue: value,
-        normalized: {
-          kind: "text",
-          value,
-        },
-        note: null,
-      };
+      return confirmed(value, {
+        kind: "text",
+        value,
+      });
   }
 }
 
@@ -417,16 +549,42 @@ export function properCase(value: string): string {
   });
 }
 
+const RESOLUTION_TEXT = {
+  none: {
+    en: "None",
+    fr: "Néant",
+  },
+  not_applicable: {
+    en: "Not applicable",
+    fr: "Sans objet",
+  },
+};
+
 export function renderAt(
   f: Field,
   occurrenceLang: Lang,
   docLang: DocLanguage,
 ): string | null {
-  if (f.status !== "confirmed" || !f.displayValue) {
+  if (f.status !== "confirmed" || f.resolution === "left_blank") {
     return null;
   }
 
   const lang = renderLang(occurrenceLang, docLang);
+
+  if (f.resolution === "none" || f.resolution === "not_applicable") {
+    return RESOLUTION_TEXT[f.resolution][lang];
+  }
+
+  if (!f.displayValue) {
+    return null;
+  }
+
+  const variant = f.variants.find((v) => v.lang === occurrenceLang);
+
+  if (variant) {
+    return variant.value;
+  }
+
   const n = f.normalized;
 
   if (n?.kind === "date") {
@@ -444,32 +602,45 @@ export function renderAt(
   return f.displayValue;
 }
 
+const START =
+  /\b(start|commence|begin|effective|début|debut|prise d'effet|entrée en vigueur)/i;
+const END =
+  /\b(end|expir|terminat|completion|fin\b|fin prévue|échéance|echeance)/i;
+
 export function chronologyIssues(fields: Field[]): {
   fieldId: string;
-  note: string;
+  issue: Issue;
 }[] {
-  const dates = fields.filter((f) => f.normalized?.kind === "date");
-  const start = dates.find((f) =>
-    /\b(start|commence|begin|effective|début|prise d'effet|entrée en vigueur)/i.test(
-      f.label,
-    ),
+  const dates = fields.filter(
+    (f) => f.normalized?.kind === "date" && f.status === "confirmed",
   );
-  const end = dates.find((f) =>
-    /\b(end|expir|terminat|fin\b|échéance)/i.test(f.label),
-  );
+  const start = dates.find((f) => START.test(f.label) || START.test(f.id));
+  const out: {
+    fieldId: string;
+    issue: Issue;
+  }[] = [];
 
-  if (
-    start?.normalized?.kind === "date" &&
-    end?.normalized?.kind === "date" &&
-    end.normalized.iso <= start.normalized.iso
-  ) {
-    return [
-      {
-        fieldId: end.id,
-        note: `The end date (${end.displayValue}) is not after the start date (${start.displayValue}).`,
-      },
-    ];
+  if (start?.normalized?.kind !== "date") {
+    return out;
   }
 
-  return [];
+  for (const end of dates) {
+    if (
+      end !== start &&
+      (END.test(end.label) || END.test(end.id)) &&
+      !START.test(end.label) &&
+      end.normalized?.kind === "date" &&
+      end.normalized.iso <= start.normalized.iso
+    ) {
+      out.push({
+        fieldId: end.id,
+        issue: issue("date_order", {
+          start: start.displayValue ?? start.normalized.iso,
+          end: end.displayValue ?? end.normalized.iso,
+        }),
+      });
+    }
+  }
+
+  return out;
 }

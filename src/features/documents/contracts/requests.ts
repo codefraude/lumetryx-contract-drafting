@@ -1,11 +1,13 @@
 import { z } from "zod";
-import { ChatLanguage } from "./fields";
+import { ChatLanguage, Resolution, VariantLang } from "./fields";
 import { RuleAction } from "./document-view";
 
 export const FieldCorrection = z.object({
   fieldsVersion: z.number().int(),
   fieldId: z.string().max(64),
   value: z.string().max(500).nullable().optional(),
+  resolution: Resolution.optional(),
+  lang: VariantLang.optional(),
   required: z.boolean().optional(),
   label: z.string().min(1).max(120).optional(),
 });
@@ -33,6 +35,10 @@ export const ChatRequest = z.object({
   message: z.string().trim().min(1).max(2000),
   fieldsVersion: z.number().int(),
   requestId: z.string().uuid(),
+  today: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 export type ChatRequest = z.infer<typeof ChatRequest>;

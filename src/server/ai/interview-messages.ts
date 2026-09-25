@@ -2,7 +2,10 @@ import type {
   ChatLanguage,
   Field,
 } from "@/features/documents/contracts/fields";
-import { outstandingFields } from "@/features/documents/progress";
+import {
+  nextQuestions,
+  outstandingFields,
+} from "@/features/documents/progress";
 import { questionIn } from "./reply";
 
 const GROUP_NAMES: Record<ChatLanguage, Record<Field["group"], string>> = {
@@ -30,15 +33,19 @@ const joinList = (items: string[], lang: ChatLanguage = "en") => {
     : `${items.slice(0, -1).join(", ")} ${lang === "fr" ? "et" : "and"} ${items.at(-1)}`;
 };
 
-function nextQuestion(out: Field[], lang: ChatLanguage): string {
-  const [head] = out;
+function nextQuestion(
+  fields: Field[],
+  inactive: ReadonlySet<string>,
+  lang: ChatLanguage,
+): string {
+  const first = nextQuestions(fields, inactive);
+  const [head] = first;
 
   if (!head) {
     return "";
   }
 
   const { group } = head;
-  const first = out.filter((f) => f.group === group).slice(0, 3);
   const q = questionIn(head, lang);
 
   if (lang === "fr") {
@@ -67,14 +74,14 @@ export function openingMessage(
       return "Je n'ai trouvé aucun élément à compléter dans ce modèle. Vous pouvez le relire dans le panneau du document.";
     }
 
-    return `Ce modèle contient ${out.length} information${out.length === 1 ? "" : "s"} à compléter. ${nextQuestion(out, "fr")}`;
+    return `Ce modèle contient ${out.length} information${out.length === 1 ? "" : "s"} à compléter. ${nextQuestion(fields, inactive, "fr")}`;
   }
 
   if (!out.length) {
     return "I didn't find any fields to fill in this template. You can review it in the document panel.";
   }
 
-  return `This template has ${out.length} detail${out.length === 1 ? "" : "s"} to fill in. ${nextQuestion(out, "en")}`;
+  return `This template has ${out.length} detail${out.length === 1 ? "" : "s"} to fill in. ${nextQuestion(fields, inactive, "en")}`;
 }
 
 export function languageSwitchMessage(
@@ -86,8 +93,8 @@ export function languageSwitchMessage(
   const done = fields.filter((f) => f.status === "confirmed").length;
 
   if (lang === "fr") {
-    return `D'accord, je continue en français. Vos ${done} réponse${done === 1 ? "" : "s"} déjà confirmée${done === 1 ? "" : "s"} sont conservées et le contrat n'est pas traduit.${out.length ? ` ${nextQuestion(out, "fr").replace(/^Commençons par/, "Poursuivons avec")}` : " Tout est prêt pour générer le projet."}`;
+    return `D'accord, je continue en français. Vos ${done} réponse${done === 1 ? "" : "s"} déjà confirmée${done === 1 ? "" : "s"} sont conservées et le contrat n'est pas traduit.${out.length ? ` ${nextQuestion(fields, inactive, "fr").replace(/^Commençons par/, "Poursuivons avec")}` : " Tout est prêt pour générer le projet."}`;
   }
 
-  return `Sure, I'll continue in English. Your ${done} confirmed answer${done === 1 ? " is" : "s are"} kept and the contract itself is not translated.${out.length ? ` ${nextQuestion(out, "en").replace(/^Let's start with/, "Next,")}` : " Everything is ready to generate the draft."}`;
+  return `Sure, I'll continue in English. Your ${done} confirmed answer${done === 1 ? " is" : "s are"} kept and the contract itself is not translated.${out.length ? ` ${nextQuestion(fields, inactive, "en").replace(/^Let's start with/, "Next,")}` : " Everything is ready to generate the draft."}`;
 }

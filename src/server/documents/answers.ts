@@ -24,9 +24,12 @@ import * as repo from "@/server/db/repo";
 import { updateWorkingDraft, type DraftUpdate } from "@/server/draft/update";
 import { messageLanguage, replyLanguage } from "@/server/fields/lang";
 import {
-  normalizeValue,
+  chronologyIssues,
   templateCurrencyHint,
 } from "@/server/fields/normalize";
+import { issueNote } from "@/server/fields/issues";
+import { resolveField } from "@/server/fields/resolve";
+import { withLock } from "@/server/cache/redis";
 import type { FieldState } from "@/server/fields/state";
 import { NotFound } from "@/server/http/responses";
 import { mustGet, mustGetBytes, templateBlocks } from "./access";
@@ -57,7 +60,7 @@ export async function correctField(
     f.required = input.required;
   }
 
-  if (input.value !== undefined) {
+  if (input.value !== undefined || input.resolution !== undefined) {
     const blocks = await templateBlocks(
       sessionId,
       doc.templateHash,
@@ -71,25 +74,39 @@ export async function correctField(
       typed !== "unknown"
         ? typed
         : (occurrence ?? docLangAsLang(doc.fieldState.language.document));
-    const r =
-      input.value === null
-        ? {
-            status: "missing" as const,
-            displayValue: null,
-            normalized: null,
-            note: null,
-          }
-        : normalizeValue(f.valueType, input.value, {
-            currencyHint: templateCurrencyHint(
-              blocks.map((b) => b.text).join("\n"),
-            ),
-            lang: context,
-          });
 
-    Object.assign(f, {
-      rawValue: input.value,
-      ...r,
-    });
+    Object.assign(
+      f,
+      resolveField(
+        f,
+        {
+          resolution: input.resolution ?? "value",
+          value: input.value ?? null,
+          lang: input.lang ?? context,
+          onlyLang: input.lang ?? null,
+          evidence: null,
+        },
+        {
+          currencyHint: templateCurrencyHint(
+            blocks.map((b) => b.text).join("\n"),
+          ),
+          lang: context,
+        },
+      ),
+    );
+
+    for (const c of chronologyIssues(fields)) {
+      const late = fields.find((x) => x.id === c.fieldId);
+
+      if (late?.status === "confirmed") {
+        Object.assign(late, {
+          status: "needs_clarification",
+          resolution: null,
+          issue: c.issue,
+          note: issueNote(c.issue),
+        });
+      }
+    }
   }
 
   const updated = await repo.updateFieldState(
@@ -158,6 +175,33 @@ export async function chatTurn(
   input: {
     message: string;
     fieldsVersion: number;
+    today?: string | undefined;
+  },
+  emit: (e: EventPayload) => void,
+  signal: AbortSignal,
+) {
+  await withLock(`lx:lock:chat:${session.id}:${documentId}`, 90, () =>
+    runTurn(session, documentId, input, emit, signal),
+  );
+}
+
+const nearToday = (today: string | undefined) => {
+  if (!today) {
+    return undefined;
+  }
+
+  const offset = Math.abs(Date.parse(today) - Date.now());
+
+  return offset < 2 * 24 * 60 * 60 * 1000 ? today : undefined;
+};
+
+async function runTurn(
+  session: SessionUsage,
+  documentId: string,
+  input: {
+    message: string;
+    fieldsVersion: number;
+    today?: string | undefined;
   },
   emit: (e: EventPayload) => void,
   signal: AbortSignal,
@@ -199,6 +243,7 @@ export async function chatTurn(
     blocks,
     history,
     userMessage: input.message,
+    today: nearToday(input.today),
     abortSignal: signal,
   });
 

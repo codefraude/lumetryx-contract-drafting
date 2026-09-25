@@ -1,8 +1,10 @@
 import type {
   ChatLanguage,
   DocLanguage,
+  Issue,
   Lang,
 } from "@/features/documents/contracts/fields";
+import { issue } from "./issues";
 
 const EN = new Set(
   "the and of to in is are shall be by for with this that any or as on at from which will may not its their such each all under between hereby agreement party parties tenant landlord employee employer company services provider client date".split(
@@ -277,26 +279,29 @@ export type AmountParse =
     }
   | {
       ok: false;
-      ambiguous: boolean;
-      note: string;
+      issue: Issue;
     };
 
 export function parseAmount(raw: string, lang: Lang): AmountParse {
   const s = raw.trim().replace(/[   ']/g, " ");
 
-  const bad = (note: string): AmountParse => {
+  const input = raw.trim();
+
+  const bad = (): AmountParse => {
     return {
       ok: false,
-      ambiguous: false,
-      note,
+      issue: issue("invalid_amount", { input }),
     };
   };
 
-  const ask = (a: string, b: string): AmountParse => {
+  const ask = (thousands: string, decimal: string): AmountParse => {
     return {
       ok: false,
-      ambiguous: true,
-      note: `“${raw.trim()}” could mean ${a} or ${b}. Which is it?`,
+      issue: issue("ambiguous_amount", {
+        input,
+        thousands,
+        decimal,
+      }),
     };
   };
 
@@ -304,7 +309,7 @@ export function parseAmount(raw: string, lang: Lang): AmountParse {
 
   if (/ /.test(t)) {
     if (!/^\d{1,3}( \d{3})+([.,]\d{1,4})?$/.test(t)) {
-      return bad(`“${raw.trim()}” is not a valid amount.`);
+      return bad();
     }
 
     t = t.replace(/ /g, "");
@@ -328,7 +333,7 @@ export function parseAmount(raw: string, lang: Lang): AmountParse {
     ];
 
     if (!groupedOk(int, grp) || !/^\d{1,4}$/.test(frac)) {
-      return bad(`“${raw.trim()}” is not a valid amount.`);
+      return bad();
     }
 
     amount = `${int.split(grp).join("")}.${frac}`;
@@ -338,7 +343,7 @@ export function parseAmount(raw: string, lang: Lang): AmountParse {
 
     if (parts.length > 2) {
       if (!groupedOk(t, sep)) {
-        return bad(`“${raw.trim()}” is not a valid amount.`);
+        return bad();
       }
 
       amount = parts.join("");
@@ -346,7 +351,7 @@ export function parseAmount(raw: string, lang: Lang): AmountParse {
       const [int = "", frac = ""] = parts;
 
       if (!/^\d+$/.test(int) || !/^\d+$/.test(frac)) {
-        return bad(`“${raw.trim()}” is not a valid amount.`);
+        return bad();
       }
 
       if (frac.length === 3) {
@@ -362,17 +367,14 @@ export function parseAmount(raw: string, lang: Lang): AmountParse {
               : null;
 
         if (!settled) {
-          return ask(
-            `${formatAmount(thousands, "en")} (thousands)`,
-            `${decimal} (decimals)`,
-          );
+          return ask(formatAmount(thousands, "en"), decimal);
         }
 
         amount = settled;
       } else if (frac.length <= 4) {
         amount = `${int}.${frac}`;
       } else {
-        return bad(`“${raw.trim()}” is not a valid amount.`);
+        return bad();
       }
     }
   } else {
@@ -380,7 +382,7 @@ export function parseAmount(raw: string, lang: Lang): AmountParse {
   }
 
   if (!/^\d+(\.\d{1,4})?$/.test(amount)) {
-    return bad(`“${raw.trim()}” is not a valid amount.`);
+    return bad();
   }
 
   return {

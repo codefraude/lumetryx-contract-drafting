@@ -182,6 +182,16 @@ const model = mockModel({
   },
 });
 
+const filler = (type: string, text: string) => {
+  return type === "email"
+    ? "contact@example.com"
+    : type === "number" || type === "duration" || type === "percentage"
+      ? "3"
+      : type === "currency"
+        ? "EUR"
+        : text;
+};
+
 const u = (
   fieldId: string,
   value: string,
@@ -732,7 +742,7 @@ describe("saved drafts", () => {
             ? "1 October 2026"
             : field.valueType === "money"
               ? "EUR 100"
-              : "X",
+              : filler(field.valueType, "X"),
       });
     }
 
@@ -842,7 +852,7 @@ describe("Word content controls", () => {
               value:
                 field.valueType === "date"
                   ? "24 septembre 2026"
-                  : `Valeur ${field.id}`,
+                  : filler(field.valueType, `Valeur ${field.id}`),
             },
       );
     }

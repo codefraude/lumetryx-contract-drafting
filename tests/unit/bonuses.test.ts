@@ -28,7 +28,10 @@ import {
   omittedBlocks,
 } from "@/server/clauses/evaluation";
 import type { Block } from "@/server/docx/blocks";
-import type { Field } from "@/features/documents/contracts/fields";
+import {
+  fieldDefaults,
+  type Field,
+} from "@/features/documents/contracts/fields";
 import type { FieldState } from "@/server/fields/state";
 
 const fixture = (name: string) => {
@@ -175,6 +178,7 @@ describe("language", () => {
     expect(formatDate("2026-10-01", "en")).toBe("1 October 2026");
     expect(formatMoney("1250.50", "EUR", "fr")).toBe("1 250,50 EUR");
     const f = {
+      ...fieldDefaults(),
       status: "confirmed",
       displayValue: "1 October 2026",
       normalized: {
@@ -186,6 +190,7 @@ describe("language", () => {
     expect(renderAt(f, "fr", "mixed")).toBe("1 octobre 2026");
     expect(renderAt(f, "unknown", "fr")).toBe("1 octobre 2026");
     const name = {
+      ...fieldDefaults(),
       status: "confirmed",
       displayValue: "Hélène Dupré-Lefèvre",
       normalized: {

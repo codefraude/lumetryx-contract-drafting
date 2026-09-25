@@ -1,10 +1,12 @@
 import { streamText, type LanguageModel } from "ai";
-import {
-  GROUP_ORDER,
-  type ChatLanguage,
-  type Field,
+import type {
+  ChatLanguage,
+  Field,
 } from "@/features/documents/contracts/fields";
-import { outstandingFields } from "@/features/documents/progress";
+import {
+  nextQuestions,
+  outstandingFields,
+} from "@/features/documents/progress";
 import type { Block } from "@/server/docx/blocks";
 import type { TurnInput } from "./extraction";
 import { providerOptions, SAFETY_RULES, untrusted } from "./model";
@@ -47,6 +49,9 @@ Rules:
 - Then ask for the items in NEXT TO ASK directly, in one natural question, using the suggested wording when there is one. No "To move forward, could you please provide".
 - Ask only for the items in NEEDS CLARIFICATION and NEXT TO ASK. Never ask for anything else (a reference number, a subject line, whether a party is a company…): an answer to it cannot be recorded.
 - A yes/no condition decides whether a clause is included. Ask it neutrally; never suggest which answer is appropriate, usual or enforceable.
+- If the user asked what a term means (e.g. "authorised signatory", "deposit", "notice period"), answer first in one or two plain sentences, e.g. "An authorised signatory is the person allowed to sign for the company.", then continue. Their question is never an answer to record.
+- When JUST RECORDED marks a value as translated, say in a few words that the other-language wording was written for them and can be changed under Details.
+- When a detail was put aside because the user does not know it yet, reassure briefly: it can be given later, and the draft needs it before it is generated.
 - If the user asked about a clause, explain it using ONLY the clause text provided. If asked whether it is usual, give a cautious, general answer, say that the document alone cannot establish market practice or enforceability in their jurisdiction, and do not cite laws, cases or statistics. Then return to the outstanding questions.
 - When DRAFT says the draft is already generated, never mention the "Generate draft" button. Say in a few words that the change is now in the document. Only when DRAFT lists answers that were not written, say that those must be changed in the document itself, because that text was edited there.
 - When DRAFT says it is not generated yet, say that it is ready to generate with the "Generate draft" button only when READY TO GENERATE is yes. Otherwise never say that it is ready or that nothing is missing.
@@ -75,13 +80,8 @@ export function replyPrompt(
   draft: DraftChange | null = null,
 ): string {
   const outstanding = outstandingFields(fields, inactive);
-  const nextGroup = GROUP_ORDER.find((g) =>
-    outstanding.some((f) => f.group === g && f.status === "missing"),
-  );
   const clarify = outstanding.filter((f) => f.status === "needs_clarification");
-  const next = outstanding
-    .filter((f) => f.status === "missing" && f.group === nextGroup)
-    .slice(0, 3);
+  const next = nextQuestions(fields, inactive);
   const later = outstanding.filter(
     (f) => !clarify.includes(f) && !next.includes(f),
   );
@@ -112,8 +112,12 @@ export function replyPrompt(
     `JUST RECORDED: ${
       changed.length
         ? fields
-            .filter((f) => changed.includes(f.id) && f.status === "confirmed")
-            .map((f) => `${f.label} = ${f.displayValue}`)
+            .filter(
+              (f) =>
+                changed.includes(f.id) &&
+                (f.status === "confirmed" || f.resolution === "unknown"),
+            )
+            .map(recorded)
             .join("; ") || "nothing confirmed"
         : "nothing"
     }`,
@@ -132,6 +136,27 @@ export function replyPrompt(
   ]
     .filter(Boolean)
     .join("\n\n");
+}
+
+const RESOLVED: Record<string, string> = {
+  none: "none (the user said there is none)",
+  not_applicable: "not applicable (the user said so)",
+  left_blank: "left blank on purpose, to fill in by hand",
+  unknown: "not known yet (put aside, to ask again later)",
+};
+
+function recorded(f: Field): string {
+  const kind = f.resolution ? RESOLVED[f.resolution] : undefined;
+
+  if (kind) {
+    return `${f.label} = ${kind}`;
+  }
+
+  const translated = f.variants.find((v) => v.origin === "translation");
+
+  return translated
+    ? `${f.label} = ${f.displayValue} (translated into ${translated.lang === "fr" ? "French" : "English"} as: ${translated.value})`
+    : `${f.label} = ${f.displayValue}`;
 }
 
 export function streamReply(

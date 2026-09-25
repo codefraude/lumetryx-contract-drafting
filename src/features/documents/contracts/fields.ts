@@ -79,6 +79,8 @@ export const IssueCode = z.enum([
   "invalid_boolean",
   "invalid_email",
   "invalid_number",
+  "unit_mismatch",
+  "unknown_currency",
   "date_order",
   "conflicting_values",
   "ambiguous_reference",
