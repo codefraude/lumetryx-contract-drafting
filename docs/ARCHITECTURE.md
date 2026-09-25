@@ -173,7 +173,8 @@ Done the same day, after a review against the assessment rubric found gaps. The 
 - **Prettier** 3.9.9 (devDependency, `printWidth` 160) formats the code. `npm run format:check` verifies it.
 - **Interface refinement:** new design tokens and shared primitives (`globals.css`, `shared/ui/`), plain rows instead of cards, one primary action in the header, and the screen-reader markers of the chat and comparison lists contained in their scroll containers (they had made the page scroll).
 - **Vercel AI Gateway** (`server/ai/fallback.ts`, `AI_PROVIDER`): Gemini first and the gateway when a call fails, or either one alone. `ai` 7.0.113 with `@ai-sdk/google` 4.0.79 and `@ai-sdk/gateway` 4.0.91, so there is one copy of the provider packages.
-- **Tests:** 80 (57 unit, 23 integration).
+- **Open in Word** (`server/documents/word-link.ts`, `features/workspace/use-export.ts`): a link to the saved draft, signed with the session's secret hash and valid for five minutes, handed to Word through its `ms-word:` scheme; `/api/word/<token>/<name>.docx` is the one route that authenticates by link instead of cookie.
+- **Tests:** 81 (57 unit, 24 integration).
 
 ## Exceptions
 

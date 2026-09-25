@@ -27,6 +27,16 @@ export async function findSession(id: string, secretHash: string) {
   return { ...(upd ?? row), refreshed: true };
 }
 
+/** An unexpired session by id alone, for links signed with its secret hash; it does not count as activity. */
+export async function findLiveSession(id: string) {
+  const [row] = await getDb()
+    .select({ id: sessions.id, secretHash: sessions.secretHash })
+    .from(sessions)
+    .where(and(eq(sessions.id, id), gt(sessions.expiresAt, sql`now()`)))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function recordUsage(sessionId: string, input: number, output: number) {
   await getDb()
     .update(sessions)

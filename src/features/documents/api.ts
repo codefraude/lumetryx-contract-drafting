@@ -1,6 +1,6 @@
 import { jsonBody, requestBlob, requestJson } from "@/lib/http";
 import { postEventStream } from "@/lib/sse";
-import { CurrentDocumentResponse, DocumentView, SavedRevision } from "./contracts/document-view";
+import { CurrentDocumentResponse, DocumentView, SavedRevision, WordLink } from "./contracts/document-view";
 import type { FieldCorrection, RuleActionRequest } from "./contracts/requests";
 import { StreamEvent } from "./contracts/stream-events";
 
@@ -41,6 +41,9 @@ export async function downloadDocx(id: string) {
   const plain = /filename="([^"]+)"/i.exec(disposition)?.[1];
   return { blob, filename: encoded ? decodeURIComponent(encoded) : (plain ?? "draft.docx") };
 }
+
+/** A short-lived link to the saved draft for Word on this device (the link is the credential, not the cookie). */
+export const requestWordLink = (id: string) => requestJson(`/api/documents/${id}/word-link`, WordLink, { method: "POST" });
 
 /** Streams the draft as the server fills the template. */
 export const streamDraftGeneration = (id: string, fieldsVersion: number, onEvent: (e: StreamEvent) => void, signal: AbortSignal) =>

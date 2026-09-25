@@ -216,3 +216,35 @@ test("rejects an invalid upload with a clear message", async ({ page }) => {
   await page.setInputFiles("input[type=file]", { name: "contract.docx", mimeType: "application/octet-stream", buffer: Buffer.from("not a word file") });
   await expect(page.getByText("This file is not a Word .docx document.")).toBeVisible();
 });
+
+test("Open in Word hands Word a short-lived link to the saved draft, which works without the cookie", async ({ page, playwright }) => {
+  // Headless browsers have no Word to launch: record the link handed to it instead.
+  await page.addInitScript(() => {
+    const launched: string[] = [];
+    Object.assign(window, { launched });
+    const click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+      if (this.href.startsWith("ms-word:")) launched.push(this.href);
+      else click.call(this);
+    };
+  });
+  const doc = await uploadAndFill(page);
+  await page.getByRole("button", { name: "Generate draft" }).click();
+  await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Open in Word" }).click();
+  await expect(page.getByText("Opening the draft in Word.")).toBeVisible();
+  const [launched] = await page.evaluate(() => (window as unknown as { launched: string[] }).launched);
+  expect(launched).toMatch(/^ms-word:ofv\|u\|https?:\/\/[^/]+\/api\/word\/[^/]+\/[^/]+-%20draft\.docx$/);
+  const link = launched!.replace("ms-word:ofv|u|", "");
+
+  // Word has no cookie: a fresh client gets exactly what Download gives, and a changed link gets nothing.
+  const word = await playwright.request.newContext();
+  const viaLink = await word.get(link);
+  expect(viaLink.status()).toBe(200);
+  expect(viaLink.headers()["content-type"]).toContain("wordprocessingml");
+  const viaDownload = await page.request.get(`/api/documents/${doc.id}/download`);
+  expect(Buffer.from(await viaLink.body()).equals(Buffer.from(await viaDownload.body()))).toBe(true);
+  expect((await word.head(link)).status()).toBe(200);
+  expect((await word.get(link.replace("/api/word/", "/api/word/0"))).status()).toBe(404);
+  await word.dispose();
+});

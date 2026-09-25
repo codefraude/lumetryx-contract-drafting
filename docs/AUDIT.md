@@ -49,7 +49,9 @@ Every first-party file, reviewed for the September 2026 refactor (see [ARCHITECT
 | `src/app/api/documents/[id]/compare/route.ts` | 23 | POST: template-to-draft comparison | Reviewed | Kept thin |
 | `src/app/api/documents/[id]/copy/route.ts` | 20 | POST: save a copy (with the editor's content) | Reviewed | Kept thin |
 | `src/app/api/documents/[id]/docx/route.ts` | 37 | GET/PUT: the editor's working DOCX (revision-checked) | Reviewed | Kept thin |
-| `src/app/api/documents/[id]/download/route.ts` | 30 | GET: export the working draft | Reviewed | Kept thin |
+| `src/app/api/documents/[id]/download/route.ts` | 24 | GET: export the working draft | Reviewed | Kept thin. Later: the file name comes from `draftFileName` |
+| `src/app/api/documents/[id]/word-link/route.ts` | 17 | POST: a short-lived link to the saved draft for Word | Reviewed | New |
+| `src/app/api/word/[token]/[name]/route.ts` | 29 | GET/HEAD: the saved draft for Word, by signed link | Reviewed | New |
 | `src/app/api/documents/[id]/draft/route.ts` | 23 | POST: generate the draft as SSE | Reviewed | Kept thin; ownership checked before streaming |
 | `src/app/api/documents/[id]/fields/route.ts` | 19 | PATCH: correct one field | Reviewed | Kept thin |
 | `src/app/api/documents/[id]/route.ts` | 50 | GET resume; PATCH rename or chat language; DELETE | Reviewed | Kept thin; bodies parsed with contract schemas |
@@ -103,7 +105,7 @@ Every first-party file, reviewed for the September 2026 refactor (see [ARCHITECT
 | `src/features/workspace/components/Workspace.tsx` | 114 | Page shell: start-up, upload, open draft, drawer, session loss | Reviewed | Replaces components/Workspace.tsx (632 lines) |
 | `src/features/workspace/components/WorkspaceHeader.tsx` | 179 | Title, status, steps, actions | Reviewed | Moved from components/ |
 | `src/features/workspace/components/WorkspaceNotices.tsx` | 188 | Save and export banners; next-step bar | Reviewed | Split from components/Workspace.tsx |
-| `src/features/workspace/use-download.ts` | 52 | Export: save first, confirm open issues, download | Reviewed | Split from components/Workspace.tsx |
+| `src/features/workspace/use-export.ts` | 78 | Export: save first, confirm open issues, then download or open in Word | Reviewed | Split from components/Workspace.tsx (as use-download.ts). Later: Open in Word |
 | `src/features/workspace/use-session-loss.ts` | 26 | Notices a 401 from any query or mutation | Reviewed | New |
 | `src/features/workspace/workspace-status.ts` | 75 | Progress, status line, export warnings | Reviewed | Split from components/Workspace.tsx; unit-tested |
 | `src/lib/http.ts` | 67 | Validated fetch, ApiError, retry classification | Reviewed | New (replaces parse<T> with as T) |
@@ -123,7 +125,7 @@ Every first-party file, reviewed for the September 2026 refactor (see [ARCHITECT
 | `src/server/db/client.ts` | 23 | Drizzle client: Neon, or pg on localhost | Reviewed | Moved from lib/db/ |
 | `src/server/db/repo.ts` | 286 | Session-scoped repository: drafts and messages | Reviewed | Moved from lib/db/; insert results checked. Later: session functions moved to sessions.ts |
 | `src/server/db/schema.ts` | 70 | Tables | Reviewed | Moved from lib/db/ |
-| `src/server/db/sessions.ts` | 39 | Sessions: create, find and refresh, usage counters | Reviewed | Later: split from repo.ts (320 lines after formatting) |
+| `src/server/db/sessions.ts` | 49 | Sessions: create, find and refresh, find by id for signed links, usage counters | Reviewed | Later: split from repo.ts (320 lines after formatting) |
 | `src/server/diff/align-blocks.ts` | 81 | Pairs template and draft blocks | Reviewed | Split from lib/diff.ts; uses lcs.ts |
 | `src/server/diff/change-notes.ts` | 71 | Formatting and structure notes | Reviewed | Split from lib/diff.ts |
 | `src/server/diff/compare-blocks.ts` | 179 | The comparison result | Reviewed | Split from lib/diff.ts |
@@ -132,7 +134,8 @@ Every first-party file, reviewed for the September 2026 refactor (see [ARCHITECT
 | `src/server/documents/access.ts` | 36 | Owned loading; cached template blocks | Reviewed | Split from lib/server/service.ts; cache read validated |
 | `src/server/documents/answers.ts` | 185 | Corrections, chat turn, chat language, clause actions | Reviewed | Split from lib/server/service.ts. Later: a failed reply says the answers were saved |
 | `src/server/documents/comparison.ts` | 38 | Comparison use case | Reviewed | Split from lib/server/service.ts |
-| `src/server/documents/drafting.ts` | 66 | Generation; reading and saving the editor's DOCX | Reviewed | Split from lib/server/service.ts |
+| `src/server/documents/drafting.ts` | 75 | Generation; reading and saving the editor's DOCX; the export file name | Reviewed | Split from lib/server/service.ts |
+| `src/server/documents/word-link.ts` | 37 | Signed five-minute links to a saved draft, for Word | Reviewed | New |
 | `src/server/documents/drafts.ts` | 69 | List, rename, delete, copy | Reviewed | Split from lib/server/service.ts |
 | `src/server/documents/upload.ts` | 72 | A new draft from an upload | Reviewed | Split from lib/server/service.ts |
 | `src/server/documents/views.ts` | 78 | The draft view sent to the browser | Reviewed | Split from lib/server/service.ts |

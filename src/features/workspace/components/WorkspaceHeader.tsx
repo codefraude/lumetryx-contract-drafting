@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, CircleCheck, Download, Ellipsis, FilePlus2, FolderOpen, LoaderCircle, Save, TriangleAlert } from "lucide-react";
+import { CircleAlert, CircleCheck, Download, Ellipsis, ExternalLink, FilePlus2, FolderOpen, LoaderCircle, Save, TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/shared/ui/Button";
 import { MenuItem, Popover } from "@/shared/ui/Popover";
@@ -29,6 +29,9 @@ interface Props {
   onNewTemplate(): void;
   onDownload(): void;
   downloading: boolean;
+  /** Hands the saved draft to Word on this device. */
+  onOpenInWord(): void;
+  openingInWord: boolean;
   onGenerate(): void;
   /** Nothing required is missing and no generation is running. */
   canGenerate: boolean;
@@ -48,6 +51,8 @@ export function WorkspaceHeader({
   onNewTemplate,
   onDownload,
   downloading,
+  onOpenInWord,
+  openingInWord,
   onGenerate,
   canGenerate,
   generating,
@@ -97,6 +102,9 @@ export function WorkspaceHeader({
                 Available when the draft is ready
               </span>
             )}
+            <Button variant="secondary" icon={ExternalLink} onClick={onOpenInWord} disabled={generating} busy={openingInWord} className="max-lg:hidden">
+              Open in Word
+            </Button>
             <Button
               variant="primary"
               icon={Download}
@@ -130,6 +138,18 @@ export function WorkspaceHeader({
                     }}
                   >
                     Save now
+                  </MenuItem>
+                )}
+                {hasDraft && (
+                  <MenuItem
+                    icon={ExternalLink}
+                    disabled={generating || openingInWord}
+                    onClick={() => {
+                      close();
+                      onOpenInWord();
+                    }}
+                  >
+                    Open in Word
                   </MenuItem>
                 )}
                 <MenuItem

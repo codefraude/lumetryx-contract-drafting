@@ -12,7 +12,7 @@ import { errorMessage } from "@/lib/http";
 import { useConfirm } from "@/shared/ui/ConfirmDialog";
 import { Count } from "@/shared/ui/Status";
 import type { TabItem } from "@/shared/ui/TabBar";
-import { useDownload } from "../use-download";
+import { useExport } from "../use-export";
 import { clockTime, documentProgress, exportWarnings, statusLine } from "../workspace-status";
 import { AssistantPane, type AssistantView } from "./AssistantPane";
 import { DocumentPane, type DocMode, type DocPane } from "./DocumentPane";
@@ -79,11 +79,11 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
     announce: say,
   });
   const { mutateAsync: applyRule } = useRuleAction(doc.id, { beforeAction: flush, onDraftReplaced: reloadEditor });
-  const download = useDownload(doc.id, {
+  const exporter = useExport(doc.id, {
     flush,
-    confirm: (warnings) =>
+    confirm: (warnings, action) =>
       ask({
-        title: "Before you download",
+        title: action === "word" ? "Before you open it in Word" : "Before you download",
         body: (
           <ul className="list-disc space-y-1 pl-5">
             {warnings.map((w, i) => (
@@ -91,7 +91,7 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
             ))}
           </ul>
         ),
-        confirm: "Download anyway",
+        confirm: action === "word" ? "Open anyway" : "Download anyway",
         cancel: "Review first",
       }),
     onNotSaved: (message) => setSave({ status: "error", message }),
@@ -204,20 +204,22 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
         onSaveNow={() => void flush().catch(() => undefined)}
         onDrafts={onShowDrafts}
         onNewTemplate={() => void newTemplate()}
-        onDownload={() => void download.download(exportWarnings(doc))}
-        downloading={download.downloading}
+        onDownload={() => void exporter.download(exportWarnings(doc))}
+        downloading={exporter.busy === "download"}
+        onOpenInWord={() => void exporter.openInWord(exportWarnings(doc))}
+        openingInWord={exporter.busy === "word"}
         onGenerate={() => void startGeneration()}
         canGenerate={progress.ready && !generation.generating}
         generating={generation.generating}
       />
       <SaveBanner
         draftSave={hasDraft ? save : null}
-        exportError={download.error}
+        exportNotice={exporter.notice}
         onLoadNewer={loadNewer}
         onSaveAsNew={() => copy.mutate()}
         onRetrySave={() => void flush().catch(() => undefined)}
-        onRetryDownload={() => void download.download(exportWarnings(doc))}
-        onDismissExportError={download.dismissError}
+        onRetryExport={() => void exporter.retry(exportWarnings(doc))}
+        onDismissExportNotice={exporter.dismissNotice}
       />
       <ViewSwitcher<AssistantView | "document">
         views={[...tabs, { id: "document", label: "Document", name: "Document" }]}

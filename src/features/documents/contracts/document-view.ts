@@ -66,3 +66,6 @@ export const CurrentDocumentResponse = z.object({ document: DocumentView.nullabl
 
 export const SavedRevision = z.object({ workingRevision: z.number().int(), savedAt: z.string() });
 export type SavedRevision = z.infer<typeof SavedRevision>;
+
+/** A short-lived link to the saved draft that Word can open without the browser's cookie. */
+export const WordLink = z.object({ url: z.string().url(), expiresAt: z.string() });

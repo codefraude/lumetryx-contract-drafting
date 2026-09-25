@@ -58,6 +58,15 @@ export async function saveEditorDocx(sessionId: string, documentId: string, expe
   return { workingRevision: saved.workingRevision, savedAt: saved.savedAt.toISOString() };
 }
 
+/** The exported file's name: the template's, marked as a draft. */
+export const draftFileName = (filename: string) =>
+  `${
+    filename
+      .replace(/\.docx$/i, "")
+      .replace(/[^\w .-]+/g, "_")
+      .slice(0, 80) || "contract"
+  } - draft.docx`;
+
 export async function readDocx(sessionId: string, documentId: string, which: "working" | "original") {
   const row = await mustGetBytes(sessionId, documentId);
   const bytes = which === "working" ? row.workingDocx : row.originalDocx;

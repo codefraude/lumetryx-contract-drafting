@@ -20,6 +20,7 @@ import type { TemplateAnalysis } from "@/server/fields/template-analysis";
 import { setModelForTests } from "@/server/ai/model";
 import { chatTurn, correctField } from "@/server/documents/answers";
 import { generateDraft, readDocx, saveEditorDocx } from "@/server/documents/drafting";
+import { createWordLink, readWordLink } from "@/server/documents/word-link";
 import { createFromUpload } from "@/server/documents/upload";
 import { currentView, getView } from "@/server/documents/views";
 import { NotFound } from "@/server/http/responses";
@@ -395,6 +396,29 @@ describe("progressive drafting, editing and export", () => {
     const results = await Promise.allSettled([run(), run()]);
     expect(results.filter((r) => r.status === "rejected").length).toBe(1);
     expect(results.find((r) => r.status === "rejected")).toMatchObject({ reason: { name: "BusyError" } });
+  });
+});
+
+describe("links for Word", () => {
+  it("opens the saved draft without the cookie, for this draft and five minutes only", async () => {
+    const hash = `test-${crypto.randomUUID()}`;
+    const a = { id: await createSession(hash), secretHash: hash, aiRequests: 0, aiInputTokens: 0, aiOutputTokens: 0 };
+    const other = await newSession();
+    const d = await createFromUpload(a, "lease.docx", lease);
+    await expect(createWordLink(a, d.id)).rejects.toBeInstanceOf(NotFound); // no draft yet
+    const ready = await completeLease(a, d.id);
+    await collect((e, sig) => generateDraft(a.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig));
+    const now = Date.now();
+    const { url, expiresAt } = await createWordLink(a, d.id, now);
+    const [, token = "", name = ""] = /\/api\/word\/([^/]+)\/([^/]+)$/.exec(url) ?? [];
+    expect(decodeURIComponent(name)).toBe("lease - draft.docx");
+    expect(Date.parse(expiresAt) - now).toBeLessThanOrEqual(300_000);
+    expect(Buffer.from((await readWordLink(token)).bytes)).toEqual(Buffer.from((await readDocx(a.id, d.id, "working")).bytes));
+    const forged = token.replace(/.$/, (c) => (c === "A" ? "B" : "A"));
+    const [sid, , exp, sig] = token.split(".");
+    for (const bad of [forged, `${sid}.${other.id}.${exp}.${sig}`, "not-a-token"]) await expect(readWordLink(bad)).rejects.toBeInstanceOf(NotFound);
+    await expect(readWordLink(token, now + 301_000)).rejects.toBeInstanceOf(NotFound);
+    await expect(createWordLink({ id: other.id, secretHash: "x" }, d.id)).rejects.toBeInstanceOf(NotFound);
   });
 });
 
