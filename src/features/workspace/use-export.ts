@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { downloadDocx, requestWordLink } from "@/features/documents/api";
 import { errorMessage } from "@/lib/http";
+import type { ConfirmOptions } from "@/shared/ui/ConfirmDialog";
 
 export type ExportAction = "download" | "word";
 /** What the last export left to say: it failed, or Word was asked to open the draft. */
@@ -13,7 +14,27 @@ interface Options {
   confirm(warnings: string[], action: ExportAction): Promise<boolean>;
   onNotSaved(message: string): void;
   announce(text: string): void;
+  /** The app's own confirmation dialog. */
+  ask(options: ConfirmOptions): Promise<boolean>;
 }
+
+// The browser's own "open this app?" message cannot be replaced by a page, only allowed for good: the first
+// time, the app's dialog says so. The flag is a UI preference only; nothing about the draft is stored.
+const WORD_INTRO = "lx-word-intro";
+const introduced = () => {
+  try {
+    return localStorage.getItem(WORD_INTRO) === "1";
+  } catch {
+    return false;
+  }
+};
+const remember = () => {
+  try {
+    localStorage.setItem(WORD_INTRO, "1");
+  } catch {
+    // Storage is blocked (private window): the dialog shows again next time.
+  }
+};
 
 /** Follows a link as a click would, without leaving an element in the page. */
 function follow(href: string, filename?: string) {
@@ -26,7 +47,7 @@ function follow(href: string, filename?: string) {
 }
 
 /** Exports of the working draft, including an edit made just before clicking: a download, or the draft opened in Word. */
-export function useExport(documentId: string, { flush, confirm, onNotSaved, announce }: Options) {
+export function useExport(documentId: string, { flush, confirm, onNotSaved, announce, ask }: Options) {
   const [busy, setBusy] = useState<ExportAction | null>(null);
   const [notice, setNotice] = useState<ExportNotice | null>(null);
 
@@ -46,6 +67,15 @@ export function useExport(documentId: string, { flush, confirm, onNotSaved, anno
       return;
     }
     if (warnings.length && !(await confirm(warnings, action))) return;
+    if (action === "word" && !introduced()) {
+      const go = await ask({
+        title: "Open the draft in Word?",
+        body: "Your browser then asks once whether this site may open Word. Tick the box that always allows it, and the next drafts open in Word straight away.",
+        confirm: "Open in Word",
+      });
+      if (!go) return;
+      remember();
+    }
     setBusy(action);
     try {
       if (action === "download") {

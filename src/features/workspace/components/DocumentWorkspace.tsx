@@ -96,6 +96,7 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(func
       }),
     onNotSaved: (message) => setSave({ status: "error", message }),
     announce: say,
+    ask,
   });
   const copy = useMutation({
     mutationFn: async () => copyDocument(doc.id, (await editor.current?.snapshot()) ?? null),

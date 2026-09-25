@@ -231,8 +231,15 @@ test("Open in Word hands Word a short-lived link to the saved draft, which works
   const doc = await uploadAndFill(page);
   await page.getByRole("button", { name: "Generate draft" }).click();
   await expect(page.getByText(/^Saved at /)).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("button", { name: "Open in Word" }).click();
+  const openInWord = page.getByRole("banner").getByRole("button", { name: "Open in Word" });
+  await openInWord.click();
+  // The first time, the app's own dialog explains the browser's one-time question; later clicks go straight to Word.
+  const intro = page.getByRole("dialog", { name: "Open the draft in Word?" });
+  await intro.getByRole("button", { name: "Open in Word" }).click();
   await expect(page.getByText("Opening the draft in Word.")).toBeVisible();
+  await openInWord.click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { launched: string[] }).launched.length)).toBe(2);
+  await expect(intro).toHaveCount(0);
   const [launched] = await page.evaluate(() => (window as unknown as { launched: string[] }).launched);
   expect(launched).toMatch(/^ms-word:ofv\|u\|https?:\/\/[^/]+\/api\/word\/[^/]+\/[^/]+-%20draft\.docx$/);
   const link = launched!.replace("ms-word:ofv|u|", "");
