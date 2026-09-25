@@ -29,6 +29,7 @@ type Doc = {
     status: string;
     valueType: string;
     source: string;
+    issue: { code: string } | null;
     normalized: {
       kind: string;
       value?: unknown;
@@ -199,12 +200,19 @@ test("bilingual employment: French answers, conditional non-compete, compare, re
             ? "12 months"
             : `Valeur ${next.label}`;
 
+    const french = next.issue?.code === "translation_needed";
+
     await page.request.patch(`/api/documents/${doc.id}/fields`, {
       headers: ORIGIN,
       data: {
         fieldsVersion: doc.fieldsVersion,
         fieldId: next.id,
-        value,
+        ...(french
+          ? {
+              value: `Valeur française ${next.label}`,
+              lang: "fr",
+            }
+          : { value }),
       },
     });
   }
