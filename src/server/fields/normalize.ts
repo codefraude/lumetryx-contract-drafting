@@ -386,6 +386,13 @@ const WORDS: Record<string, number> = {
   "quatre-vingt-dix": 90,
 };
 
+export const spelledNumbers = (text: string): number[] => {
+  return text
+    .toLowerCase()
+    .split(/[^\p{L}-]+/u)
+    .flatMap((w) => (w in WORDS ? [WORDS[w] ?? 0] : []));
+};
+
 const UNIT_TEXT: Record<Unit, RegExp> = {
   days: /^(calendar )?days?$|^jours?( calendaires)?$/,
   business_days:

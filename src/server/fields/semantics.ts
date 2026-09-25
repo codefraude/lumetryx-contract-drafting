@@ -316,7 +316,11 @@ export function enrichAnalysed(
   } else if (valueType === "text") {
     const guess = inferType(`${f.label} ${f.id.replace(/_/g, " ")}`, null);
 
-    if (guess === "email" || guess === "currency") {
+    if (
+      guess === "email" ||
+      guess === "currency" ||
+      (guess === "party" && role === null && ownerOf(f.label, f.id) !== null)
+    ) {
       valueType = guess;
     }
   }

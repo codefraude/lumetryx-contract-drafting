@@ -16,7 +16,7 @@ import type { Block } from "@/server/docx/blocks";
 import { CURRENCY_WORDS, currencyOf } from "@/server/fields/currency";
 import { issue, issueNote } from "@/server/fields/issues";
 import { messageLanguage } from "@/server/fields/lang";
-import { chronologyIssues } from "@/server/fields/normalize";
+import { chronologyIssues, spelledNumbers } from "@/server/fields/normalize";
 import { resolveField } from "@/server/fields/resolve";
 import { ownerOf, plain } from "@/server/fields/semantics";
 import { AiError, SAFETY_RULES, providerOptions, untrusted } from "./model";
@@ -182,7 +182,8 @@ export function grounded(f: Field, u: Update, message: string): boolean {
       const d = value.replace(/\D/g, "");
 
       return d
-        ? message.replace(/\D/g, "").includes(d)
+        ? message.replace(/\D/g, "").includes(d) ||
+            spelledNumbers(message).includes(Number(d))
         : tokensIn(value, message);
     }
     case "boolean":

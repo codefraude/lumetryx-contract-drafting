@@ -218,6 +218,17 @@ describe("lease answers", () => {
     });
   });
 
+  it("accepts a number the user wrote in words", () => {
+    const r = apply(lease.fields, "There will be two people in total.", [
+      up(lease.id("occupant_count"), "2", "two people in total"),
+    ]);
+
+    expect(byId(r.fields, lease.id("occupant_count"))).toMatchObject({
+      status: "confirmed",
+      displayValue: "2",
+    });
+  });
+
   it("refuses a resolution the message does not state", () => {
     const r = apply(lease.fields, "The tenant is Mary Major.", [
       up(lease.id("additional_occupants"), "", "The tenant is Mary Major", {

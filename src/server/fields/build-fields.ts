@@ -223,12 +223,10 @@ export function buildFields(
 
   const dismissible = (m: MarkerOccurrence) => {
     return (
-      m.marker !== "brace" &&
-      !(
-        m.marker === "bracket" &&
-        /\p{L}/u.test(m.text) &&
-        m.text === m.text.toUpperCase()
-      )
+      m.marker === "control" ||
+      (m.marker === "bracket" &&
+        !m.role &&
+        !(/\p{L}/u.test(m.text) && m.text === m.text.toUpperCase()))
     );
   };
 
@@ -241,6 +239,7 @@ export function buildFields(
 
     const meaning = markerSemantics(m, blockById);
     const drawn = m.marker === "underscore" || m.marker === "line";
+    const doubted = notFields.has(key);
 
     fields.push({
       ...fieldDefaults(),
@@ -254,7 +253,7 @@ export function buildFields(
       occurrences: ms.map(toOccurrence),
       context: m.context,
       required: true,
-      confidence: drawn ? 0.6 : m.marker === "cell" ? 0.8 : 0.9,
+      confidence: doubted ? 0.5 : drawn ? 0.6 : m.marker === "cell" ? 0.8 : 0.9,
       source: "marker",
       status: "missing",
       rawValue: null,

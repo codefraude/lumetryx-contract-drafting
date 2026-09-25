@@ -74,3 +74,67 @@ describe.each(MANIFESTS)("fixture %s", (name) => {
     });
   }
 });
+
+describe("a model that types party names as plain text", () => {
+  it("still asks for them as parties", async () => {
+    const name = "02_Residential_Lease_Mixed_Placeholders";
+    const { manifest, bytes } = loadManifest(name);
+    const analysis = recorded(name);
+    const textual = {
+      ...analysis,
+      fields: analysis.fields.map((f) =>
+        f.valueType === "party"
+          ? {
+              ...f,
+              valueType: "text" as const,
+            }
+          : f,
+      ),
+    };
+    const s = score(manifest, await fieldsFor(bytes, textual));
+
+    expect(s.matched.get("landlord_name")?.valueType).toBe("party");
+    expect(s.matched.get("tenant_name")?.valueType).toBe("party");
+    expect(s.matched.get("electricity_payer")?.valueType).not.toBe("party");
+  });
+});
+
+describe("a model that dismisses real blanks", () => {
+  it.each(MANIFESTS)("%s keeps them, marked as uncertain", async (name) => {
+    const { manifest, bytes } = loadManifest(name);
+    const blocks = await indexBlocks(await loadDocxPackage(bytes));
+    const markers = detectMarkers(blocks);
+    const analysis = recorded(name);
+    const structural = markers.filter(
+      (m) =>
+        m.marker === "line" ||
+        m.marker === "cell" ||
+        m.marker === "underscore" ||
+        m.role !== undefined,
+    );
+    const structuralKeys = new Set(structural.map((m) => m.key));
+    const dismissive = {
+      ...analysis,
+      notFields: [...structuralKeys],
+      fields: analysis.fields.map((f) => ({
+        ...f,
+        markerKeys: f.markerKeys.filter((k) => !structuralKeys.has(k)),
+        implicit: [],
+      })),
+    };
+    const fields = buildFields(blocks, markers, dismissive).fields;
+    const s = score(manifest, fields);
+
+    expect(s.missing).toEqual([]);
+
+    for (const m of structural) {
+      const f = fields.find((x) =>
+        x.occurrences.some(
+          (o) => o.blockId === m.blockId && o.start === m.start,
+        ),
+      );
+
+      expect(f?.confidence, m.key).toBe(0.5);
+    }
+  });
+});
