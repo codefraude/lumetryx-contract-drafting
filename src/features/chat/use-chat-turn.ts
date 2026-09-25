@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import type { DocumentMessage } from "@/features/documents/contracts/document-view";
 import type { ChatLanguage } from "@/features/documents/contracts/fields";
@@ -9,7 +10,8 @@ import {
   patchDocument,
   storeDocument,
 } from "@/features/documents/queries";
-import { toFailure, type ActionFailure } from "@/lib/http";
+import { useErrorText } from "@/i18n/error-text";
+import { ApiError, toFailure, type ActionFailure } from "@/lib/http";
 import { setConversationLanguage, streamChatTurn } from "./api";
 
 export interface ChatMessage {
@@ -21,6 +23,8 @@ export interface ChatMessage {
 }
 
 export type TurnFailure = ActionFailure & { resend?: string };
+
+export type ChatTranslator = ReturnType<typeof useTranslations<"chat">>;
 
 interface Options {
   beforeSend(): Promise<void>;
@@ -37,25 +41,36 @@ const fromServer = (messages: DocumentMessage[]): ChatMessage[] => {
 };
 
 function patchNotices(
+  t: ChatTranslator,
   e: Extract<StreamEvent, { type: "draft_patch" }>,
 ): string[] {
   const notes: string[] = [];
 
   if (e.conflicts.length) {
     notes.push(
-      `You edited the text where ${e.conflicts.length === 1 ? "this answer" : "these answers"} appeared (${e.conflicts.join(", ")}), so your edit was kept and the draft was not changed there. Update it in the editor, or regenerate the draft from the template (this discards manual edits).`,
+      t("conflictNotice", {
+        count: e.conflicts.length,
+        answers: e.conflicts.join(", "),
+      }),
     );
   }
 
   for (const c of e.clauseChanges) {
     notes.push(
-      `Clause ${c.action === "exclude" ? "removed" : "restored"}: “${c.label}” (${c.reason}).`,
+      t("clauseChanged", {
+        action: c.action,
+        label: c.label,
+        reason: c.reason,
+      }),
     );
   }
 
   for (const c of e.needsConfirmation) {
     notes.push(
-      `“${c.label}” should now be ${c.action === "exclude" ? "removed" : "included"}, but you edited it. Confirm it under Clauses.`,
+      t("clauseNeedsConfirmation", {
+        action: c.action,
+        label: c.label,
+      }),
     );
   }
 
@@ -67,6 +82,8 @@ export function useChatTurn(
   initial: DocumentMessage[],
   { beforeSend, onDraftReplaced, announce }: Options,
 ) {
+  const t = useTranslations("chat");
+  const errorText = useErrorText();
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState(() => fromServer(initial));
   const [busy, setBusy] = useState(false);
@@ -84,8 +101,7 @@ export function useChatTurn(
       await beforeSend();
     } catch {
       setFailure({
-        message:
-          "Your latest edit could not be saved, so the message was not sent. It is back in the box below; send it again once saving works.",
+        message: t("sendNotSaved"),
         retryable: false,
       });
 
@@ -122,12 +138,16 @@ export function useChatTurn(
     const onEvent = (e: StreamEvent) => {
       switch (e.type) {
         case "fields_updated":
-          patchDocument(queryClient, documentId, (d) => ({
-            ...d,
-            fields: e.fields,
-            fieldsVersion: e.fieldsVersion,
-            draftStale: d.draftStatus === "ready",
-          }));
+          patchDocument(queryClient, documentId, (d) =>
+            e.fieldsVersion < d.fieldsVersion
+              ? d
+              : {
+                  ...d,
+                  fields: e.fields,
+                  fieldsVersion: e.fieldsVersion,
+                  draftStale: d.draftStatus === "ready",
+                },
+          );
 
           if (e.changed.length) {
             update(replyId, (m) => ({
@@ -153,7 +173,7 @@ export function useChatTurn(
             streaming: false,
           }));
 
-          announce(`Assistant replied: ${e.text.slice(0, 400)}`);
+          announce(t("replied", { text: e.text.slice(0, 400) }));
           break;
         case "draft_patch": {
           patchDocument(queryClient, documentId, (d) => ({
@@ -165,7 +185,7 @@ export function useChatTurn(
             onDraftReplaced(e.workingRevision);
           }
 
-          const notes = patchNotices(e);
+          const notes = patchNotices(t, e);
 
           if (notes.length) {
             setMessages((all) => [
@@ -182,7 +202,9 @@ export function useChatTurn(
         }
         case "error":
           setFailure({
-            message: e.message,
+            message: errorText(
+              new ApiError(e.code, e.message, 200, e.retryable),
+            ),
             retryable: e.retryable,
             resend: text,
           });
@@ -202,7 +224,7 @@ export function useChatTurn(
     } catch (e) {
       if (!ctrl.signal.aborted) {
         setFailure({
-          ...toFailure(e),
+          ...toFailure(e, errorText(e)),
           resend: text,
         });
       }
@@ -222,7 +244,7 @@ export function useChatTurn(
                     (finished
                       ? m.content
                       : ctrl.signal.aborted
-                        ? "(stopped)"
+                        ? t("stopped")
                         : ""),
                 }
               : m,
@@ -249,7 +271,7 @@ export function useChatTurn(
       storeDocument(queryClient, view);
       setMessages(fromServer(view.messages));
     },
-    onError: (e) => setFailure(toFailure(e)),
+    onError: (e) => setFailure(toFailure(e, errorText(e))),
   });
 
   return {

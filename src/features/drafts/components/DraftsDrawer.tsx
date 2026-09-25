@@ -1,8 +1,9 @@
 "use client";
 
 import { CircleAlert, RotateCcw, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
-import { errorMessage } from "@/lib/http";
+import { useErrorText } from "@/i18n/error-text";
 import { Button, IconButton } from "@/shared/ui/Button";
 import { useConfirm } from "@/shared/ui/ConfirmDialog";
 import { Callout, Skeleton } from "@/shared/ui/Status";
@@ -25,12 +26,15 @@ export function DraftsDrawer({
   onOpen,
   onDeleted,
 }: Props) {
+  const t = useTranslations("drafts");
+  const tCommon = useTranslations("common");
+  const errorText = useErrorText();
   const dialog = useRef<HTMLDialogElement>(null);
   const list = useDraftList(open);
   const rename = useRenameDraft();
   const remove = useDeleteDraft();
   const [busy, setBusy] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<unknown>(null);
   const [confirmDialog, ask] = useConfirm();
   const titleId = useId();
 
@@ -63,7 +67,7 @@ export function DraftsDrawer({
 
       return true;
     } catch (e) {
-      setActionError(errorMessage(e));
+      setActionError(e);
 
       return false;
     } finally {
@@ -73,9 +77,9 @@ export function DraftsDrawer({
 
   const confirmDelete = async (d: DraftListItem) => {
     const ok = await ask({
-      title: `Delete “${d.title}”?`,
-      body: "The draft, its answers and its conversation are deleted permanently. This cannot be undone.",
-      confirm: "Delete draft",
+      title: t("deleteTitle", { title: d.title }),
+      body: t("deleteBody"),
+      confirm: t("deleteConfirm"),
       tone: "danger",
     });
 
@@ -87,7 +91,8 @@ export function DraftsDrawer({
   };
 
   const drafts = list.data;
-  const error = actionError ?? (list.error ? errorMessage(list.error) : null);
+  const failure = actionError ?? list.error;
+  const error = failure === null ? null : errorText(failure);
 
   return (
     <dialog
@@ -99,14 +104,12 @@ export function DraftsDrawer({
       <div className="flex h-full flex-col">
         <div className="flex items-center gap-3 border-b border-line px-5 py-3.5">
           <h2 id={titleId} className="flex-1 text-title font-semibold">
-            Saved drafts
+            {t("title")}
           </h2>
-          <IconButton label="Close" icon={X} onClick={onClose} />
+          <IconButton label={tCommon("close")} icon={X} onClick={onClose} />
         </div>
         <p className="border-b border-line px-5 py-3 text-meta text-ink-2">
-          Drafts are saved on the server for this browser only, with no account.
-          Other browsers, devices and private windows cannot see them. Each
-          draft is kept until the date shown; saving moves that date forward.
+          {t("explainer")}
         </p>
         {error && (
           <Callout
@@ -122,7 +125,7 @@ export function DraftsDrawer({
                   icon={RotateCcw}
                   onClick={() => void list.refetch()}
                 >
-                  Retry
+                  {tCommon("retry")}
                 </Button>
               )
             }
@@ -132,7 +135,7 @@ export function DraftsDrawer({
         )}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
           {!drafts && !list.error && (
-            <ul aria-busy className="px-2" aria-label="Loading drafts">
+            <ul aria-busy className="px-2" aria-label={t("loading")}>
               {[0, 1, 2].map((i) => (
                 <li key={i} className="space-y-2 px-3 py-3">
                   <Skeleton className="h-3.5 w-2/3" />
@@ -145,11 +148,9 @@ export function DraftsDrawer({
           {drafts?.length === 0 && (
             <div className="px-6 py-12 text-center">
               <p className="text-ui font-semibold text-ink">
-                No saved drafts in this browser yet
+                {t("emptyTitle")}
               </p>
-              <p className="mt-1 text-ui text-ink-2">
-                Upload a template to start one. It is saved as you work.
-              </p>
+              <p className="mt-1 text-ui text-ink-2">{t("emptyBody")}</p>
             </div>
           )}
           {drafts && drafts.length > 0 && (

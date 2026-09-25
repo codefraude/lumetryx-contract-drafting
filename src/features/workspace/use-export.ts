@@ -1,6 +1,12 @@
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { downloadDocx, requestWordLink } from "@/features/documents/api";
-import { errorMessage } from "@/lib/http";
+import {
+  downloadDocx,
+  fetchExportCheck,
+  requestWordLink,
+} from "@/features/documents/api";
+import type { ExportCheck } from "@/features/documents/contracts/export-check";
+import { useErrorText } from "@/i18n/error-text";
 import type { ConfirmOptions } from "@/shared/ui/ConfirmDialog";
 
 export type ExportAction = "download" | "word";
@@ -55,6 +61,8 @@ export function useExport(
   documentId: string,
   { flush, confirm, onNotSaved, announce, ask }: Options,
 ) {
+  const t = useTranslations("export");
+  const errorText = useErrorText();
   const [busy, setBusy] = useState<ExportAction | null>(null);
   const [notice, setNotice] = useState<ExportNotice | null>(null);
 
@@ -68,28 +76,57 @@ export function useExport(
     return () => clearTimeout(timer);
   }, [notice]);
 
+  const checkLines = (check: ExportCheck | null): string[] => {
+    if (!check) {
+      return [t("check.failed")];
+    }
+
+    const list = (items: string[]) => {
+      return items.join(", ");
+    };
+
+    return [
+      check.outstanding.length
+        ? t("check.outstanding", {
+            count: check.outstanding.length,
+            labels: list(check.outstanding),
+          })
+        : "",
+      check.unclear.length
+        ? t("check.unclear", { labels: list(check.unclear) })
+        : "",
+      check.placeholders.length
+        ? t("check.placeholders", { items: list(check.placeholders) })
+        : "",
+      check.leftBlank.length
+        ? t("check.leftBlank", { labels: list(check.leftBlank) })
+        : "",
+    ].filter(Boolean);
+  };
+
   async function run(action: ExportAction, warnings: string[]) {
     setNotice(null);
 
     try {
       await flush();
     } catch {
-      onNotSaved(
-        `Your latest edit is not saved yet, so ${action === "word" ? "Word" : "the download"} would miss it. Retry saving first.`,
-      );
+      onNotSaved(t("notSaved", { action }));
 
       return;
     }
 
-    if (warnings.length && !(await confirm(warnings, action))) {
+    const check = await fetchExportCheck(documentId).catch(() => null);
+    const all = [...checkLines(check), ...warnings];
+
+    if (all.length && !(await confirm(all, action))) {
       return;
     }
 
     if (action === "word" && !introduced()) {
       const go = await ask({
-        title: "Open the draft in Word?",
-        body: "Your browser then asks once whether this site may open Word. Tick the box that always allows it, and the next drafts open in Word straight away.",
-        confirm: "Open in Word",
+        title: t("wordIntroTitle"),
+        body: t("wordIntroBody"),
+        confirm: t("openInWord"),
       });
 
       if (!go) {
@@ -108,7 +145,7 @@ export function useExport(
 
         follow(url, filename);
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
-        announce(`Downloaded ${filename}.`);
+        announce(t("downloaded", { filename }));
       } else {
         follow(`ms-word:ofv|u|${(await requestWordLink(documentId)).url}`);
         setNotice({ kind: "word" });
@@ -117,7 +154,7 @@ export function useExport(
       setNotice({
         kind: "failed",
         action,
-        message: errorMessage(e),
+        message: errorText(e),
       });
     } finally {
       setBusy(null);

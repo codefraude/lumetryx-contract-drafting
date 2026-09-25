@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { DraftBlock } from "../contracts/stream-events";
 
 const Runs = ({ block }: { block: DraftBlock }) => {
@@ -75,18 +76,16 @@ export function Canvas({
   );
 }
 
-export function PaperSkeleton({
-  label = "Opening the document…",
-}: {
-  label?: string;
-}) {
+export function PaperSkeleton() {
+  const t = useTranslations("editor");
+
   return (
     <Canvas busy>
       <div
         className="mx-auto w-full max-w-[816px] rounded-[2px] bg-paper px-8 py-14 shadow-paper sm:px-20"
         role="status"
       >
-        <span className="sr-only">{label}</span>
+        <span className="sr-only">{t("opening")}</span>
         <div aria-hidden className="space-y-3">
           <div className="lx-skeleton-paper mx-auto mb-8 h-5 w-1/2 rounded" />
           {[
@@ -115,6 +114,7 @@ export function DraftPreview({
   blocks: DraftBlock[];
   generating: boolean;
 }) {
+  const t = useTranslations("editor");
   const body = blocks.filter((b) => b.partKind === "body");
   const header = blocks.filter((b) => b.partKind === "header" && b.runs.length);
   const groups: DraftBlock[][] = [];
@@ -190,7 +190,7 @@ export function DraftPreview({
               aria-hidden
               className="size-1.5 animate-pulse rounded-full bg-[#1d6b62]"
             />
-            Filling the template… {body.length} paragraphs so far
+            {t("filling", { count: body.length })}
           </p>
         )}
       </article>

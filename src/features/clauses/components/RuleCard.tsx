@@ -8,6 +8,7 @@ import {
   Lightbulb,
   TriangleAlert,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type {
   RuleAction,
@@ -17,7 +18,7 @@ import type {
   ChatLanguage,
   Field,
 } from "@/features/documents/contracts/fields";
-import { errorMessage } from "@/lib/http";
+import { useErrorText } from "@/i18n/error-text";
 import { Button } from "@/shared/ui/Button";
 import { Callout, StatusText, type Tone } from "@/shared/ui/Status";
 import { ClauseDecision } from "./ClauseDecision";
@@ -25,33 +26,27 @@ import { ClauseDecision } from "./ClauseDecision";
 const STATE: Record<
   RuleView["state"],
   {
-    label: string;
     tone: Tone;
     icon: typeof CircleCheck;
   }
 > = {
   included: {
-    label: "Included",
     tone: "ok",
     icon: CircleCheck,
   },
   excluded: {
-    label: "Excluded",
     tone: "neutral",
     icon: CircleSlash,
   },
   unresolved: {
-    label: "Needs decision",
     tone: "warn",
     icon: CircleHelp,
   },
   proposed: {
-    label: "Suggested",
     tone: "neutral",
     icon: Lightbulb,
   },
   dismissed: {
-    label: "Not conditional",
     tone: "neutral",
     icon: CircleMinus,
   },
@@ -74,8 +69,11 @@ export function RuleCard({
   locked,
   onAction,
 }: RuleCardProps) {
+  const t = useTranslations("clauses");
+  const tCommon = useTranslations("common");
+  const errorText = useErrorText();
   const [busy, setBusy] = useState<RuleAction | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<unknown>(null);
   const [more, setMore] = useState(false);
   const s = STATE[r.state];
 
@@ -86,7 +84,7 @@ export function RuleCard({
     try {
       await onAction(r.id, a);
     } catch (e) {
-      setErr(errorMessage(e));
+      setErr(e);
     } finally {
       setBusy(null);
     }
@@ -117,7 +115,7 @@ export function RuleCard({
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="min-w-0 text-ui font-semibold text-ink">{r.label}</h3>
         <StatusText tone={s.tone} icon={s.icon}>
-          {s.label}
+          {t(`state.${r.state}`)}
         </StatusText>
       </div>
       <p className="mt-0.5 text-meta text-ink-2">{r.reason}</p>
@@ -130,15 +128,12 @@ export function RuleCard({
           className="mt-3"
           actions={
             <>
-              {btn("apply", "Remove the clause", "primary")}
-              {btn("include", "Keep it (always include)")}
+              {btn("apply", t("removeClause"), "primary")}
+              {btn("include", t("keepClause"))}
             </>
           }
         >
-          The answers call for{" "}
-          {r.state === "excluded" ? "removing" : "changing"} this clause, but
-          you edited it in the draft. Removing it keeps your edited version,
-          which comes back if the clause is included again.
+          {t("pendingBody", { state: r.state })}
         </Callout>
       )}
       {r.state === "unresolved" && !r.pending && (
@@ -154,50 +149,49 @@ export function RuleCard({
         <>
           {evidence && (
             <blockquote className="mt-3 border-l-2 border-line pl-3 font-serif text-body text-ink-2">
-              <span className="sr-only">The template says: </span>“
-              {evidence.length > 180 && !more
-                ? `${evidence.slice(0, 180).trimEnd()}…`
-                : evidence}
-              ”
+              <span className="sr-only">{t("templateSays")}</span>
+              {tCommon("quoted", {
+                text:
+                  evidence.length > 180 && !more
+                    ? `${evidence.slice(0, 180).trimEnd()}…`
+                    : evidence,
+              })}
               {evidence.length > 180 && (
                 <button
                   type="button"
                   onClick={() => setMore((m) => !m)}
                   className="ml-1 font-sans text-meta font-medium text-accent-ink hover:underline pointer-coarse:min-h-11"
                 >
-                  {more ? "Show less" : "Show all"}
+                  {more ? t("showLess") : t("showAll")}
                 </button>
               )}
             </blockquote>
           )}
           <div className="mt-3 flex flex-wrap gap-2">
-            {btn("confirm", "Make it conditional", "primary")}
-            {btn("dismiss", "Dismiss suggestion", "ghost")}
+            {btn("confirm", t("makeConditional"), "primary")}
+            {btn("dismiss", t("dismissSuggestion"), "ghost")}
           </div>
         </>
       )}
       {r.hasEditedVariant && r.applied === "excluded" && (
-        <p className="mt-2 text-meta text-ink-2">
-          Your edited version is kept and will be restored if this clause is
-          included again.
-        </p>
+        <p className="mt-2 text-meta text-ink-2">{t("editedKept")}</p>
       )}
 
       {r.confirmed && !r.dismissed && !r.pending && (
         <div className="mt-2 -ml-2.5 flex flex-wrap gap-1">
           {r.override ? (
-            btn("clear_override", "Follow the condition again", "ghost")
+            btn("clear_override", t("followCondition"), "ghost")
           ) : (
             <>
-              {btn("include", "Always include", "ghost")}
-              {btn("exclude", "Always exclude", "ghost")}
+              {btn("include", t("alwaysInclude"), "ghost")}
+              {btn("exclude", t("alwaysExclude"), "ghost")}
             </>
           )}
         </div>
       )}
-      {err && (
+      {err !== null && (
         <p role="alert" className="mt-2 text-meta text-danger">
-          {err}
+          {errorText(err)}
         </p>
       )}
     </li>

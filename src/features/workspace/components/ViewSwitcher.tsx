@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 export interface ViewItem<T extends string> {
@@ -18,9 +19,11 @@ export function ViewSwitcher<T extends string>({
   active: T;
   onSelect(id: T): void;
 }) {
+  const t = useTranslations("workspace");
+
   return (
     <nav
-      aria-label="Views"
+      aria-label={t("views")}
       className="flex shrink-0 border-b border-line bg-surface px-2 lg:hidden"
     >
       {views.map((v) => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { ChatHeader } from "@/features/chat/components/ChatHeader";
 import { ChatPanel } from "@/features/chat/components/ChatPanel";
@@ -56,15 +57,17 @@ export function AssistantPane({
   nextStep,
   onRuleAction,
 }: Props) {
+  const t = useTranslations("workspace");
+
   return (
     <aside
-      aria-label="Assistant and details"
+      aria-label={t("assistantPane")}
       className={`flex min-h-0 flex-col bg-surface max-lg:absolute max-lg:inset-0 max-lg:transition-[opacity,visibility] max-lg:duration-200 lg:w-[clamp(380px,32vw,480px)] lg:shrink-0 lg:border-r lg:border-line ${hidden ? "max-lg:pointer-events-none max-lg:invisible max-lg:opacity-0" : ""}`}
     >
       <div className="shrink-0 border-b border-line px-2 max-lg:hidden sm:px-3">
         <TabBar<AssistantView>
           idBase="assistant"
-          label="Assistant views"
+          label={t("assistantViews")}
           value={view}
           onChange={onView}
           items={tabs}

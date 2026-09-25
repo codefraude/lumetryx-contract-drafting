@@ -1,6 +1,7 @@
 "use client";
 
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useId, useLayoutEffect, useSyncExternalStore } from "react";
 import {
   applyTheme,
@@ -13,22 +14,18 @@ import {
 
 const OPTIONS: {
   value: ThemePreference;
-  label: string;
   Icon: typeof Sun;
 }[] = [
   {
     value: "light",
-    label: "Light",
     Icon: Sun,
   },
   {
     value: "dark",
-    label: "Dark",
     Icon: Moon,
   },
   {
     value: "system",
-    label: "System",
     Icon: Monitor,
   },
 ];
@@ -48,6 +45,7 @@ export function ThemeSync() {
 }
 
 export function ThemeControl({ className = "" }: { className?: string }) {
+  const t = useTranslations("theme");
   const preference = useSyncExternalStore(
     subscribeTheme,
     readPreference,
@@ -65,16 +63,18 @@ export function ThemeControl({ className = "" }: { className?: string }) {
     <fieldset
       className={`relative inline-grid shrink-0 grid-cols-3 rounded-control border border-line bg-subtle p-0.5 ${className}`}
     >
-      <legend className="sr-only">Colour theme</legend>
+      <legend className="sr-only">{t("legend")}</legend>
       <span
         aria-hidden
         className="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc((100%-4px)/3)] rounded-[4px] bg-surface ring-1 ring-control transition-transform duration-150 ease-(--ease-out) dark:bg-raised"
         style={{ transform: `translateX(${index * 100}%)` }}
       />
-      {OPTIONS.map(({ value, label, Icon }) => (
+      {OPTIONS.map(({ value, Icon }) => (
         <label
           key={value}
-          title={value === "system" ? `System (now ${resolved})` : label}
+          title={
+            value === "system" ? t("systemNow", { theme: resolved }) : t(value)
+          }
           className="relative grid size-8 place-items-center rounded-[4px] text-ink-3 transition-colors duration-150 hover:text-ink has-checked:text-ink has-focus-visible:outline-2 has-focus-visible:outline-offset-1 has-focus-visible:outline-(--lx-focus) pointer-coarse:size-11"
         >
           <input
@@ -86,7 +86,7 @@ export function ThemeControl({ className = "" }: { className?: string }) {
             className="sr-only"
           />
           <Icon aria-hidden className="size-4" />
-          <span className="sr-only">{label}</span>
+          <span className="sr-only">{t(value)}</span>
         </label>
       ))}
     </fieldset>

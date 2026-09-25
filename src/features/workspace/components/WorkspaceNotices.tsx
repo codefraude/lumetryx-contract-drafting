@@ -6,6 +6,7 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import type { SaveStatus } from "@/features/documents/editor/save-coordinator";
 import type { ExportNotice } from "../use-export";
@@ -64,24 +65,27 @@ export function SaveBanner({
   onRetryExport,
   onDismissExportNotice,
 }: SaveBannerProps) {
+  const t = useTranslations("notices");
+  const tCommon = useTranslations("common");
+
   if (save?.status === "conflict") {
     return (
       <Banner
         tone="warn"
         icon={TriangleAlert}
-        title="This draft was changed somewhere else."
+        title={t("conflictTitle")}
         actions={
           <>
             <Button size="sm" variant="primary" onClick={onLoadNewer}>
-              Load the newer version
+              {t("loadNewer")}
             </Button>
             <Button size="sm" variant="secondary" onClick={onSaveAsNew}>
-              Save mine as a new draft
+              {t("saveAsNew")}
             </Button>
           </>
         }
       >
-        {save.message}
+        {save.message ?? t("conflictDetail")}
       </Banner>
     );
   }
@@ -91,7 +95,7 @@ export function SaveBanner({
       <Banner
         tone="danger"
         icon={CircleAlert}
-        title="Your latest edits are not saved."
+        title={t("notSavedTitle")}
         actions={
           <Button
             size="sm"
@@ -99,7 +103,7 @@ export function SaveBanner({
             icon={RotateCcw}
             onClick={onRetrySave}
           >
-            Try again
+            {tCommon("tryAgain")}
           </Button>
         }
       >
@@ -114,16 +118,14 @@ export function SaveBanner({
         tone="neutral"
         icon={Info}
         role="status"
-        title="Opening the draft in Word."
+        title={t("wordTitle")}
         actions={
           <Button size="sm" variant="ghost" onClick={onDismissExportNotice}>
-            Dismiss
+            {tCommon("dismiss")}
           </Button>
         }
       >
-        Word downloads a copy of the saved draft; use Save As to keep it. If
-        nothing opens, Word may not be installed on this device, so use Download
-        Word file instead.
+        {t("wordBody")}
       </Banner>
     );
   }
@@ -134,9 +136,7 @@ export function SaveBanner({
         tone="danger"
         icon={CircleAlert}
         title={
-          exportNotice.action === "word"
-            ? "The draft could not be opened in Word."
-            : "The download failed."
+          exportNotice.action === "word" ? t("wordFailed") : t("downloadFailed")
         }
         actions={
           <>
@@ -146,10 +146,10 @@ export function SaveBanner({
               icon={RotateCcw}
               onClick={onRetryExport}
             >
-              Try again
+              {tCommon("tryAgain")}
             </Button>
             <Button size="sm" variant="ghost" onClick={onDismissExportNotice}>
-              Dismiss
+              {tCommon("dismiss")}
             </Button>
           </>
         }
@@ -211,6 +211,9 @@ export function NextStep({
   onGenerate,
   onStop,
 }: NextStepProps) {
+  const t = useTranslations("notices");
+  const tCommon = useTranslations("common");
+
   if (generating) {
     return (
       <StepBar
@@ -220,11 +223,11 @@ export function NextStep({
             className="size-4 animate-spin text-ink-2"
           />
         }
-        text="Generating the draft"
-        detail={`${filledSoFar} paragraphs filled so far`}
+        text={t("generatingTitle")}
+        detail={t("filledSoFar", { count: filledSoFar })}
         action={
           <Button variant="secondary" onClick={onStop}>
-            Stop
+            {t("stop")}
           </Button>
         }
       />
@@ -236,11 +239,11 @@ export function NextStep({
       <StepBar
         tone="warn"
         icon={<TriangleAlert aria-hidden className="size-4 text-warn" />}
-        text="The last draft generation was interrupted"
-        detail="Your answers are saved."
+        text={t("interruptedTitle")}
+        detail={t("answersSaved")}
         action={
           <Button variant="primary" onClick={onGenerate}>
-            Retry generation
+            {t("retryGeneration")}
           </Button>
         }
       />
@@ -251,11 +254,11 @@ export function NextStep({
     return (
       <StepBar
         icon={<Info aria-hidden className="size-4 text-ink-2" />}
-        text="Some answers changed since the draft was made"
-        detail="Regenerating rebuilds it from the template and replaces your edits."
+        text={t("staleTitle")}
+        detail={t("staleDetail")}
         action={
           <Button variant="secondary" onClick={onGenerate}>
-            Regenerate
+            {tCommon("regenerate")}
           </Button>
         }
       />

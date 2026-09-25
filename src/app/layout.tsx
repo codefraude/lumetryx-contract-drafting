@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeSync } from "@/shared/ui/ThemeControl";
 import { Providers } from "./providers";
 import { THEME_SCRIPT } from "@/lib/theme";
@@ -17,11 +19,14 @@ const display = Source_Serif_4({
   axes: ["opsz"],
 });
 
-export const metadata: Metadata = {
-  title: "Contract drafting from your Word template",
-  description:
-    "Upload a Word contract template, answer a few questions, edit the draft and download it as .docx.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -40,14 +45,16 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${ui.variable} ${display.variable}`}
       suppressHydrationWarning
     >
@@ -56,7 +63,9 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeSync />
-        <Providers>{children}</Providers>
+        <NextIntlClientProvider>
+          <Providers>{children}</Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -9,9 +9,11 @@ import {
   LoaderCircle,
   Upload,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { BrandMark } from "@/shared/ui/BrandMark";
 import { Button } from "@/shared/ui/Button";
+import { LanguageControl } from "@/shared/ui/LanguageControl";
 import { Callout } from "@/shared/ui/Status";
 import { ThemeControl } from "@/shared/ui/ThemeControl";
 
@@ -20,37 +22,54 @@ const DOCX_TYPE =
 
 const EXAMPLES: {
   file: string;
-  title: string;
-  language: string;
+  title:
+    | "residentialLease"
+    | "mutualNda"
+    | "servicesContract"
+    | "bilingualLease"
+    | "bilingualEmployment";
+  language: "en" | "fr" | "mixed";
   conditional?: boolean;
 }[] = [
   {
     file: "synthetic-residential-lease.docx",
-    title: "Residential lease",
-    language: "English",
+    title: "residentialLease",
+    language: "en",
   },
   {
     file: "synthetic-mutual-nda.docx",
-    title: "Mutual NDA",
-    language: "English",
+    title: "mutualNda",
+    language: "en",
   },
   {
     file: "synthetic-contrat-prestation-fr.docx",
-    title: "Contrat de prestation de services",
-    language: "French",
+    title: "servicesContract",
+    language: "fr",
   },
   {
     file: "synthetic-bilingual-lease.docx",
-    title: "Bilingual lease",
-    language: "English and French",
+    title: "bilingualLease",
+    language: "mixed",
   },
   {
     file: "synthetic-bilingual-employment.docx",
-    title: "Bilingual employment contract",
-    language: "English and French",
+    title: "bilingualEmployment",
+    language: "mixed",
     conditional: true,
   },
 ];
+
+type LocalProblem =
+  | {
+      kind: "notDocx";
+      name: string;
+    }
+  | {
+      kind: "tooLarge";
+      name: string;
+      size: number;
+    }
+  | { kind: "exampleFailed" };
 
 interface Props {
   onFile(file: File): void;
@@ -67,9 +86,11 @@ export function UploadPanel({
   onShowDrafts,
   maxMb,
 }: Props) {
+  const t = useTranslations("upload");
+  const tLanguages = useTranslations("languages");
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
-  const [local, setLocal] = useState<string | null>(null);
+  const [local, setLocal] = useState<LocalProblem | null>(null);
   const [fetching, setFetching] = useState<string | null>(null);
 
   const accept = (f: File | undefined) => {
@@ -80,15 +101,18 @@ export function UploadPanel({
     }
 
     if (!/\.docx$/i.test(f.name)) {
-      return setLocal(
-        `“${f.name}” is not a Word .docx file. If your template is a .doc, PDF or Pages file, open it in Word, save it as .docx, then upload that copy.`,
-      );
+      return setLocal({
+        kind: "notDocx",
+        name: f.name,
+      });
     }
 
     if (f.size > maxMb * 1024 * 1024) {
-      return setLocal(
-        `“${f.name}” is ${(f.size / 1024 / 1024).toFixed(1)} MB. Files up to ${maxMb} MB are supported; remove large images from the template and try again.`,
-      );
+      return setLocal({
+        kind: "tooLarge",
+        name: f.name,
+        size: f.size / 1024 / 1024,
+      });
     }
 
     onFile(f);
@@ -107,15 +131,23 @@ export function UploadPanel({
 
       accept(new File([await res.blob()], ex.file, { type: DOCX_TYPE }));
     } catch {
-      setLocal(
-        "The example could not be loaded. Check your connection and try again.",
-      );
+      setLocal({ kind: "exampleFailed" });
     } finally {
       setFetching(null);
     }
   };
 
-  const problem = local ?? error;
+  const problem = !local
+    ? error
+    : local.kind === "notDocx"
+      ? t("notDocx", { name: local.name })
+      : local.kind === "tooLarge"
+        ? t("tooLarge", {
+            name: local.name,
+            size: local.size,
+            maxMb,
+          })
+        : t("exampleFailed");
   const working = Boolean(busy);
 
   return (
@@ -125,7 +157,7 @@ export function UploadPanel({
         <p className="flex min-w-0 items-baseline gap-2.5 text-ui">
           <span className="font-semibold text-ink">Lumetryx</span>
           <span className="hidden truncate text-ink-3 sm:inline">
-            Contract drafting
+            {t("tagline")}
           </span>
         </p>
         <div className="ml-auto flex items-center gap-2">
@@ -133,24 +165,22 @@ export function UploadPanel({
             variant="ghost"
             icon={FolderOpen}
             onClick={onShowDrafts}
-            aria-label="Saved drafts"
+            aria-label={t("savedDrafts")}
             className="max-sm:px-2.5"
           >
-            <span className="sm:hidden">Drafts</span>
-            <span className="max-sm:hidden">Saved drafts</span>
+            <span className="sm:hidden">{t("drafts")}</span>
+            <span className="max-sm:hidden">{t("savedDrafts")}</span>
           </Button>
+          <LanguageControl />
           <ThemeControl />
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-[680px] flex-1 px-4 pt-10 pb-16 lg:pt-16">
         <h1 className="font-serif text-display font-semibold tracking-[-0.02em] text-ink">
-          Draft a contract from your Word template
+          {t("heading")}
         </h1>
-        <p className="mt-3 max-w-[62ch] text-body text-ink-2">
-          Upload a .docx template. The assistant asks for the missing details
-          and writes them into your document, so its formatting carries over.
-        </p>
+        <p className="mt-3 max-w-[62ch] text-body text-ink-2">{t("intro")}</p>
 
         <section aria-labelledby="upload-title" className="mt-8">
           <div
@@ -188,11 +218,10 @@ export function UploadPanel({
                   id="upload-title"
                   className="mt-4 text-title font-semibold break-words text-ink"
                 >
-                  Reading “{busy}”
+                  {t("reading", { name: busy ?? "" })}
                 </h2>
                 <p className="mx-auto mt-1 max-w-[44ch] text-ui text-ink-2">
-                  Checking the file and finding the fields to fill. This usually
-                  takes a few seconds.
+                  {t("readingDetail")}
                 </p>
               </div>
             ) : (
@@ -202,7 +231,7 @@ export function UploadPanel({
                   id="upload-title"
                   className="mt-4 text-title font-semibold text-ink"
                 >
-                  {over ? "Drop to upload" : "Drop a Word template here"}
+                  {over ? t("dropToUpload") : t("dropHere")}
                 </h2>
                 <Button
                   size="lg"
@@ -211,13 +240,12 @@ export function UploadPanel({
                   className="mt-5"
                   onClick={() => input.current?.click()}
                 >
-                  Upload template
+                  {t("uploadTemplate")}
                 </Button>
                 <p className="mt-4 text-meta text-ink-3">
-                  One .docx file up to {maxMb} MB, in English, French or both.
+                  {t("limits", { maxMb })}
                   <br />
-                  Blanks can be [NAME], {"{{date}}"}, a line of underscores or
-                  Word placeholder boxes.
+                  {t("blanks")}
                 </p>
               </>
             )}
@@ -227,7 +255,7 @@ export function UploadPanel({
               accept={`.docx,${DOCX_TYPE}`}
               className="sr-only"
               tabIndex={-1}
-              aria-label="Choose a Word template"
+              aria-label={t("chooseFile")}
               onChange={(e) => {
                 accept(e.target.files?.[0]);
                 e.target.value = "";
@@ -240,7 +268,7 @@ export function UploadPanel({
               tone="danger"
               role="alert"
               icon={CircleAlert}
-              title="This file could not be used"
+              title={t("problemTitle")}
               className="mt-4"
               actions={
                 <Button
@@ -248,7 +276,7 @@ export function UploadPanel({
                   variant="secondary"
                   onClick={() => input.current?.click()}
                 >
-                  Choose another file
+                  {t("chooseAnother")}
                 </Button>
               }
             >
@@ -257,88 +285,78 @@ export function UploadPanel({
           )}
 
           <p className="mt-4 flex flex-wrap items-center gap-x-1.5 text-ui text-ink-2">
-            Continuing earlier work?
+            {t("continuing")}
             <button
               type="button"
               onClick={onShowDrafts}
               className="font-medium text-accent-ink underline underline-offset-2 hover:no-underline pointer-coarse:min-h-11"
             >
-              Open a saved draft
+              {t("openSaved")}
             </button>
             <span className="basis-full text-meta text-ink-3">
-              Drafts are linked to this browser.
+              {t("linkedToBrowser")}
             </span>
           </p>
         </section>
 
         <div className="mt-10">
-          <h2 className="text-ui font-semibold text-ink">Examples</h2>
-          <p className="mt-0.5 text-meta text-ink-3">
-            Synthetic documents with fictional parties.
-          </p>
+          <h2 className="text-ui font-semibold text-ink">{t("examples")}</h2>
+          <p className="mt-0.5 text-meta text-ink-3">{t("examplesNote")}</p>
           <ul className="mt-3 divide-y divide-line border-y border-line">
-            {EXAMPLES.map((ex) => (
-              <li key={ex.file} className="flex items-center gap-3 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-ui font-medium text-ink">
-                    {ex.title}
-                  </p>
-                  <p className="text-meta text-ink-3">
-                    {ex.language}
-                    {ex.conditional && ", with a conditional clause"}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  busy={fetching === ex.file}
-                  disabled={working || fetching !== null}
-                  onClick={() => void tryExample(ex)}
-                  aria-label={`Use the ${ex.title} example`}
-                >
-                  Use
-                </Button>
-                <a
-                  href={`/examples/${ex.file}`}
-                  download
-                  aria-label={`Download the ${ex.title} example`}
-                  title="Download Word file"
-                  className="grid size-8 shrink-0 place-items-center rounded-control text-ink-3 transition-colors duration-150 hover:bg-hover hover:text-ink pointer-coarse:size-11"
-                >
-                  <Download aria-hidden className="size-4" />
-                </a>
-              </li>
-            ))}
+            {EXAMPLES.map((ex) => {
+              const title = t(`exampleTitles.${ex.title}`);
+              const language = tLanguages(ex.language);
+
+              return (
+                <li key={ex.file} className="flex items-center gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-ui font-medium text-ink">
+                      {title}
+                    </p>
+                    <p className="text-meta text-ink-3">
+                      {ex.conditional
+                        ? t("withConditional", { language })
+                        : language}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    busy={fetching === ex.file}
+                    disabled={working || fetching !== null}
+                    onClick={() => void tryExample(ex)}
+                    aria-label={t("useExample", { title })}
+                  >
+                    {t("use")}
+                  </Button>
+                  <a
+                    href={`/examples/${ex.file}`}
+                    download
+                    aria-label={t("downloadExample", { title })}
+                    title={t("downloadWordFile")}
+                    className="grid size-8 shrink-0 place-items-center rounded-control text-ink-3 transition-colors duration-150 hover:bg-hover hover:text-ink pointer-coarse:size-11"
+                  >
+                    <Download aria-hidden className="size-4" />
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </div>
 
         <details className="group mt-8 border-y border-line">
           <summary className="flex list-none items-center gap-2 py-3 text-ui font-medium text-ink [&::-webkit-details-marker]:hidden">
-            What happens to your file
+            {t("whatHappens")}
             <ChevronDown
               aria-hidden
               className="ml-auto size-4 text-ink-3 transition-transform duration-150 group-open:rotate-180"
             />
           </summary>
           <ul className="space-y-2 pb-4 text-ui text-ink-2">
-            <li>
-              One unencrypted .docx up to {maxMb} MB. Macros are never run.
-            </li>
-            <li>
-              To find the fields and understand your answers, the template text
-              and your messages are sent from the server to Google&apos;s Gemini
-              model, directly or, when configured, through Vercel&apos;s AI
-              Gateway.
-            </li>
-            <li>
-              Values are written into the template&apos;s own text, so fonts,
-              numbering, tables, headers and footers carry over. Review the
-              draft before you rely on it.
-            </li>
-            <li>
-              No account is needed. Drafts are saved on the server, linked to
-              this browser, and kept for a set period after their last save.
-            </li>
+            <li>{t("privacyFile", { maxMb })}</li>
+            <li>{t("privacyAi")}</li>
+            <li>{t("privacyFormatting")}</li>
+            <li>{t("privacyStorage")}</li>
           </ul>
         </details>
       </main>

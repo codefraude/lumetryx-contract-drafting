@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocale, useTranslations } from "next-intl";
 import {
   forwardRef,
   useCallback,
@@ -26,7 +27,7 @@ import {
   useRuleAction,
 } from "@/features/documents/queries";
 import { useDraftGeneration } from "@/features/documents/use-draft-generation";
-import { errorMessage } from "@/lib/http";
+import { useErrorText } from "@/i18n/error-text";
 import { useConfirm } from "@/shared/ui/ConfirmDialog";
 import { Count } from "@/shared/ui/Status";
 import type { TabItem } from "@/shared/ui/TabBar";
@@ -60,6 +61,11 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
     { doc, onShowDrafts, onClose, onOpenDocument, announce },
     ref,
   ) {
+    const t = useTranslations("workspace");
+    const tStatus = useTranslations("status");
+    const tCommon = useTranslations("common");
+    const locale = useLocale();
+    const errorText = useErrorText();
     const queryClient = useQueryClient();
     const editor = useRef<EditorHandle>(null);
     const [save, setSave] = useState<{
@@ -121,10 +127,7 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
       flush,
       confirm: (warnings, action) =>
         ask({
-          title:
-            action === "word"
-              ? "Before you open it in Word"
-              : "Before you download",
+          title: action === "word" ? t("beforeWord") : t("beforeDownload"),
           body: (
             <ul className="list-disc space-y-1 pl-5">
               {warnings.map((w, i) => (
@@ -132,8 +135,8 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
               ))}
             </ul>
           ),
-          confirm: action === "word" ? "Open anyway" : "Download anyway",
-          cancel: "Review first",
+          confirm: action === "word" ? t("openAnyway") : t("downloadAnyway"),
+          cancel: t("reviewFirst"),
         }),
       onNotSaved: (message) =>
         setSave({
@@ -148,12 +151,12 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
         copyDocument(doc.id, (await editor.current?.snapshot()) ?? null),
       onSuccess: (copied) => {
         onOpenDocument(copied);
-        say("Your version was saved as a new draft.");
+        say(t("copied"));
       },
       onError: (e) =>
         setSave({
           status: "error",
-          message: errorMessage(e),
+          message: errorText(e),
         }),
     });
 
@@ -164,24 +167,24 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
         return true;
       } catch {
         return ask({
-          title: "Your latest edits could not be saved",
-          body: "Leave this draft anyway? The edits made since the last save will be lost.",
-          confirm: "Leave without saving",
-          cancel: "Stay here",
+          title: t("leaveTitle"),
+          body: t("leaveBody"),
+          confirm: t("leaveConfirm"),
+          cancel: t("stay"),
           tone: "danger",
         });
       }
-    }, [ask]);
+    }, [ask, t]);
 
     useImperativeHandle(ref, () => ({ leave }), [leave]);
 
     const onEditorStatus = useCallback(
-      (status: SaveStatus, message?: string) =>
+      (status: SaveStatus, error?: unknown) =>
         setSave({
           status,
-          message,
+          message: error === undefined ? undefined : errorText(error),
         }),
-      [],
+      [errorText],
     );
     const onEditorSaved = useCallback(
       (revision: number, savedAt: string) =>
@@ -221,12 +224,15 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
     const tabs: TabItem<AssistantView>[] = [
       {
         id: "chat",
-        label: "Chat",
+        label: t("chat"),
       },
       {
         id: "details",
-        label: "Details",
-        name: `Details, ${progress.confirmed} of ${progress.total} confirmed`,
+        label: t("details"),
+        name: t("detailsName", {
+          confirmed: progress.confirmed,
+          total: progress.total,
+        }),
         badge: progress.total ? (
           <Count>{`${progress.confirmed}/${progress.total}`}</Count>
         ) : undefined,
@@ -235,10 +241,10 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
         ? [
             {
               id: "clauses" as const,
-              label: "Clauses",
+              label: t("clauses"),
               name: progress.attention
-                ? `Clauses, ${progress.attention} need attention`
-                : "Clauses",
+                ? t("clausesName", { count: progress.attention })
+                : t("clauses"),
               badge: progress.attention ? (
                 <Count tone="warn">{progress.attention}</Count>
               ) : undefined,
@@ -251,9 +257,9 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
       if (
         hasDraft &&
         !(await ask({
-          title: "Regenerate the draft?",
-          body: "The draft is rebuilt from the template with your current answers. Edits you made in the editor are replaced.",
-          confirm: "Regenerate",
+          title: t("regenerateTitle"),
+          body: t("regenerateBody"),
+          confirm: tCommon("regenerate"),
           tone: "danger",
         }))
       ) {
@@ -280,7 +286,7 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
         .then(onOpenDocument, (e: unknown) =>
           setSave({
             status: "conflict",
-            message: errorMessage(e),
+            message: errorText(e),
           }),
         );
     };
@@ -292,9 +298,9 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
 
       if (
         await ask({
-          title: "Start with a different template?",
-          body: "This draft stays saved. You can reopen it any time from Saved drafts.",
-          confirm: "Choose a template",
+          title: t("newTemplateTitle"),
+          body: t("newTemplateBody"),
+          confirm: t("chooseTemplate"),
         })
       ) {
         onClose();
@@ -306,15 +312,16 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
         <WorkspaceHeader
           title={doc.title}
           filename={doc.filename}
-          status={statusLine(progress, {
+          status={statusLine(tStatus, progress, {
             generating: generation.generating,
             hasDraft,
             save: save.status,
             savedAt: doc.savedAt,
+            locale,
           })}
           note={
             !hasDraft && !generation.generating
-              ? `Answers saved at ${clockTime(doc.savedAt)}`
+              ? t("answersSavedAt", { time: clockTime(doc.savedAt, locale) })
               : null
           }
           hasDraft={hasDraft}
@@ -323,9 +330,13 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
           onSaveNow={() => void flush().catch(() => undefined)}
           onDrafts={onShowDrafts}
           onNewTemplate={() => void newTemplate()}
-          onDownload={() => void exporter.download(exportWarnings(doc))}
+          onDownload={() =>
+            void exporter.download(exportWarnings(tStatus, doc))
+          }
           downloading={exporter.busy === "download"}
-          onOpenInWord={() => void exporter.openInWord(exportWarnings(doc))}
+          onOpenInWord={() =>
+            void exporter.openInWord(exportWarnings(tStatus, doc))
+          }
           openingInWord={exporter.busy === "word"}
           onGenerate={() => void startGeneration()}
           canGenerate={progress.ready && !generation.generating}
@@ -337,7 +348,9 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
           onLoadNewer={loadNewer}
           onSaveAsNew={() => copy.mutate()}
           onRetrySave={() => void flush().catch(() => undefined)}
-          onRetryExport={() => void exporter.retry(exportWarnings(doc))}
+          onRetryExport={() =>
+            void exporter.retry(exportWarnings(tStatus, doc))
+          }
           onDismissExportNotice={exporter.dismissNotice}
         />
         <ViewSwitcher<AssistantView | "document">
@@ -345,8 +358,8 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
             ...tabs,
             {
               id: "document",
-              label: "Document",
-              name: "Document",
+              label: t("document"),
+              name: t("document"),
             },
           ]}
           active={docInFront ? "document" : shown}
@@ -375,9 +388,9 @@ export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(
               failure,
               disabledReason:
                 doc.analysis === "markers_only"
-                  ? `The assistant is off for this template because the AI analysis did not run. ${hasDraft ? "Edit the draft directly in the document." : "Fill in the details under Details."}`
+                  ? t(hasDraft ? "assistantOffDraft" : "assistantOffDetails")
                   : generation.generating
-                    ? "Wait for the draft to finish."
+                    ? t("waitForDraft")
                     : null,
               onSend: (text) => {
                 generation.clearFailure();

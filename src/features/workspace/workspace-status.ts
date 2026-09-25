@@ -1,3 +1,4 @@
+import type { useTranslations } from "next-intl";
 import { needsAttention, visibleRules } from "@/features/clauses/clause-status";
 import type { DocumentView } from "@/features/documents/contracts/document-view";
 import type { SaveStatus } from "@/features/documents/editor/save-coordinator";
@@ -9,57 +10,47 @@ import {
 
 export type StatusTone = "busy" | "ok" | "neutral" | "warn" | "danger";
 
+export type StatusTranslator = ReturnType<typeof useTranslations<"status">>;
+
 export interface StatusLine {
   text: string;
   tone: StatusTone;
 }
 
-const SAVE: Record<
-  SaveStatus,
-  {
-    text: string;
-    tone: StatusTone;
-  }
-> = {
-  loading: {
-    text: "Opening…",
-    tone: "busy",
-  },
-  saved: {
-    text: "Saved",
-    tone: "ok",
-  },
-  unsaved: {
-    text: "Unsaved changes",
-    tone: "neutral",
-  },
-  saving: {
-    text: "Saving…",
-    tone: "busy",
-  },
-  error: {
-    text: "Could not save",
-    tone: "danger",
-  },
-  conflict: {
-    text: "Changed in another tab",
-    tone: "warn",
-  },
-  viewing: {
-    text: "Template preview",
-    tone: "neutral",
-  },
+const SAVE_TONE: Record<SaveStatus, StatusTone> = {
+  loading: "busy",
+  saved: "ok",
+  unsaved: "neutral",
+  saving: "busy",
+  error: "danger",
+  conflict: "warn",
+  viewing: "neutral",
 };
 
-export const clockTime = (iso: string) => {
-  return new Date(iso).toLocaleTimeString(undefined, {
+export const clockTime = (iso: string, locale: string) => {
+  return new Date(iso).toLocaleTimeString(locale, {
     hour: "2-digit",
     minute: "2-digit",
   });
 };
 
-const count = (n: number, one: string) => {
-  return `${n} ${n === 1 ? one : `${one}s`}`;
+const stillNeeded = (
+  t: StatusTranslator,
+  details: number,
+  decisions: number,
+) => {
+  if (details && decisions) {
+    return t("bothNeeded", {
+      details,
+      decisions,
+    });
+  }
+
+  if (details) {
+    return t("detailsNeeded", { details });
+  }
+
+  return decisions ? t("decisionsNeeded", { decisions }) : null;
 };
 
 export interface DocumentProgress {
@@ -92,22 +83,25 @@ export function documentProgress(
 }
 
 export function statusLine(
+  t: StatusTranslator,
   p: DocumentProgress,
   {
     generating,
     hasDraft,
     save,
     savedAt,
+    locale,
   }: {
     generating: boolean;
     hasDraft: boolean;
     save: SaveStatus;
     savedAt: string;
+    locale: string;
   },
 ): StatusLine {
   if (generating) {
     return {
-      text: "Generating the draft…",
+      text: t("generating"),
       tone: "busy",
     };
   }
@@ -115,37 +109,37 @@ export function statusLine(
   if (hasDraft) {
     return {
       text:
-        save === "saved" ? `Saved at ${clockTime(savedAt)}` : SAVE[save].text,
-      tone: SAVE[save].tone,
+        save === "saved"
+          ? t("savedAt", { time: clockTime(savedAt, locale) })
+          : t(save),
+      tone: SAVE_TONE[save],
     };
   }
 
-  const need = [
-    p.detailsLeft && count(p.detailsLeft, "detail"),
-    p.decisions && count(p.decisions, "decision"),
-  ]
-    .filter(Boolean)
-    .join(" and ");
+  const need = stillNeeded(t, p.detailsLeft, p.decisions);
 
   return need
     ? {
-        text: `${need} still needed`,
+        text: need,
         tone: "neutral",
       }
     : {
-        text: "Ready to generate",
+        text: t("ready"),
         tone: "ok",
       };
 }
 
-export const exportWarnings = (d: DocumentView): string[] => {
+export const exportWarnings = (
+  t: StatusTranslator,
+  d: DocumentView,
+): string[] => {
   return [
     ...d.rules
       .filter((r) => r.state === "unresolved")
-      .map((r) => `“${r.label}” is still undecided.`),
+      .map((r) => t("undecided", { label: r.label })),
     ...d.rules
       .filter((r) => r.pending)
-      .map((r) => `“${r.label}” waits for your confirmation.`),
+      .map((r) => t("awaitingConfirmation", { label: r.label })),
     ...d.structureIssues.map((i) => i.message),
     ...d.ruleIssues,
   ];

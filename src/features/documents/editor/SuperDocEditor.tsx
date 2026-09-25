@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleAlert, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   forwardRef,
   memo,
@@ -10,6 +11,7 @@ import {
   useState,
 } from "react";
 import "superdoc/style.css";
+import { useErrorText } from "@/i18n/error-text";
 import { ApiError } from "@/lib/http";
 import { Button } from "@/shared/ui/Button";
 import { loadDocx, saveDocx } from "../api";
@@ -32,7 +34,7 @@ interface Props {
   filename: string;
   source: "working" | "original";
   loadKey: string;
-  onStatus(status: SaveStatus, message?: string): void;
+  onStatus(status: SaveStatus, error?: unknown): void;
   onSaved?(revision: number, savedAt: string): void;
 }
 
@@ -47,6 +49,9 @@ export const SuperDocEditor = memo(
     { documentId, filename, source, loadKey, onStatus, onSaved },
     ref,
   ) {
+    const t = useTranslations("editor");
+    const tCommon = useTranslations("common");
+    const errorText = useErrorText();
     const host = useRef<HTMLDivElement>(null);
     const toolbar = useRef<HTMLDivElement>(null);
     const sd = useRef<SuperDocInstance | null>(null);
@@ -64,7 +69,7 @@ export const SuperDocEditor = memo(
     const [readyId, setReadyId] = useState<string | null>(null);
     const [failure, setFailure] = useState<{
       id: string;
-      message: string;
+      error: unknown;
     } | null>(null);
     const [fit, setFit] = useState(false);
 
@@ -96,7 +101,12 @@ export const SuperDocEditor = memo(
         ? createSaveCoordinator({
             exportDocx: async () => {
               if (!sd.current) {
-                throw new Error("The editor is not ready.");
+                throw new ApiError(
+                  "editor_not_ready",
+                  "The editor is not ready.",
+                  0,
+                  true,
+                );
               }
 
               return sd.current.export({
@@ -105,7 +115,7 @@ export const SuperDocEditor = memo(
               });
             },
             persist: (revision, docx) => saveDocx(documentId, revision, docx),
-            onStatus: (status, message) => statusRef.current(status, message),
+            onStatus: (status, error) => statusRef.current(status, error),
             onSaved: (revision, savedAt) =>
               savedRef.current?.(revision, savedAt),
             isConflict: (err) =>
@@ -178,12 +188,7 @@ export const SuperDocEditor = memo(
               }
             },
             onException: ({ error }: { error: unknown }) =>
-              statusRef.current(
-                "error",
-                error instanceof Error
-                  ? error.message
-                  : "The editor reported a problem.",
-              ),
+              statusRef.current("error", error),
           });
 
           sd.current = instance;
@@ -192,15 +197,12 @@ export const SuperDocEditor = memo(
             return;
           }
 
-          const message =
-            err instanceof Error ? err.message : "Could not open the document.";
-
           setFailure({
             id: loadId,
-            message,
+            error: err,
           });
 
-          statusRef.current("error", message);
+          statusRef.current("error", err);
         }
       })();
 
@@ -264,7 +266,7 @@ export const SuperDocEditor = memo(
               ? "shrink-0 overflow-x-auto border-b border-line bg-surface"
               : "hidden"
           }
-          aria-label="Formatting toolbar"
+          aria-label={t("toolbar")}
         />
         <div className="relative min-h-0 flex-1">
           <div className="lx-doc h-full overflow-auto overscroll-contain bg-canvas px-2 py-5 sm:px-6 sm:py-8">
@@ -289,16 +291,18 @@ export const SuperDocEditor = memo(
                   className="mx-auto size-6 text-danger"
                 />
                 <p className="mt-2 text-body font-semibold text-ink">
-                  The document could not be opened
+                  {t("openFailed")}
                 </p>
-                <p className="mt-1 text-ui text-ink-2">{failed.message}</p>
+                <p className="mt-1 text-ui text-ink-2">
+                  {errorText(failed.error)}
+                </p>
                 <Button
                   variant="secondary"
                   icon={RotateCcw}
                   className="mt-4"
                   onClick={() => setAttempt((a) => a + 1)}
                 >
-                  Try again
+                  {tCommon("tryAgain")}
                 </Button>
               </div>
             </div>

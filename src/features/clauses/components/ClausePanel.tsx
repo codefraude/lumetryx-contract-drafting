@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { memo, useState } from "react";
 import type {
   DocumentView,
@@ -21,6 +22,7 @@ export const ClausePanel = memo(function ClausePanel({
   structureIssues,
   ...rest
 }: Props) {
+  const t = useTranslations("clauses");
   const [showIssues, setShowIssues] = useState(true);
   const visible = visibleRules(rules).sort(byAttention);
   const issues = [...ruleIssues, ...structureIssues.map((i) => i.message)];
@@ -31,13 +33,16 @@ export const ClausePanel = memo(function ClausePanel({
   return (
     <div>
       <div className="px-4 pt-4 pb-3 sm:px-5">
-        <p className="text-ui font-semibold text-ink">Conditional clauses</p>
+        <p className="text-ui font-semibold text-ink">{t("title")}</p>
         <p className="mt-0.5 text-meta text-ink-2">
           {visible.length
-            ? `${included} included, ${excluded} excluded${attention ? `, ${attention} waiting for you` : ""}.`
-            : "This template has no conditional clauses."}{" "}
-          Clauses follow your answers; a suggested condition applies only after
-          you confirm it.
+            ? t("summary", {
+                included,
+                excluded,
+                waiting: attention,
+              })
+            : t("none")}{" "}
+          {t("explainer")}
         </p>
       </div>
       {issues.length > 0 && (
@@ -49,8 +54,7 @@ export const ClausePanel = memo(function ClausePanel({
             className="flex w-full items-center gap-2 rounded-card px-3.5 py-2.5 text-left text-ui font-semibold text-warn focus-visible:-outline-offset-2 pointer-coarse:min-h-11"
           >
             <TriangleAlert aria-hidden className="size-4 shrink-0" />
-            {issues.length} {issues.length === 1 ? "problem" : "problems"} to
-            review
+            {t("problems", { count: issues.length })}
             <ChevronDown
               aria-hidden
               className={`ml-auto size-4 transition-transform duration-150 ${showIssues ? "rotate-180" : ""}`}
@@ -59,7 +63,7 @@ export const ClausePanel = memo(function ClausePanel({
           {showIssues && (
             <ul
               className="space-y-1.5 border-t border-warn-line px-3.5 py-2.5 text-meta text-ink-2"
-              aria-label="Problems to review"
+              aria-label={t("problemsLabel")}
             >
               {issues.map((m, i) => (
                 <li key={i}>{m}</li>

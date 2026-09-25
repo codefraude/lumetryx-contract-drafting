@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleDashed } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { memo, type ReactNode } from "react";
 import { Callout } from "@/shared/ui/Status";
 import { GROUP_ORDER, type Field } from "../contracts/fields";
@@ -50,6 +51,7 @@ export const FieldPanel = memo(function FieldPanel({
   assistant,
   inactive,
 }: Props) {
+  const t = useTranslations("fields");
   const details = fields.filter((f) => f.source !== "condition");
   const active = details.filter((f) => !inactive.has(f.id));
   const needed = active
@@ -78,13 +80,8 @@ export const FieldPanel = memo(function FieldPanel({
   if (!details.length) {
     return (
       <div className="px-4 py-4 sm:px-5">
-        <Callout
-          icon={CircleDashed}
-          title="No fields were found in this template"
-        >
-          Mark the blanks in Word as [NAME], {"{{name}}"}, a line of underscores
-          or a placeholder box (content control), then upload the template
-          again.
+        <Callout icon={CircleDashed} title={t("noFieldsTitle")}>
+          {t("noFieldsBody")}
         </Callout>
       </div>
     );
@@ -94,25 +91,30 @@ export const FieldPanel = memo(function FieldPanel({
     <div>
       <div className="px-4 pt-4 pb-3 sm:px-5">
         <p className="text-ui font-semibold text-ink">
-          {progress.confirmed} of {progress.total} required details confirmed
+          {t("progress", {
+            confirmed: progress.confirmed,
+            total: progress.total,
+          })}
         </p>
         <p className="mt-0.5 text-meta text-ink-2">
-          {locked
-            ? assistant
-              ? "A draft exists, so change answers in the chat. The draft is then updated wherever you have not edited it yourself."
-              : "A draft exists and the assistant is off for this template, so edit the text directly in the document."
-            : assistant
-              ? "Answer in the chat, or fill a detail in here."
-              : "The assistant is off for this template, so fill each detail in here."}
+          {t(
+            locked
+              ? assistant
+                ? "lockedAssistant"
+                : "lockedNoAssistant"
+              : assistant
+                ? "openAssistant"
+                : "openNoAssistant",
+          )}
         </p>
       </div>
-      <Section title="Still needed" count={needed.length}>
+      <Section title={t("sections.stillNeeded")} count={needed.length}>
         {needed.map(row)}
       </Section>
-      <Section title="Confirmed" count={done.length}>
+      <Section title={t("sections.confirmed")} count={done.length}>
         {done.map(row)}
       </Section>
-      <Section title="Not needed now" count={rest.length}>
+      <Section title={t("sections.notNeeded")} count={rest.length}>
         {rest.map(row)}
       </Section>
     </div>

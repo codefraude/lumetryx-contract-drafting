@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 import type { RuleView } from "@/features/documents/contracts/document-view";
 import type {
@@ -7,7 +8,7 @@ import type {
   Field,
 } from "@/features/documents/contracts/fields";
 import { useCorrectField } from "@/features/documents/queries";
-import { errorMessage } from "@/lib/http";
+import { useErrorText } from "@/i18n/error-text";
 import { Button } from "@/shared/ui/Button";
 
 export function ClauseDecision({
@@ -23,17 +24,20 @@ export function ClauseDecision({
   language: ChatLanguage;
   locked: boolean;
 }) {
+  const t = useTranslations("clauses");
+  const tCommon = useTranslations("common");
+  const errorText = useErrorText();
   const [value, setValue] = useState("");
   const id = useId();
   const correction = useCorrectField(documentId);
   const busy = correction.isPending
     ? (correction.variables.value ?? null)
     : null;
-  const err = correction.error ? errorMessage(correction.error) : null;
+  const err = correction.error ? errorText(correction.error) : null;
   const question =
     (language === "fr" ? field?.questionFr : null) ??
     field?.question ??
-    `What is “${field?.label ?? r.condition.fieldId}”?`;
+    t("fallbackQuestion", { label: field?.label ?? r.condition.fieldId });
 
   const answer = (v: string) => {
     correction.mutate({
@@ -51,9 +55,7 @@ export function ClauseDecision({
     <div className="mt-3 rounded-card border border-warn-line bg-warn-surface px-3.5 py-3">
       <p className="text-ui font-medium text-ink">{question}</p>
       {locked ? (
-        <p className="mt-1 text-meta text-ink-2">
-          Answer in the chat, so the draft is updated safely.
-        </p>
+        <p className="mt-1 text-meta text-ink-2">{t("answerInChat")}</p>
       ) : yesNo ? (
         <div className="mt-2.5 flex gap-2">
           <Button
@@ -63,7 +65,7 @@ export function ClauseDecision({
             disabled={busy !== null}
             onClick={() => answer("Yes")}
           >
-            Yes
+            {t("yes")}
           </Button>
           <Button
             size="sm"
@@ -72,7 +74,7 @@ export function ClauseDecision({
             disabled={busy !== null}
             onClick={() => answer("No")}
           >
-            No
+            {t("no")}
           </Button>
         </div>
       ) : (
@@ -108,7 +110,7 @@ export function ClauseDecision({
             busy={busy !== null}
             disabled={!value.trim()}
           >
-            Save
+            {tCommon("save")}
           </Button>
         </form>
       )}

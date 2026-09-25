@@ -4,6 +4,12 @@ import { StreamEvent } from "@/features/documents/contracts/stream-events";
 import { jsonBody, requestJson } from "@/lib/http";
 import { postEventStream } from "@/lib/sse";
 
+const localToday = () => {
+  const d = new Date();
+
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 export const streamChatTurn = (
   documentId: string,
   message: string,
@@ -16,6 +22,7 @@ export const streamChatTurn = (
     {
       message,
       fieldsVersion,
+      today: localToday(),
     },
     StreamEvent,
     onEvent,

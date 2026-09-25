@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { uploadTemplate } from "@/features/documents/api";
 import { UploadPanel } from "@/features/documents/components/UploadPanel";
@@ -13,7 +14,7 @@ import {
 } from "@/features/documents/queries";
 import { DraftsDrawer } from "@/features/drafts/components/DraftsDrawer";
 import { draftKeys } from "@/features/drafts/queries";
-import { errorMessage } from "@/lib/http";
+import { useErrorText } from "@/i18n/error-text";
 import { BrandMark } from "@/shared/ui/BrandMark";
 import { useSessionLoss } from "../use-session-loss";
 import {
@@ -27,11 +28,13 @@ interface OpenDraft {
 }
 
 function Splash() {
+  const t = useTranslations("workspace");
+
   return (
     <div className="grid min-h-dvh place-items-center">
       <p role="status" className="flex items-center gap-3 text-ui text-ink-2">
         <BrandMark />
-        Opening your workspace…
+        {t("opening")}
       </p>
     </div>
   );
@@ -55,7 +58,8 @@ export function Workspace({ maxUploadMb }: { maxUploadMb: number }) {
     enabled: active !== null,
   });
   const [draftsOpen, setDraftsOpen] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const errorText = useErrorText();
+  const [uploadError, setUploadError] = useState<unknown>(null);
   const [announcement, setAnnouncement] = useState("");
   const workspace = useRef<DocumentWorkspaceHandle>(null);
 
@@ -75,12 +79,12 @@ export function Workspace({ maxUploadMb }: { maxUploadMb: number }) {
       queryClient.removeQueries({ queryKey: draftKeys.list });
       show(doc);
     },
-    onError: (e) => setUploadError(errorMessage(e)),
+    onError: (e) => setUploadError(e),
   });
 
-  useSessionLoss((message) => {
+  useSessionLoss((error) => {
     setOpen(null);
-    setUploadError(message);
+    setUploadError(error);
     queryClient.removeQueries({ queryKey: documentKeys.all });
     queryClient.removeQueries({ queryKey: draftKeys.list });
   });
@@ -114,7 +118,7 @@ export function Workspace({ maxUploadMb }: { maxUploadMb: number }) {
         <UploadPanel
           onFile={(file) => upload.mutate(file)}
           busy={upload.isPending ? upload.variables.name : null}
-          error={uploadError}
+          error={uploadError === null ? null : errorText(uploadError)}
           onShowDrafts={() => setDraftsOpen(true)}
           maxMb={maxUploadMb}
         />

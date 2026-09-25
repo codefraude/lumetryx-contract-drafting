@@ -5,6 +5,7 @@ import {
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
+import { ApiError } from "@/lib/http";
 import {
   applyRuleAction,
   correctField,
@@ -73,7 +74,12 @@ export function fieldsVersionOf(queryClient: QueryClient, id: string): number {
   const view = queryClient.getQueryData<DocumentView>(documentKeys.detail(id));
 
   if (!view) {
-    throw new Error("This draft is no longer open.");
+    throw new ApiError(
+      "draft_closed",
+      "This draft is no longer open.",
+      0,
+      true,
+    );
   }
 
   return view.fieldsVersion;

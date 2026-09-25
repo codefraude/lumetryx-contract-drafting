@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { ApiError } from "@/lib/http";
 
-export function useSessionLoss(onLost: (message: string) => void) {
+export function useSessionLoss(onLost: (error: ApiError) => void) {
   const queryClient = useQueryClient();
   const handler = useRef(onLost);
 
@@ -13,7 +13,7 @@ export function useSessionLoss(onLost: (message: string) => void) {
   useEffect(() => {
     const check = (error: unknown) => {
       if (error instanceof ApiError && error.status === 401) {
-        handler.current(error.message);
+        handler.current(error);
       }
     };
 

@@ -12,8 +12,10 @@ import {
   Save,
   TriangleAlert,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { Button } from "@/shared/ui/Button";
+import { LanguageControl } from "@/shared/ui/LanguageControl";
 import { MenuItem, Popover } from "@/shared/ui/Popover";
 import { ThemeControl } from "@/shared/ui/ThemeControl";
 import type { StatusLine, StatusTone } from "../workspace-status";
@@ -69,6 +71,7 @@ export function WorkspaceHeader({
   canGenerate,
   generating,
 }: Props) {
+  const t = useTranslations("header");
   const describedBy = hasDraft
     ? generating
       ? "download-hint"
@@ -121,7 +124,7 @@ export function WorkspaceHeader({
             onClick={onSaveNow}
             className="max-lg:hidden"
           >
-            Save now
+            {t("saveNow")}
           </Button>
         )}
         <Button
@@ -130,7 +133,7 @@ export function WorkspaceHeader({
           onClick={onDrafts}
           className="max-lg:hidden"
         >
-          Saved drafts
+          {t("savedDrafts")}
         </Button>
         <Button
           variant="ghost"
@@ -138,9 +141,10 @@ export function WorkspaceHeader({
           onClick={onNewTemplate}
           className="max-lg:hidden"
         >
-          New template
+          {t("newTemplate")}
         </Button>
-        <ThemeControl className="mx-1.5 max-lg:hidden" />
+        <LanguageControl className="ml-1.5 max-lg:hidden" />
+        <ThemeControl className="mr-1.5 ml-1 max-lg:hidden" />
         {hasDraft ? (
           <>
             {generating && (
@@ -148,7 +152,7 @@ export function WorkspaceHeader({
                 id="download-hint"
                 className="mr-1 text-meta text-ink-3 max-2xl:sr-only"
               >
-                Available when the draft is ready
+                {t("availableWhenReady")}
               </span>
             )}
             <Button
@@ -159,7 +163,7 @@ export function WorkspaceHeader({
               busy={openingInWord}
               className="max-lg:hidden"
             >
-              Open in Word
+              {t("openInWord")}
             </Button>
             <Button
               variant="primary"
@@ -167,11 +171,11 @@ export function WorkspaceHeader({
               onClick={onDownload}
               disabled={generating}
               busy={downloading}
-              aria-label="Download Word file"
+              aria-label={t("downloadWordFile")}
               aria-describedby={describedBy}
             >
-              <span className="sm:hidden">Download</span>
-              <span className="max-sm:hidden">Download Word file</span>
+              <span className="sm:hidden">{t("download")}</span>
+              <span className="max-sm:hidden">{t("downloadWordFile")}</span>
             </Button>
           </>
         ) : (
@@ -180,15 +184,15 @@ export function WorkspaceHeader({
             onClick={onGenerate}
             disabled={!canGenerate}
             busy={generating}
-            aria-label="Generate draft"
+            aria-label={t("generateDraft")}
             aria-describedby={describedBy}
           >
-            <span className="sm:hidden">Generate</span>
-            <span className="max-sm:hidden">Generate draft</span>
+            <span className="sm:hidden">{t("generate")}</span>
+            <span className="max-sm:hidden">{t("generateDraft")}</span>
           </Button>
         )}
         <div className="lg:hidden">
-          <Popover label="More actions" icon={Ellipsis}>
+          <Popover label={t("moreActions")} icon={Ellipsis}>
             {(close) => (
               <>
                 {hasDraft && (
@@ -200,7 +204,7 @@ export function WorkspaceHeader({
                       onSaveNow();
                     }}
                   >
-                    Save now
+                    {t("saveNow")}
                   </MenuItem>
                 )}
                 {hasDraft && (
@@ -212,7 +216,7 @@ export function WorkspaceHeader({
                       onOpenInWord();
                     }}
                   >
-                    Open in Word
+                    {t("openInWord")}
                   </MenuItem>
                 )}
                 <MenuItem
@@ -222,7 +226,7 @@ export function WorkspaceHeader({
                     onDrafts();
                   }}
                 >
-                  Saved drafts
+                  {t("savedDrafts")}
                 </MenuItem>
                 <MenuItem
                   icon={FilePlus2}
@@ -231,10 +235,18 @@ export function WorkspaceHeader({
                     onNewTemplate();
                   }}
                 >
-                  New template
+                  {t("newTemplate")}
                 </MenuItem>
                 <div className="mt-1 flex items-center justify-between gap-4 border-t border-line px-2.5 pt-2.5 pb-1">
-                  <span className="text-ui font-medium text-ink-2">Theme</span>
+                  <span className="text-ui font-medium text-ink-2">
+                    {t("language")}
+                  </span>
+                  <LanguageControl />
+                </div>
+                <div className="flex items-center justify-between gap-4 px-2.5 pt-1.5 pb-1">
+                  <span className="text-ui font-medium text-ink-2">
+                    {t("theme")}
+                  </span>
                   <ThemeControl />
                 </div>
               </>

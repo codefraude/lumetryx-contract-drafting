@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   useCallback,
   useEffect,
@@ -65,6 +66,7 @@ function ConfirmDialog({
   request: Request | null;
   onFinish(ok: boolean): void;
 }) {
+  const t = useTranslations("common");
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const open = Boolean(request?.open);
@@ -111,7 +113,7 @@ function ConfirmDialog({
               data-default={danger ? "" : undefined}
               onClick={() => onFinish(false)}
             >
-              {request.cancel ?? "Cancel"}
+              {request.cancel ?? t("cancel")}
             </Button>
             <Button
               variant={danger ? "danger" : "primary"}

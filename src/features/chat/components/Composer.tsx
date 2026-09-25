@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUp, Info } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Button, IconButton } from "@/shared/ui/Button";
 
@@ -19,6 +20,7 @@ export function Composer({
   onStop,
   onSubmitted,
 }: Props) {
+  const t = useTranslations("chat");
   const [text, setText] = useState("");
   const area = useRef<HTMLTextAreaElement>(null);
 
@@ -68,7 +70,7 @@ export function Composer({
         className={`flex items-end gap-2 rounded-card border bg-surface p-1.5 pl-3.5 transition-[border-color,box-shadow] duration-150 dark:bg-raised ${off ? "border-line opacity-70" : "border-control focus-within:border-accent-ink focus-within:ring-1 focus-within:ring-accent-ink"}`}
       >
         <label htmlFor="composer" className="sr-only">
-          Message the assistant
+          {t("composerLabel")}
         </label>
         <textarea
           id="composer"
@@ -76,7 +78,7 @@ export function Composer({
           rows={1}
           value={text}
           disabled={off}
-          placeholder="Answer a question or ask about a clause…"
+          placeholder={t("placeholder")}
           aria-describedby="composer-hint"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
@@ -95,8 +97,8 @@ export function Composer({
         {busy ? (
           <Button
             variant="secondary"
-            aria-label="Stop"
-            title="Stop"
+            aria-label={t("stop")}
+            title={t("stop")}
             onClick={onStop}
             className="size-9 px-0! pointer-coarse:size-11"
           >
@@ -105,7 +107,7 @@ export function Composer({
         ) : (
           <IconButton
             type="submit"
-            label="Send message"
+            label={t("send")}
             icon={ArrowUp}
             variant="primary"
             disabled={!text.trim() || off}
@@ -116,8 +118,9 @@ export function Composer({
         id="composer-hint"
         className="mt-1.5 hidden px-1 text-meta text-ink-3 sm:block [@media(max-height:680px)]:hidden"
       >
-        <kbd>Enter</kbd> sends, <kbd>Shift</kbd>+<kbd>Enter</kbd> adds a line.
-        Write in English or French.
+        {t.rich("hint", {
+          kbd: (chunks) => <kbd>{chunks}</kbd>,
+        })}
       </p>
     </form>
   );

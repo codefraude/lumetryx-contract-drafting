@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown, CircleAlert, RotateCcw } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { ActionFailure } from "@/lib/http";
 import { Button } from "@/shared/ui/Button";
@@ -36,6 +37,8 @@ export function ChatPanel({
   header,
   footer,
 }: Props) {
+  const t = useTranslations("chat");
+  const tCommon = useTranslations("common");
   const list = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
   const [away, setAway] = useState(false);
@@ -81,13 +84,13 @@ export function ChatPanel({
   const fresh = away && seen !== signature;
 
   return (
-    <section aria-label="Assistant" className="flex h-full min-h-0 flex-col">
+    <section aria-label={t("panel")} className="flex h-full min-h-0 flex-col">
       {header}
       <div className="relative min-h-0 flex-1">
         <div
           ref={list}
           onScroll={onScroll}
-          aria-label="Conversation"
+          aria-label={t("conversation")}
           role="region"
           className="relative h-full space-y-4 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5"
         >
@@ -107,7 +110,7 @@ export function ChatPanel({
                     icon={RotateCcw}
                     onClick={onRetry}
                   >
-                    Retry
+                    {tCommon("retry")}
                   </Button>
                 )
               }
@@ -123,14 +126,14 @@ export function ChatPanel({
             className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-control border border-line bg-raised px-3 py-1.5 text-meta font-medium text-ink shadow-overlay transition-colors duration-150 hover:bg-hover pointer-coarse:min-h-11"
           >
             <ArrowDown aria-hidden className="size-3.5" />
-            Jump to latest
+            {t("jumpToLatest")}
             {fresh && (
               <>
                 <span
                   aria-hidden
                   className="size-1.5 rounded-full bg-accent-ink"
                 />
-                <span className="sr-only">(new messages)</span>
+                <span className="sr-only">{t("newMessages")}</span>
               </>
             )}
           </button>

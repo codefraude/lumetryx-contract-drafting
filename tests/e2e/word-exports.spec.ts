@@ -17,6 +17,7 @@ type Field = {
   id: string;
   label: string;
   valueType: string;
+  unit: string | null;
   status: string;
   displayValue: string | null;
   occurrences: {
@@ -39,10 +40,12 @@ const ANSWERS: Record<string, string> = {
   duration: "12 months",
   jurisdiction: "Mauritius",
   boolean: "yes",
+  email: "contact@example.com",
+  currency: "EUR",
 };
 
 const answer = (f: Field) => {
-  return ANSWERS[f.valueType] ?? `Sample ${f.label}`;
+  return f.unit ? "3" : (ANSWERS[f.valueType] ?? `Sample ${f.label}`);
 };
 
 const current = async (page: Page) => {

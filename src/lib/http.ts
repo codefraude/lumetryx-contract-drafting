@@ -13,13 +13,6 @@ export class ApiError extends Error {
   }
 }
 
-export const errorMessage = (
-  error: unknown,
-  fallback = "Something went wrong.",
-): string => {
-  return error instanceof Error && error.message ? error.message : fallback;
-};
-
 export const isTransient = (error: unknown): boolean => {
   return error instanceof ApiError
     ? error.retryable
@@ -110,9 +103,9 @@ export interface ActionFailure {
   retryable: boolean;
 }
 
-export const toFailure = (error: unknown): ActionFailure => {
+export const toFailure = (error: unknown, message: string): ActionFailure => {
   return {
-    message: errorMessage(error),
+    message,
     retryable: error instanceof ApiError ? error.retryable : true,
   };
 };

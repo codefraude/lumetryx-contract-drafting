@@ -1,68 +1,31 @@
 "use client";
 
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { MenuItem, Popover } from "@/shared/ui/Popover";
 import { StatusText, type Tone } from "@/shared/ui/Status";
 import type { DraftListItem } from "../contracts";
 
-const PHASE: Record<
-  DraftListItem["phase"],
-  {
-    label: string;
-    tone: Tone;
-  }
-> = {
-  interview: {
-    label: "Answering questions",
-    tone: "neutral",
-  },
-  ready: {
-    label: "Ready to generate",
-    tone: "neutral",
-  },
-  generating: {
-    label: "Generating",
-    tone: "neutral",
-  },
-  interrupted: {
-    label: "Generation interrupted",
-    tone: "warn",
-  },
-  draft: {
-    label: "Draft",
-    tone: "ok",
-  },
+const PHASE_TONE: Record<DraftListItem["phase"], Tone> = {
+  interview: "neutral",
+  ready: "neutral",
+  generating: "neutral",
+  interrupted: "warn",
+  draft: "ok",
 };
 
-const LANGUAGE: Partial<Record<DraftListItem["language"], string>> = {
-  en: "English",
-  fr: "French",
-  mixed: "English and French",
-};
-
-const when = (iso: string) => {
-  return new Date(iso).toLocaleString(undefined, {
+const when = (iso: string, locale: string) => {
+  return new Date(iso).toLocaleString(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   });
 };
 
-const day = (iso: string) => {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
+const day = (iso: string, locale: string) => {
+  return new Date(iso).toLocaleDateString(locale, { dateStyle: "medium" });
 };
-
-function remaining(d: DraftListItem) {
-  const parts = [
-    d.detailsLeft &&
-      `${d.detailsLeft} ${d.detailsLeft === 1 ? "detail" : "details"}`,
-    d.decisionsLeft &&
-      `${d.decisionsLeft} ${d.decisionsLeft === 1 ? "decision" : "decisions"}`,
-  ].filter(Boolean);
-
-  return parts.length ? `${parts.join(" and ")} still needed` : null;
-}
 
 interface Props {
   d: DraftListItem;
@@ -83,11 +46,25 @@ export function DraftRow({
   onRename,
   onDelete,
 }: Props) {
+  const t = useTranslations("drafts");
+  const tStatus = useTranslations("status");
+  const tLanguages = useTranslations("languages");
+  const tCommon = useTranslations("common");
+  const locale = useLocale();
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(d.title);
-  const phase = PHASE[d.phase];
-  const left = remaining(d);
-  const language = LANGUAGE[d.language];
+  const left =
+    d.detailsLeft && d.decisionsLeft
+      ? tStatus("bothNeeded", {
+          details: d.detailsLeft,
+          decisions: d.decisionsLeft,
+        })
+      : d.detailsLeft
+        ? tStatus("detailsNeeded", { details: d.detailsLeft })
+        : d.decisionsLeft
+          ? tStatus("decisionsNeeded", { decisions: d.decisionsLeft })
+          : null;
+  const language = d.language === "unknown" ? null : tLanguages(d.language);
 
   return (
     <li
@@ -102,7 +79,7 @@ export function DraftRow({
           }}
         >
           <label htmlFor={`rename-${d.id}`} className="sr-only">
-            Draft name
+            {t("draftName")}
           </label>
           <input
             id={`rename-${d.id}`}
@@ -127,10 +104,10 @@ export function DraftRow({
               disabled={!name.trim()}
               busy={rowBusy}
             >
-              Save
+              {tCommon("save")}
             </Button>
             <Button variant="ghost" onClick={() => setRenaming(false)}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
           </div>
         </form>
@@ -149,24 +126,27 @@ export function DraftRow({
               </span>
               {current && (
                 <span className="shrink-0 font-medium text-ink-2">
-                  Currently open
+                  {t("currentlyOpen")}
                 </span>
               )}
             </span>
             <span className="mt-0.5 block text-ink-2">
-              Saved {when(d.savedAt)}
+              {t("savedOn", { when: when(d.savedAt, locale) })}
             </span>
             <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <StatusText tone={phase.tone}>{phase.label}</StatusText>
+              <StatusText tone={PHASE_TONE[d.phase]}>
+                {t(`phase.${d.phase}`)}
+              </StatusText>
               {left && <span className="text-ink-2">{left}</span>}
             </span>
             <span className="mt-0.5 block text-ink-3">
-              {language && `${language}. `}Kept until {day(d.expiresAt)}.
+              {language && `${language}. `}
+              {t("keptUntil", { date: day(d.expiresAt, locale) })}
             </span>
           </button>
           <div className="pt-1">
             <Popover
-              label={`Actions for ${d.title}`}
+              label={t("actionsFor", { title: d.title })}
               icon={Ellipsis}
               panelClassName="min-w-44"
             >
@@ -180,7 +160,7 @@ export function DraftRow({
                       setRenaming(true);
                     }}
                   >
-                    Rename
+                    {t("rename")}
                   </MenuItem>
                   <MenuItem
                     icon={Trash2}
@@ -190,7 +170,7 @@ export function DraftRow({
                       onDelete();
                     }}
                   >
-                    Delete
+                    {t("delete")}
                   </MenuItem>
                 </>
               )}

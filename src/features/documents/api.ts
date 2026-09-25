@@ -6,6 +6,7 @@ import {
   SavedRevision,
   WordLink,
 } from "./contracts/document-view";
+import { ExportCheck } from "./contracts/export-check";
 import type { FieldCorrection, RuleActionRequest } from "./contracts/requests";
 import { StreamEvent } from "./contracts/stream-events";
 
@@ -13,6 +14,10 @@ export const fetchCurrentDocument = (signal?: AbortSignal) => {
   return requestJson("/api/documents/current", CurrentDocumentResponse, {
     signal,
   }).then((r) => r.document);
+};
+
+export const fetchExportCheck = (id: string) => {
+  return requestJson(`/api/documents/${id}/export-check`, ExportCheck);
 };
 
 export const fetchDocument = (id: string, signal?: AbortSignal) => {

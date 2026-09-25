@@ -6,7 +6,7 @@ export type SaveStatus =
 export interface SaveCoordinatorOptions {
   exportDocx(): Promise<Blob>;
   persist(revision: number, docx: Blob): Promise<SavedRevision>;
-  onStatus(status: SaveStatus, message?: string): void;
+  onStatus(status: SaveStatus, error?: unknown): void;
   onSaved(revision: number, savedAt: string): void;
   isConflict(error: unknown): boolean;
   debounceMs?: number;
@@ -52,15 +52,9 @@ export function createSaveCoordinator(options: SaveCoordinatorOptions) {
         dirty = true;
 
         if (isConflict(err)) {
-          onStatus(
-            "conflict",
-            "This draft was changed elsewhere (another tab or an answer update). Reload the draft to continue.",
-          );
+          onStatus("conflict");
         } else {
-          onStatus(
-            "error",
-            err instanceof Error ? err.message : "Saving failed.",
-          );
+          onStatus("error", err);
         }
 
         throw err;

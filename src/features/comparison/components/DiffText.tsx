@@ -1,9 +1,12 @@
+import { useTranslations } from "next-intl";
 import type { Segment } from "../contracts";
 
 const Ins = ({ text }: { text: string }) => {
+  const t = useTranslations("compare");
+
   return (
     <ins className="rounded-[3px] bg-ins-surface px-0.5 text-ins underline decoration-ins/60 underline-offset-[3px]">
-      <span className="sr-only">[added: </span>
+      <span className="sr-only">{t("insertion")}</span>
       {text}
       <span className="sr-only">]</span>
     </ins>
@@ -11,9 +14,11 @@ const Ins = ({ text }: { text: string }) => {
 };
 
 const Del = ({ text }: { text: string }) => {
+  const t = useTranslations("compare");
+
   return (
     <del className="rounded-[3px] bg-del-surface px-0.5 text-del line-through decoration-del/70">
-      <span className="sr-only">[removed: </span>
+      <span className="sr-only">{t("deletion")}</span>
       {text}
       <span className="sr-only">]</span>
     </del>
@@ -52,6 +57,7 @@ export function DiffText({
   segments: Segment[];
   side?: "template" | "draft";
 }) {
+  const t = useTranslations("compare");
   const shown = merge(
     segments.filter(
       (s) =>
@@ -64,7 +70,7 @@ export function DiffText({
   if (!shown.length) {
     return (
       <p className="text-meta text-ink-3">
-        {side === "template" ? "Not in the template" : "Not in the draft"}
+        {side === "template" ? t("notInTemplate") : t("notInDraft")}
       </p>
     );
   }

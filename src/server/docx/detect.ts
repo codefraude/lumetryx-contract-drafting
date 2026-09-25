@@ -26,6 +26,18 @@ const ROLE_BEFORE = new RegExp(
   "u",
 );
 const CAPTION_BEFORE = /(\p{Lu}[\p{L}'’-]+)\s*:\s*$/u;
+const OF_BEFORE =
+  /(?:\[([^\]]+)\]|\{\{\s*([^}]+?)\s*\}\}|\((?:the|le|la|l['’])\s*([^)]+)\))\s*,?\s*(?:of|residing at|domicilié(?:e)? (?:à|au)|demeurant(?: à| au)?)\s*$/iu;
+
+function addressOf(text: string, start: number): string | null {
+  const m = OF_BEFORE.exec(text.slice(Math.max(0, start - 80), start));
+  const raw = (m?.[1] ?? m?.[2] ?? m?.[3] ?? "")
+    .replace(/_+/g, " ")
+    .replace(/\b(legal name|name|nom)\b/gi, "")
+    .trim();
+
+  return raw ? humanize(raw) : null;
+}
 
 function definedRoles(blocks: Block[]): Set<string> {
   const roles = new Set<string>();
@@ -142,6 +154,17 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
       : m;
   };
 
+  const blank = (b: Block, start: number, end: number) => {
+    const who = addressOf(b.text, start);
+
+    return who
+      ? {
+          labelHint: `${who} address`,
+          role: who,
+        }
+      : { labelHint: blankLabel(b, start, end) };
+  };
+
   const blankLabel = (b: Block, start: number, end: number) => {
     const rest = `${b.text.slice(0, start)}${b.text.slice(end)}`.trim();
     const cell = labels(b);
@@ -239,7 +262,7 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
         text: m[0],
         marker: "underscore",
         key: `u:${b.id}:${start}`,
-        labelHint: blankLabel(b, start, start + m[0].length),
+        ...blank(b, start, start + m[0].length),
         context: contextOf(text, start, start + m[0].length),
       });
     }
@@ -265,7 +288,7 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
         text: text.slice(line.start, line.end),
         marker: "line",
         key: `l:${b.id}:${line.start}`,
-        labelHint: blankLabel(b, line.start, line.end),
+        ...blank(b, line.start, line.end),
         context: contextOf(shown, line.start, line.start + 4),
       });
     }

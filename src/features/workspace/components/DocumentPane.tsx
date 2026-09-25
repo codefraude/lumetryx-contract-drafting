@@ -2,6 +2,7 @@
 
 import { RotateCcw } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import type { Ref } from "react";
 import { ComparePanel } from "@/features/comparison/components/ComparePanel";
 import {
@@ -41,7 +42,7 @@ interface Props {
   hidden: boolean;
   editorRef: Ref<EditorHandle>;
   editorKey: string;
-  onEditorStatus(status: SaveStatus, message?: string): void;
+  onEditorStatus(status: SaveStatus, error?: unknown): void;
   onEditorSaved(revision: number, savedAt: string): void;
   snapshot(): Promise<Blob | null>;
   compareVersion: string;
@@ -66,30 +67,35 @@ export function DocumentPane({
   compareVersion,
   onRegenerate,
 }: Props) {
+  const t = useTranslations("documentPane");
+  const tCommon = useTranslations("common");
+
   return (
     <main
-      aria-label="Document"
+      aria-label={t("label")}
       className={`flex min-h-0 min-w-0 flex-1 flex-col max-lg:absolute max-lg:inset-0 max-lg:transition-[opacity,visibility] max-lg:duration-200 ${hidden ? "max-lg:pointer-events-none max-lg:invisible max-lg:opacity-0" : ""}`}
     >
       <div className="flex shrink-0 items-end gap-3 border-b border-line bg-surface px-2 sm:px-3">
         <TabBar<DocPane>
           idBase="doc"
-          label="Document view"
+          label={t("views")}
           value={pane}
           onChange={onPane}
           items={[
             {
               id: "document",
-              label: hasDraft ? "Draft" : "Template",
+              label: hasDraft ? t("draft") : t("template"),
             },
             {
               id: "compare",
-              name: "Compare with template",
+              name: t("compareWithTemplate"),
               disabled: generating,
               label: (
                 <>
-                  <span className="sm:hidden">Compare</span>
-                  <span className="max-sm:hidden">Compare with template</span>
+                  <span className="sm:hidden">{t("compare")}</span>
+                  <span className="max-sm:hidden">
+                    {t("compareWithTemplate")}
+                  </span>
                 </>
               ),
             },
@@ -103,7 +109,7 @@ export function DocumentPane({
             onClick={onRegenerate}
             className="ml-auto self-center"
           >
-            Regenerate
+            {tCommon("regenerate")}
           </Button>
         )}
       </div>

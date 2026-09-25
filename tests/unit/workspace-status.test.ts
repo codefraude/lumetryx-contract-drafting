@@ -1,3 +1,4 @@
+import { createTranslator } from "next-intl";
 import { describe, expect, it } from "vitest";
 import { DocumentView } from "@/features/documents/contracts/document-view";
 import {
@@ -6,6 +7,13 @@ import {
   exportWarnings,
   statusLine,
 } from "@/features/workspace/workspace-status";
+import en from "../../messages/en.json";
+
+const t = createTranslator({
+  locale: "en",
+  messages: en,
+  namespace: "status",
+});
 
 const field = (id: string, over: Record<string, unknown> = {}) => {
   return {
@@ -91,6 +99,7 @@ const idle = {
   hasDraft: false,
   save: "viewing" as const,
   savedAt: "2026-09-24T10:30:00.000Z",
+  locale: "en",
 };
 
 describe("workspace status", () => {
@@ -130,7 +139,7 @@ describe("workspace status", () => {
       attention: 1,
     });
 
-    expect(statusLine(documentProgress(doc, inactive), idle)).toEqual({
+    expect(statusLine(t, documentProgress(doc, inactive), idle)).toEqual({
       text: "1 detail and 1 decision still needed",
       tone: "neutral",
     });
@@ -160,7 +169,7 @@ describe("workspace status", () => {
       attention: 0,
     });
 
-    expect(statusLine(p, idle)).toEqual({
+    expect(statusLine(t, p, idle)).toEqual({
       text: "Ready to generate",
       tone: "ok",
     });
@@ -170,25 +179,25 @@ describe("workspace status", () => {
     const p = documentProgress(doc, inactive);
 
     expect(
-      statusLine(p, {
+      statusLine(t, p, {
         ...idle,
         generating: true,
       }).text,
     ).toBe("Generating the draft…");
 
     expect(
-      statusLine(p, {
+      statusLine(t, p, {
         ...idle,
         hasDraft: true,
         save: "saved",
       }),
     ).toEqual({
-      text: `Saved at ${clockTime(idle.savedAt)}`,
+      text: `Saved at ${clockTime(idle.savedAt, "en")}`,
       tone: "ok",
     });
 
     expect(
-      statusLine(p, {
+      statusLine(t, p, {
         ...idle,
         hasDraft: true,
         save: "conflict",
@@ -217,7 +226,7 @@ describe("workspace status", () => {
       ruleIssues: ["An unknown condition was ignored."],
     });
 
-    expect(exportWarnings(risky)).toEqual([
+    expect(exportWarnings(t, risky)).toEqual([
       "“pets clause” is still undecided.",
       "“parking clause” waits for your confirmation.",
       "A clause marker is not closed.",

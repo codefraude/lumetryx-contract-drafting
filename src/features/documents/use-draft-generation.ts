@@ -1,6 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
-import { toFailure, type ActionFailure } from "@/lib/http";
+import { useErrorText } from "@/i18n/error-text";
+import { ApiError, toFailure, type ActionFailure } from "@/lib/http";
 import { streamDraftGeneration } from "./api";
 import type { DraftBlock, StreamEvent } from "./contracts/stream-events";
 import { documentKeys, fieldsVersionOf, patchDocument } from "./queries";
@@ -15,6 +17,8 @@ export function useDraftGeneration(
   documentId: string,
   { onCompleted, onFailed, announce }: Options,
 ) {
+  const t = useTranslations("generation");
+  const errorText = useErrorText();
   const queryClient = useQueryClient();
   const [blocks, setBlocks] = useState<DraftBlock[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -25,7 +29,7 @@ export function useDraftGeneration(
     setBlocks([]);
     setFailure(null);
     setGenerating(true);
-    announce("Generating the draft.");
+    announce(t("started"));
     const ctrl = new AbortController();
 
     abort.current = ctrl;
@@ -51,12 +55,12 @@ export function useDraftGeneration(
         }));
 
         onCompleted(e.workingRevision);
-        announce("The draft is ready to edit.");
+        announce(t("ready"));
       }
 
       if (e.type === "error") {
         fail({
-          message: e.message,
+          message: errorText(new ApiError(e.code, e.message, 200, e.retryable)),
           retryable: e.retryable,
         });
       }
@@ -71,7 +75,7 @@ export function useDraftGeneration(
       );
     } catch (e) {
       if (!ctrl.signal.aborted) {
-        fail(toFailure(e));
+        fail(toFailure(e, errorText(e)));
       }
     } finally {
       abort.current = null;

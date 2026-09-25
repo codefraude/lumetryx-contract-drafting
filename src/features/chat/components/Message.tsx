@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleCheck, Info } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Fragment, memo } from "react";
 import { Callout, StatusText } from "@/shared/ui/Status";
 import { boldSpans, messageBlocks } from "../format";
@@ -59,9 +60,11 @@ function Rich({ text }: { text: string }) {
 }
 
 function Thinking() {
+  const t = useTranslations("chat");
+
   return (
     <div role="status" className="flex h-7 items-center gap-1 text-ink-3">
-      <span className="sr-only">The assistant is working on a reply</span>
+      <span className="sr-only">{t("thinking")}</span>
       {[0, 1, 2].map((i) => (
         <span
           key={i}
@@ -75,6 +78,8 @@ function Thinking() {
 }
 
 export const Message = memo(function Message({ m }: { m: ChatMessage }) {
+  const t = useTranslations("chat");
+
   if (m.role === "notice") {
     return (
       <Callout tone="warn" icon={Info} role="note" className="text-ui">
@@ -86,7 +91,7 @@ export const Message = memo(function Message({ m }: { m: ChatMessage }) {
   if (m.role === "user") {
     return (
       <div className="ml-auto w-fit max-w-[85%] rounded-card border border-line bg-subtle px-3.5 py-2 text-body break-words whitespace-pre-wrap text-ink">
-        <span className="sr-only">You said: </span>
+        <span className="sr-only">{t("youSaid")}</span>
         {m.content}
       </div>
     );
@@ -94,7 +99,7 @@ export const Message = memo(function Message({ m }: { m: ChatMessage }) {
 
   return (
     <div className="text-body leading-relaxed break-words text-ink">
-      <span className="sr-only">Assistant: </span>
+      <span className="sr-only">{t("assistantSaid")}</span>
       {m.content ? (
         <div className="space-y-2.5">
           <Rich text={m.content} />
@@ -104,7 +109,7 @@ export const Message = memo(function Message({ m }: { m: ChatMessage }) {
       ) : null}
       {m.updated ? (
         <StatusText tone="ok" icon={CircleCheck} className="mt-2">
-          {m.updated} {m.updated === 1 ? "detail" : "details"} updated
+          {t("updated", { count: m.updated })}
         </StatusText>
       ) : null}
     </div>

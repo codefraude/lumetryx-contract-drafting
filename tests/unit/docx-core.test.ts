@@ -110,7 +110,7 @@ describe("indexing and detection", () => {
     const blanks = markers.filter((m) => m.marker === "underscore");
 
     expect(blanks).toHaveLength(1);
-    expect(blanks[0]!.labelHint).toContain("of");
+    expect(blanks[0]!.labelHint).toBe("Receiving party address");
   });
 });
 
