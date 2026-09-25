@@ -70,7 +70,7 @@ function roleAround(
 }
 
 const BRACE = /\{\{\s*(\p{L}[\p{L}\p{N}_ .'’-]{0,60}?)\s*\}\}/gu;
-const BRACKET = /\[(\p{L}[\p{L}\p{N} _/'’.,&-]{0,60})\]/gu;
+const BRACKET = /\[\s*(\p{L}[\p{L}\p{N} _/'’.,&-]{0,60}?)\s*\]/gu;
 const UNDERSCORE = /_{4,}/g;
 const CONTROL = /\[\[[^\]]*\]\]/g;
 const NON_FIELD_BRACKETS = new Set([
