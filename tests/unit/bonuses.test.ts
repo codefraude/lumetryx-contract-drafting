@@ -10,7 +10,8 @@ import { compareBlocks } from "@/server/diff/compare-blocks";
 import { diffTokens } from "@/server/diff/token-diff";
 import { renderDraft } from "@/server/draft/generate";
 import { updateWorkingDraft } from "@/server/draft/update";
-import { buildFields, guessType } from "@/server/fields/build-fields";
+import { buildFields } from "@/server/fields/build-fields";
+import { inferType } from "@/server/fields/semantics";
 import {
   detectLanguage,
   documentLanguage,
@@ -268,7 +269,7 @@ describe("language", () => {
     ).toEqual(["en", "fr"]);
 
     expect(grouped.fields.some((x) => x.id === "nom_du_locataire")).toBe(false);
-    expect(guessType("Employer name").valueType).toBe("party");
+    expect(inferType("Employer name", null)).toBe("party");
   });
 });
 

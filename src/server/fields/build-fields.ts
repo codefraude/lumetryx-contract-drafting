@@ -1,7 +1,6 @@
 import {
+  fieldDefaults,
   GROUP_ORDER,
-  FieldGroup,
-  ValueType,
   type Field,
   type Occurrence,
 } from "@/features/documents/contracts/fields";
@@ -14,6 +13,7 @@ import {
   type MarkerOccurrence,
 } from "@/server/docx/detect";
 import { detectLanguage, stripAccents } from "./lang";
+import { enrichAnalysed, markerSemantics, pairTranslations } from "./semantics";
 import type { Rule } from "./state";
 import type { TemplateAnalysis } from "./template-analysis";
 
@@ -35,108 +35,6 @@ const readableLabel = (label: string, id: string) => {
 
   return /\p{L}/u.test(readable) ? readable : humanize(id);
 };
-
-export function guessType(label: string): {
-  valueType: ValueType;
-  group: FieldGroup;
-} {
-  const l = stripAccents(label.toLowerCase());
-
-  const has = (words: string) => {
-    return new RegExp(`\\b(${words})`).test(l);
-  };
-
-  if (has("e-?mail|courriel")) {
-    return {
-      valueType: "text",
-      group: "parties",
-    };
-  }
-
-  if (/\b(name|nom)\b/.test(l)) {
-    return {
-      valueType: "party",
-      group: "parties",
-    };
-  }
-
-  if (
-    has(
-      "date\\b|commence|start|end\\b|expir|effective|debut|fin\\b|echeance|signature\\b|entree\\b",
-    )
-  ) {
-    return {
-      valueType: "date",
-      group: "dates",
-    };
-  }
-
-  if (has("days?\\b|jours?\\b|weeks?\\b|semaines?\\b")) {
-    return {
-      valueType: "duration",
-      group: "other",
-    };
-  }
-
-  if (
-    has(
-      "rent|amount|price|fees?\\b|deposit|sum\\b|salary|payment|indemnit|loyer|montant|prix|depot|garantie|salaire|honoraires|remuneration|acompte|solde",
-    )
-  ) {
-    return {
-      valueType: "money",
-      group: "money",
-    };
-  }
-
-  if (has("rate|percent|interest|taux|pourcentage|interet")) {
-    return {
-      valueType: "percentage",
-      group: "money",
-    };
-  }
-
-  if (has("address|premises|property|situated|adresse|locaux|bien\\b|situe")) {
-    return {
-      valueType: "address",
-      group: has("property|premises|locaux|bien\\b") ? "subject" : "parties",
-    };
-  }
-
-  if (
-    has(
-      "landlord|tenant|party|client|employee|employer|company|lessor|lessee|buyer|seller|bailleur|locataire|partie|salarie|employeur|societe|vendeur|acheteur|prestataire",
-    )
-  ) {
-    return {
-      valueType: "party",
-      group: "parties",
-    };
-  }
-
-  if (has("law\\b|jurisdiction|court|droit\\b|juridiction|tribunal")) {
-    return {
-      valueType: "jurisdiction",
-      group: "other",
-    };
-  }
-
-  if (
-    has(
-      "years|months|period|term\\b|duration|duree|mois|annees|periode|preavis|notice",
-    )
-  ) {
-    return {
-      valueType: "duration",
-      group: "other",
-    };
-  }
-
-  return {
-    valueType: "text",
-    group: "other",
-  };
-}
 
 export interface BuildResult {
   fields: Field[];
@@ -287,8 +185,8 @@ export function buildFields(
     }
 
     const ctxBlock = blockById.get(first.blockId);
-
-    fields.push({
+    const analysed: Field = {
+      ...fieldDefaults(),
       id: uniqueId(af.id),
       label: readableLabel(af.label, af.id),
       question: af.question,
@@ -312,7 +210,15 @@ export function buildFields(
       normalized: null,
       note: null,
       related: [],
-    });
+      owner: af.owner ?? null,
+      unit: af.unit ?? null,
+      requiredReason: {
+        code: af.required ? "analysis" : "optional",
+        params: {},
+      },
+    };
+
+    fields.push(enrichAnalysed(analysed, markers, blockById));
   }
 
   const dismissible = (m: MarkerOccurrence) => {
@@ -333,14 +239,18 @@ export function buildFields(
       continue;
     }
 
-    const guess = guessType(m.labelHint);
+    const meaning = markerSemantics(m, blockById);
     const drawn = m.marker === "underscore" || m.marker === "line";
 
     fields.push({
+      ...fieldDefaults(),
       id: uniqueId(drawn ? `blank_${m.labelHint}` : m.labelHint),
       label: m.labelHint,
-      valueType: guess.valueType,
-      group: guess.group,
+      valueType: meaning.valueType,
+      group: meaning.group,
+      owner: meaning.owner,
+      role: meaning.role,
+      unit: meaning.unit,
       occurrences: ms.map(toOccurrence),
       context: m.context,
       required: true,
@@ -355,7 +265,26 @@ export function buildFields(
         : m.marker === "cell"
           ? "Detected from an empty table cell; confirm what it should contain."
           : null,
+      issue: drawn
+        ? {
+            code: "detected_blank",
+            params: {},
+          }
+        : m.marker === "cell"
+          ? {
+              code: "detected_cell",
+              params: {},
+            }
+          : null,
       related: [],
+      requiredReason: {
+        code: drawn
+          ? "blank"
+          : m.marker === "cell"
+            ? "empty_cell"
+            : "placeholder",
+        params: {},
+      },
     });
   }
 
@@ -423,9 +352,27 @@ export function buildFields(
     }
   }
 
+  const paired = pairTranslations(fields, blocks);
+
+  for (const f of paired) {
+    const rule = rules.find(
+      (r) =>
+        f.source !== "condition" &&
+        f.occurrences.length > 0 &&
+        f.occurrences.every((o) => r.blockIds.includes(o.blockId)),
+    );
+
+    if (rule) {
+      f.requiredReason = {
+        code: "conditional",
+        params: { clause: rule.label },
+      };
+    }
+  }
+
   const seen = new Map<string, number>();
 
-  for (const f of fields) {
+  for (const f of paired) {
     const k = f.label.trim().toLowerCase();
     const n = (seen.get(k) ?? 0) + 1;
 
@@ -444,14 +391,14 @@ export function buildFields(
     return o ? (position.get(o.blockId) ?? blocks.length) * 1e6 + o.start : 0;
   };
 
-  fields.sort(
+  paired.sort(
     (a, b) =>
       GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group) ||
       where(a) - where(b),
   );
 
   return {
-    fields,
+    fields: paired,
     rules,
     ruleIssues: parsed.issues,
     rejected,

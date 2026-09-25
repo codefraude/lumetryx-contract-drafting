@@ -1,4 +1,7 @@
-import type { Field } from "@/features/documents/contracts/fields";
+import {
+  fieldDefaults,
+  type Field,
+} from "@/features/documents/contracts/fields";
 import type { Block } from "@/server/docx/blocks";
 import { normalizeKey } from "@/server/docx/detect";
 import type { Rule } from "@/server/fields/state";
@@ -208,6 +211,7 @@ export function parseConditionMarkers(blocks: Block[]): ParsedConditions {
       const label = labelFromId(fieldId);
 
       fields.set(fieldId, {
+        ...fieldDefaults(),
         id: fieldId,
         label,
         question: boolean
@@ -229,6 +233,10 @@ export function parseConditionMarkers(blocks: Block[]): ParsedConditions {
         normalized: null,
         note: null,
         related: [],
+        requiredReason: {
+          code: "conditional",
+          params: {},
+        },
       });
     }
 

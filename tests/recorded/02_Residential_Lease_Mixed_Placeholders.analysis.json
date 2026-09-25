@@ -1,0 +1,360 @@
+{
+ "model": "gemini-3.1-flash-lite",
+ "recorded": "2026-09-25",
+ "promptVersion": "p5",
+ "analysis": {
+  "fields": [
+   {
+    "id": "landlord_name",
+    "label": "landlord_name",
+    "question": "What is the full name of the landlord?",
+    "questionFr": "Quel est le nom complet du bailleur ?",
+    "valueType": "party",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:landlord name"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "tenant_name",
+    "label": "TENANT NAME",
+    "question": "What is the full name of the tenant?",
+    "questionFr": "Quel est le nom complet du locataire ?",
+    "valueType": "party",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:tenant name"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "landlord_address",
+    "label": "landlord_address",
+    "question": "What is the landlord's address?",
+    "questionFr": "Quelle est l'adresse du bailleur ?",
+    "valueType": "address",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:landlord address"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "tenant_address",
+    "label": "address",
+    "question": "What is the tenant's address?",
+    "questionFr": "Quelle est l'adresse du locataire ?",
+    "valueType": "address",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:address"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "agreement_date",
+    "label": "AGREEMENT DATE",
+    "question": "What is the date of the agreement?",
+    "questionFr": "Quelle est la date du contrat ?",
+    "valueType": "date",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:agreement date"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "property_address",
+    "label": "property_address",
+    "question": "What is the address of the rental property?",
+    "questionFr": "Quelle est l'adresse du bien immobilier ?",
+    "valueType": "address",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "k:property address"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "property_reference",
+    "label": "property_reference",
+    "question": "What is the reference code or identifier for the property?",
+    "questionFr": "Quelle est la référence du bien immobilier ?",
+    "valueType": "text",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "k:property reference"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "occupant_count",
+    "label": "occupants in total",
+    "question": "How many people will occupy the premises?",
+    "questionFr": "Combien de personnes occuperont les lieux ?",
+    "valueType": "number",
+    "group": "other",
+    "required": true,
+    "markerKeys": [
+     "l:word/document.xml#5:33"
+    ],
+    "implicit": [
+     {
+      "blockId": "word/document.xml#5",
+      "quote": "The premises will be occupied by ",
+      "replace": false
+     }
+    ]
+   },
+   {
+    "id": "additional_occupants",
+    "label": "Additional permitted occupants",
+    "question": "Who are the additional permitted occupants, if any?",
+    "questionFr": "Quels sont les occupants autorisés supplémentaires, le cas échéant ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": false,
+    "markerKeys": [
+     "u:word/document.xml#6:56"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "lease_start_date",
+    "label": "lease_start_date",
+    "question": "What is the start date of the lease?",
+    "questionFr": "Quelle est la date de début du bail ?",
+    "valueType": "date",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:lease start date"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "lease_end_date",
+    "label": "LEASE END DATE",
+    "question": "What is the end date of the lease?",
+    "questionFr": "Quelle est la date de fin du bail ?",
+    "valueType": "date",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:lease end date"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "monthly_rent",
+    "label": "monthly_rent",
+    "question": "What is the monthly rent amount?",
+    "questionFr": "Quel est le montant du loyer mensuel ?",
+    "valueType": "money",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "k:monthly rent"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "currency",
+    "label": "CURRENCY",
+    "question": "In what currency is the rent payable?",
+    "questionFr": "Dans quelle devise le loyer est-il payable ?",
+    "valueType": "text",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "k:currency"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "refundable_deposit",
+    "label": "Refundable deposit",
+    "question": "What is the amount of the refundable deposit?",
+    "questionFr": "Quel est le montant du dépôt de garantie ?",
+    "valueType": "money",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "u:word/document.xml#19:0"
+    ],
+    "implicit": [
+     {
+      "blockId": "word/document.xml#19",
+      "quote": "________",
+      "replace": true
+     }
+    ]
+   },
+   {
+    "id": "rent_due_day",
+    "label": "Rent due day each month",
+    "question": "On which day of the month is the rent due?",
+    "questionFr": "Quel jour du mois le loyer est-il exigible ?",
+    "valueType": "number",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "e:word/document.xml#21"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "payment_method",
+    "label": "PAYMENT METHOD",
+    "question": "What is the agreed payment method?",
+    "questionFr": "Quel est le mode de paiement convenu ?",
+    "valueType": "text",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "k:payment method"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "key_count",
+    "label": "key_count",
+    "question": "How many keys and access devices are provided?",
+    "questionFr": "Combien de clés et de dispositifs d'accès sont fournis ?",
+    "valueType": "number",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "k:key count"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "electricity_meter_reading",
+    "label": "ELECTRICITY METER READING",
+    "question": "What is the initial electricity meter reading?",
+    "questionFr": "Quel est le relevé initial du compteur d'électricité ?",
+    "valueType": "number",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "k:electricity meter reading"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "electricity_payer",
+    "label": "electricity_payer",
+    "question": "Who is responsible for paying electricity charges?",
+    "questionFr": "Qui est responsable du paiement des charges d'électricité ?",
+    "valueType": "party",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "k:electricity payer"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "water_payer",
+    "label": "WATER CHARGES PAID BY",
+    "question": "Who is responsible for paying water charges?",
+    "questionFr": "Qui est responsable du paiement des charges d'eau ?",
+    "valueType": "party",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "k:water charges paid by"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "internet_payer",
+    "label": "Internet payer",
+    "question": "Who is responsible for paying internet charges?",
+    "questionFr": "Qui est responsable du paiement des charges internet ?",
+    "valueType": "party",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "u:word/document.xml#41:0"
+    ],
+    "implicit": [
+     {
+      "blockId": "word/document.xml#41",
+      "quote": "________",
+      "replace": true
+     }
+    ]
+   },
+   {
+    "id": "visit_notice_hours",
+    "label": "Routine visit notice (hours)",
+    "question": "How many hours of advance notice are required for a routine visit?",
+    "questionFr": "Combien d'heures de préavis sont nécessaires pour une visite de routine ?",
+    "valueType": "number",
+    "group": "other",
+    "required": true,
+    "markerKeys": [
+     "u:word/document.xml#44:127"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "tenant_email",
+    "label": "tenant_email",
+    "question": "What is the tenant's email address?",
+    "questionFr": "Quelle est l'adresse e-mail du locataire ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:tenant email"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "landlord_email",
+    "label": "LANDLORD EMAIL",
+    "question": "What is the landlord's email address?",
+    "questionFr": "Quelle est l'adresse e-mail du bailleur ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:landlord email"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "termination_notice_days",
+    "label": "Notice period (days)",
+    "question": "How many days of notice are required to end the tenancy?",
+    "questionFr": "Combien de jours de préavis sont nécessaires pour mettre fin au bail ?",
+    "valueType": "number",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "l:word/document.xml#47:51"
+    ],
+    "implicit": [
+     {
+      "blockId": "word/document.xml#47",
+      "quote": "is ",
+      "replace": false
+     }
+    ]
+   }
+  ],
+  "notFields": [],
+  "conditions": []
+ }
+}

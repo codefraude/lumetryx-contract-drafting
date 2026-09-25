@@ -178,7 +178,7 @@ describe("empty cells in a fill-in table", () => {
 
     const f = built.fields.find((x) => x.label === "Email address (Party A)");
 
-    expect(f?.valueType).toBe("text");
+    expect(f?.valueType).toBe("email");
 
     expect(f?.occurrences[0]).toMatchObject({
       blockId: "word/document.xml#7",

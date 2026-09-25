@@ -4,7 +4,10 @@ import { applyExtraction } from "@/server/ai/extraction";
 import { clauseContext, replyPrompt } from "@/server/ai/reply";
 import { renderAt } from "@/server/fields/normalize";
 import { errorBody } from "@/server/http/responses";
-import type { Field } from "@/features/documents/contracts/fields";
+import {
+  fieldDefaults,
+  type Field,
+} from "@/features/documents/contracts/fields";
 
 const field = (
   id: string,
@@ -13,6 +16,7 @@ const field = (
   status: Field["status"] = "missing",
 ): Field => {
   return {
+    ...fieldDefaults(),
     id,
     label,
     valueType: "text",

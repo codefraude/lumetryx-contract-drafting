@@ -1,0 +1,317 @@
+{
+ "model": "gemini-3.1-flash-lite",
+ "recorded": "2026-09-25",
+ "promptVersion": "p5",
+ "analysis": {
+  "fields": [
+   {
+    "id": "provider_name",
+    "label": "Provider / Prestataire",
+    "question": "What is the provider's name?",
+    "questionFr": "Quel est le nom du prestataire ?",
+    "valueType": "party",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:provider name"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "provider_address",
+    "label": "ADRESSE DU PRESTATAIRE",
+    "question": "What is the provider's address?",
+    "questionFr": "Quelle est l'adresse du prestataire ?",
+    "valueType": "address",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:adresse du prestataire"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "client_name",
+    "label": "CLIENT NAME",
+    "question": "What is the client's name?",
+    "questionFr": "Quel est le nom du client ?",
+    "valueType": "party",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:client name"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "client_address",
+    "label": "client_address",
+    "question": "What is the client's address?",
+    "questionFr": "Quelle est l'adresse du client ?",
+    "valueType": "address",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:client address"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "project_title",
+    "label": "project_title",
+    "question": "What is the title of the project?",
+    "questionFr": "Quel est le titre du projet ?",
+    "valueType": "text",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "k:project title"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "project_reference",
+    "label": "project_reference",
+    "question": "What is the project reference number?",
+    "questionFr": "Quelle est la référence du projet ?",
+    "valueType": "text",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "k:project reference"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "start_date",
+    "label": "DATE DE DÉBUT",
+    "question": "What is the project start date?",
+    "questionFr": "Quelle est la date de début du projet ?",
+    "valueType": "date",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:date de debut"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "services_description",
+    "label": "The services to be provided are",
+    "question": "What services will be provided?",
+    "questionFr": "Quelles sont les prestations à fournir ?",
+    "valueType": "text",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "l:word/document.xml#17:32",
+     "l:word/document.xml#18:31"
+    ],
+    "implicit": [
+     {
+      "blockId": "word/document.xml#17",
+      "quote": "The services to be provided are ",
+      "replace": false
+     },
+     {
+      "blockId": "word/document.xml#18",
+      "quote": "Les prestations à fournir sont ",
+      "replace": false
+     }
+    ]
+   },
+   {
+    "id": "deliverable_1",
+    "label": "deliverable_1",
+    "question": "What is the first deliverable?",
+    "questionFr": "Quel est le premier livrable ?",
+    "valueType": "text",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "k:deliverable 1"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "delivery_date_1",
+    "label": "DELIVERY DATE 1",
+    "question": "What is the due date for the first deliverable?",
+    "questionFr": "Quelle est la date d'échéance du premier livrable ?",
+    "valueType": "date",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:delivery date 1"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "livrable_2",
+    "label": "LIVRABLE 2",
+    "question": "What is the second deliverable?",
+    "questionFr": "Quel est le deuxième livrable ?",
+    "valueType": "text",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "k:livrable 2"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "delivery_date_2",
+    "label": "delivery_date_2",
+    "question": "What is the due date for the second deliverable?",
+    "questionFr": "Quelle est la date d'échéance du deuxième livrable ?",
+    "valueType": "date",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:delivery date 2"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "review_period",
+    "label": "________ (business days)",
+    "question": "How many business days does the client have to review each deliverable?",
+    "questionFr": "Combien de jours ouvrés le client dispose-t-il pour examiner chaque livrable ?",
+    "valueType": "number",
+    "group": "other",
+    "required": true,
+    "markerKeys": [
+     "u:word/document.xml#27:48"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "provider_contact",
+    "label": "provider_contact",
+    "question": "Who is the contact person for the provider?",
+    "questionFr": "Qui est la personne de contact pour le prestataire ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:provider contact"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "client_contact",
+    "label": "CONTACT CLIENT",
+    "question": "Who is the contact person for the client?",
+    "questionFr": "Qui est la personne de contact pour le client ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:contact client"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "total_fee",
+    "label": "total_fee",
+    "question": "What is the total fee for the services?",
+    "questionFr": "Quel est le prix total des prestations ?",
+    "valueType": "money",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "k:total fee"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "currency",
+    "label": "DEVISE",
+    "question": "What is the currency for the fees?",
+    "questionFr": "Quelle est la devise utilisée pour les honoraires ?",
+    "valueType": "text",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "k:devise"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "advance_payment",
+    "label": "Advance payment / Acompte",
+    "question": "What is the amount of the advance payment, if any?",
+    "questionFr": "Quel est le montant de l'acompte, le cas échéant ?",
+    "valueType": "money",
+    "group": "money",
+    "required": false,
+    "markerKeys": [
+     "u:word/document.xml#39:0"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "payment_deadline",
+    "label": "Payment deadline in days / Délai de paiement en jours",
+    "question": "What is the payment deadline in days?",
+    "questionFr": "Quel est le délai de paiement en jours ?",
+    "valueType": "number",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "k:completion date"
+    ],
+    "implicit": [
+     {
+      "blockId": "word/document.xml#41",
+      "quote": "Payment deadline in days / Délai de paiement en jours",
+      "replace": false
+     }
+    ]
+   },
+   {
+    "id": "billing_email",
+    "label": "billing_email",
+    "question": "To which email address should invoices be sent?",
+    "questionFr": "À quelle adresse e-mail les factures doivent-elles être envoyées ?",
+    "valueType": "text",
+    "group": "money",
+    "required": true,
+    "markerKeys": [
+     "k:billing email"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "working_materials",
+    "label": "WORKING MATERIALS TO HAND OVER",
+    "question": "What working materials must be handed over upon completion?",
+    "questionFr": "Quels éléments de travail doivent être remis à la fin de la mission ?",
+    "valueType": "text",
+    "group": "subject",
+    "required": false,
+    "markerKeys": [
+     "k:working materials to hand over"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "completion_date",
+    "label": "completion_date",
+    "question": "What is the target completion date?",
+    "questionFr": "Quelle est la date prévue pour la fin de la mission ?",
+    "valueType": "date",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:completion date"
+    ],
+    "implicit": []
+   }
+  ],
+  "notFields": [
+   "k:project reference"
+  ],
+  "conditions": []
+ }
+}

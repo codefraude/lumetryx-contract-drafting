@@ -1,0 +1,265 @@
+{
+ "model": "gemini-3.1-flash-lite",
+ "recorded": "2026-09-25",
+ "promptVersion": "p5",
+ "analysis": {
+  "fields": [
+   {
+    "id": "effective_date",
+    "label": "{{effective_date}}",
+    "question": "What is the effective date of the agreement?",
+    "questionFr": "Quelle est la date d'effet de l'accord ?",
+    "valueType": "date",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:effective date"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_a_name",
+    "label": "{{party_a_name}}",
+    "question": "What is the legal name of Party A?",
+    "questionFr": "Quel est le nom légal de la Partie A ?",
+    "valueType": "party",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party a name"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_a_address",
+    "label": "{{party_a_address}}",
+    "question": "What is the registered or principal address of Party A?",
+    "questionFr": "Quelle est l'adresse enregistrée ou principale de la Partie A ?",
+    "valueType": "address",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party a address"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_b_legal_name",
+    "label": "[PARTY B LEGAL NAME]",
+    "question": "What is the legal name of Party B?",
+    "questionFr": "Quel est le nom légal de la Partie B ?",
+    "valueType": "party",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party b legal name"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_b_address",
+    "label": "{{party_b_address}}",
+    "question": "What is the registered or principal address of Party B?",
+    "questionFr": "Quelle est l'adresse enregistrée ou principale de la Partie B ?",
+    "valueType": "address",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party b address"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "evaluation_purpose",
+    "label": "evaluate ____",
+    "question": "What is the specific purpose for the information exchange?",
+    "questionFr": "Quel est l'objet spécifique de l'échange d'informations ?",
+    "valueType": "text",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "l:word/document.xml#14:31"
+    ],
+    "implicit": [
+     {
+      "blockId": "word/document.xml#14",
+      "quote": "The parties intend to evaluate ",
+      "replace": false
+     }
+    ]
+   },
+   {
+    "id": "project_name",
+    "label": "{{project_name}}",
+    "question": "What is the project name?",
+    "questionFr": "Quel est le nom du projet ?",
+    "valueType": "text",
+    "group": "subject",
+    "required": true,
+    "markerKeys": [
+     "k:project name"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "exchange_period_months",
+    "label": "{{exchange_period_months}}",
+    "question": "How many months will the exchange period last?",
+    "questionFr": "Combien de mois la période d'échange durera-t-elle ?",
+    "valueType": "number",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:exchange period months"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "confidentiality_period_years",
+    "label": "[CONFIDENTIALITY PERIOD IN YEARS]",
+    "question": "How many years should the confidentiality obligations continue after the exchange period?",
+    "questionFr": "Combien d'années les obligations de confidentialité doivent-elles se poursuivre après la période d'échange ?",
+    "valueType": "number",
+    "group": "dates",
+    "required": true,
+    "markerKeys": [
+     "k:confidentiality period in years"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "return_days",
+    "label": "________",
+    "question": "Within how many calendar days must the receiving party return or delete materials upon request?",
+    "questionFr": "Dans combien de jours calendaires la partie réceptrice doit-elle retourner ou supprimer les documents sur demande ?",
+    "valueType": "number",
+    "group": "other",
+    "required": true,
+    "markerKeys": [
+     "u:word/document.xml#30:95"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "agreement_reference",
+    "label": "{{agreement_reference}}",
+    "question": "What is the unique reference identifier for this agreement?",
+    "questionFr": "Quel est l'identifiant de référence unique pour cet accord ?",
+    "valueType": "text",
+    "group": "other",
+    "required": true,
+    "markerKeys": [
+     "k:agreement reference"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_a_contact",
+    "label": "{{party_a_contact}}",
+    "question": "Who is the primary contact person for Party A?",
+    "questionFr": "Qui est la personne de contact principale pour la Partie A ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party a contact"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_b_contact",
+    "label": "{{party_b_contact}}",
+    "question": "Who is the primary contact person for Party B?",
+    "questionFr": "Qui est la personne de contact principale pour la Partie B ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party b contact"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_a_email",
+    "label": "Email address (Party A)",
+    "question": "What is the email address for Party A's notices?",
+    "questionFr": "Quelle est l'adresse électronique pour les notifications de la Partie A ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "e:word/document.xml#41"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_b_email",
+    "label": "{{party_b_email}}",
+    "question": "What is the email address for Party B's notices?",
+    "questionFr": "Quelle est l'adresse électronique pour les notifications de la Partie B ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party b email"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_a_signatory_name",
+    "label": "{{party_a_signatory_name}}",
+    "question": "What is the name of the signatory for Party A?",
+    "questionFr": "Quel est le nom du signataire pour la Partie A ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party a signatory name"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_a_signatory_title",
+    "label": "[PARTY A SIGNATORY TITLE]",
+    "question": "What is the job title of the signatory for Party A?",
+    "questionFr": "Quel est le titre de poste du signataire pour la Partie A ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party a signatory title"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_b_signatory_name",
+    "label": "{{party_b_signatory_name}}",
+    "question": "What is the name of the signatory for Party B?",
+    "questionFr": "Quel est le nom du signataire pour la Partie B ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party b signatory name"
+    ],
+    "implicit": []
+   },
+   {
+    "id": "party_b_signatory_title",
+    "label": "[PARTY B SIGNATORY TITLE]",
+    "question": "What is the job title of the signatory for Party B?",
+    "questionFr": "Quel est le titre de poste du signataire pour la Partie B ?",
+    "valueType": "text",
+    "group": "parties",
+    "required": true,
+    "markerKeys": [
+     "k:party b signatory title"
+    ],
+    "implicit": []
+   }
+  ],
+  "notFields": [],
+  "conditions": [],
+  "proposedRules": []
+ }
+}

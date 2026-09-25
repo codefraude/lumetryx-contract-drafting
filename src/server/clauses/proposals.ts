@@ -1,4 +1,7 @@
-import type { Field } from "@/features/documents/contracts/fields";
+import {
+  fieldDefaults,
+  type Field,
+} from "@/features/documents/contracts/fields";
 import type { Block } from "@/server/docx/blocks";
 import type { Rule } from "@/server/fields/state";
 import {
@@ -95,6 +98,7 @@ export function validateProposal(
       contentHash: null,
     },
     field: {
+      ...fieldDefaults(),
       id: fieldId,
       label,
       question: p.question.slice(0, 240),
@@ -112,6 +116,10 @@ export function validateProposal(
       normalized: null,
       note: null,
       related: [],
+      requiredReason: {
+        code: "conditional",
+        params: {},
+      },
     },
   };
 }

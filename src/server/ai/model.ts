@@ -11,7 +11,7 @@ import { recordUsage } from "@/server/db/sessions";
 import { ConfigMissingError, env, requireEnv, type Env } from "@/server/env";
 import { BothFailedError, withFallback } from "./fallback";
 
-export const PROMPT_VERSION = "p5";
+export const PROMPT_VERSION = "p6";
 
 const geminiModel = () => {
   return createGoogleGenerativeAI({

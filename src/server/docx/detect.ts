@@ -1,4 +1,5 @@
 import type { Block } from "@/server/docx/blocks";
+import { cellLabel, cellLabeller } from "./table-labels";
 
 export type MarkerKind =
   "brace" | "bracket" | "underscore" | "line" | "cell" | "control";
@@ -13,6 +14,47 @@ export interface MarkerOccurrence {
   labelHint: string;
   context: string;
   title?: string;
+  role?: string;
+}
+
+const GENERIC_LABEL =
+  /^(address|adresse|name|nom|date|e ?mail|courriel|signature|title|titre|company|societe|phone|telephone)$/;
+const DEFINED = String.raw`\((?:the|le|la|l['’]|hereinafter(?: the)?|ci-après(?: le| la)?)\s*[“"«]?\s*(\p{Lu}[\p{L}'’-]*(?: \p{Lu}[\p{L}'’-]*)?)\s*[”"»]?\)`;
+const ROLE_AFTER = new RegExp(String.raw`^\s*${DEFINED}`, "u");
+const ROLE_BEFORE = new RegExp(
+  String.raw`${DEFINED}\s*,?\s*(?:of|at|residing at|whose address is|domicilié(?:e)? (?:à|au)|demeurant(?: à| au)?|sis(?:e)?(?: à| au)?)?\s*[:,]?\s*$`,
+  "u",
+);
+const CAPTION_BEFORE = /(\p{Lu}[\p{L}'’-]+)\s*:\s*$/u;
+
+function definedRoles(blocks: Block[]): Set<string> {
+  const roles = new Set<string>();
+
+  for (const b of blocks) {
+    for (const m of b.text.matchAll(new RegExp(DEFINED, "gu"))) {
+      roles.add((m[1] ?? "").toLowerCase());
+    }
+  }
+
+  return roles;
+}
+
+function roleAround(
+  text: string,
+  start: number,
+  end: number,
+  roles: ReadonlySet<string>,
+): string | null {
+  const after = ROLE_AFTER.exec(text.slice(end, end + 60));
+  const before = text.slice(Math.max(0, start - 70), start);
+  const defined = ROLE_BEFORE.exec(before);
+  const caption = CAPTION_BEFORE.exec(before);
+
+  return (
+    after?.[1] ??
+    defined?.[1] ??
+    (caption?.[1] && roles.has(caption[1].toLowerCase()) ? caption[1] : null)
+  );
 }
 
 const BRACE = /\{\{\s*(\p{L}[\p{L}\p{N}_ .'’-]{0,60}?)\s*\}\}/gu;
@@ -82,6 +124,33 @@ const GENERIC_PROMPT =
 export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
   const out: MarkerOccurrence[] = [];
   const bindings = new Map<string, number>();
+  const roles = definedRoles(blocks);
+  const labels = cellLabeller(blocks);
+
+  const named = (m: MarkerOccurrence, b: Block): MarkerOccurrence => {
+    const role = GENERIC_LABEL.test(normalizeKey(m.labelHint))
+      ? roleAround(b.text, m.start, m.end, roles)
+      : null;
+
+    return role
+      ? {
+          ...m,
+          key: `${m.key}@${normalizeKey(role)}`,
+          labelHint: `${role} ${m.labelHint.toLowerCase()}`,
+          role,
+        }
+      : m;
+  };
+
+  const blankLabel = (b: Block, start: number, end: number) => {
+    const rest = `${b.text.slice(0, start)}${b.text.slice(end)}`.trim();
+    const cell = labels(b);
+
+    return (
+      (!rest && cell ? cellLabel(cell) : "") || underscoreLabel(b.text, start)
+    );
+  };
+
   const sampleTitles = new Set(
     blocks.flatMap((b) =>
       (b.placeholders ?? []).flatMap((ph) =>
@@ -109,16 +178,21 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
       const [, name = ""] = m;
       const start = m.index;
 
-      out.push({
-        blockId: b.id,
-        start,
-        end: start + m[0].length,
-        text: m[0],
-        marker: "brace",
-        key: `k:${normalizeKey(name)}`,
-        labelHint: humanize(name),
-        context: contextOf(text, start, start + m[0].length),
-      });
+      out.push(
+        named(
+          {
+            blockId: b.id,
+            start,
+            end: start + m[0].length,
+            text: m[0],
+            marker: "brace",
+            key: `k:${normalizeKey(name)}`,
+            labelHint: humanize(name),
+            context: contextOf(text, start, start + m[0].length),
+          },
+          b,
+        ),
+      );
     }
 
     for (const m of text.matchAll(BRACKET)) {
@@ -134,16 +208,21 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
 
       const start = m.index;
 
-      out.push({
-        blockId: b.id,
-        start,
-        end: start + m[0].length,
-        text: m[0],
-        marker: "bracket",
-        key: `k:${normalizeKey(inner)}`,
-        labelHint: humanize(inner),
-        context: contextOf(text, start, start + m[0].length),
-      });
+      out.push(
+        named(
+          {
+            blockId: b.id,
+            start,
+            end: start + m[0].length,
+            text: m[0],
+            marker: "bracket",
+            key: `k:${normalizeKey(inner)}`,
+            labelHint: humanize(inner),
+            context: contextOf(text, start, start + m[0].length),
+          },
+          b,
+        ),
+      );
     }
 
     for (const m of text.matchAll(UNDERSCORE)) {
@@ -160,7 +239,7 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
         text: m[0],
         marker: "underscore",
         key: `u:${b.id}:${start}`,
-        labelHint: underscoreLabel(text, start),
+        labelHint: blankLabel(b, start, start + m[0].length),
         context: contextOf(text, start, start + m[0].length),
       });
     }
@@ -186,7 +265,7 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
         text: text.slice(line.start, line.end),
         marker: "line",
         key: `l:${b.id}:${line.start}`,
-        labelHint: underscoreLabel(text, line.start),
+        labelHint: blankLabel(b, line.start, line.end),
         context: contextOf(shown, line.start, line.start + 4),
       });
     }
@@ -236,12 +315,13 @@ export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
     }
   }
 
-  return [...out, ...emptyCells(blocks, out)];
+  return [...out, ...emptyCells(blocks, out, labels)];
 }
 
 function emptyCells(
   blocks: Block[],
   markers: MarkerOccurrence[],
+  labels: ReturnType<typeof cellLabeller>,
 ): MarkerOccurrence[] {
   const marked = new Set(markers.map((m) => m.blockId));
   const tables = new Map<string, Block[]>();
@@ -307,6 +387,7 @@ function emptyCells(
         }
 
         const heading = header ? textAt(0, c) : "";
+        const cell = labels(first);
 
         found.push({
           blockId: first.id,
@@ -315,8 +396,7 @@ function emptyCells(
           text: "",
           marker: "cell",
           key: `e:${first.id}`,
-          labelHint:
-            heading && valueCols.length > 1 ? `${label} (${heading})` : label,
+          labelHint: (cell && cellLabel(cell)) || label,
           context: heading
             ? `empty cell in the row "${label}", column "${heading}"`
             : `empty cell in the row "${label}"`,

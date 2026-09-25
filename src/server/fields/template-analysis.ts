@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { FieldGroup, ValueType } from "@/features/documents/contracts/fields";
+import {
+  FieldGroup,
+  Unit,
+  ValueType,
+} from "@/features/documents/contracts/fields";
 
 export const TemplateAnalysis = z.object({
   fields: z.array(
@@ -28,6 +32,19 @@ export const TemplateAnalysis = z.object({
       valueType: ValueType,
       group: FieldGroup,
       required: z.boolean(),
+      owner: z
+        .string()
+        .regex(/^[a-z][a-z0-9_]{0,39}$/)
+        .nullable()
+        .optional()
+        .describe(
+          "English snake_case party or entity the value belongs to (e.g. tenant, landlord, party_a, provider), or null",
+        ),
+      unit: Unit.nullable()
+        .optional()
+        .describe(
+          "Unit the template counts this number in, from the words around it (e.g. 'calendar days' -> days, 'business days' -> business_days, 'persons' -> persons), or null",
+        ),
       markerKeys: z
         .array(z.string())
         .describe("Keys of the detected markers that mean this same thing"),

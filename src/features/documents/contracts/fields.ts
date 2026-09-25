@@ -11,6 +11,8 @@ export const ValueType = z.enum([
   "percentage",
   "jurisdiction",
   "boolean",
+  "email",
+  "currency",
 ]);
 
 export type ValueType = z.infer<typeof ValueType>;
@@ -21,6 +23,7 @@ export const FieldGroup = z.enum([
   "dates",
   "money",
   "other",
+  "contacts",
 ]);
 
 export type FieldGroup = z.infer<typeof FieldGroup>;
@@ -31,6 +34,7 @@ export const GROUP_ORDER: FieldGroup[] = [
   "dates",
   "money",
   "other",
+  "contacts",
 ];
 
 export const FieldStatus = z.enum([
@@ -40,6 +44,84 @@ export const FieldStatus = z.enum([
 ]);
 
 export type FieldStatus = z.infer<typeof FieldStatus>;
+
+export const Unit = z.enum([
+  "days",
+  "business_days",
+  "hours",
+  "weeks",
+  "months",
+  "years",
+  "persons",
+]);
+
+export type Unit = z.infer<typeof Unit>;
+
+export const Resolution = z.enum([
+  "value",
+  "none",
+  "not_applicable",
+  "unknown",
+  "left_blank",
+]);
+
+export type Resolution = z.infer<typeof Resolution>;
+
+export const IssueCode = z.enum([
+  "ambiguous_date",
+  "invalid_date",
+  "unreadable_date",
+  "ambiguous_amount",
+  "invalid_amount",
+  "unreadable_amount",
+  "ambiguous_currency",
+  "missing_currency",
+  "invalid_boolean",
+  "invalid_email",
+  "invalid_number",
+  "date_order",
+  "conflicting_values",
+  "ambiguous_reference",
+  "required_field",
+  "translation_needed",
+  "detected_blank",
+  "detected_cell",
+]);
+
+export type IssueCode = z.infer<typeof IssueCode>;
+
+export const Issue = z.object({
+  code: IssueCode,
+  params: z.record(z.string(), z.string()).default({}),
+});
+
+export type Issue = z.infer<typeof Issue>;
+
+export const RequiredReason = z.object({
+  code: z.enum([
+    "placeholder",
+    "blank",
+    "empty_cell",
+    "analysis",
+    "conditional",
+    "optional",
+    "user",
+  ]),
+  params: z.record(z.string(), z.string()).default({}),
+});
+
+export type RequiredReason = z.infer<typeof RequiredReason>;
+
+export const VariantLang = z.enum(["en", "fr"]);
+export type VariantLang = z.infer<typeof VariantLang>;
+
+export const Variant = z.object({
+  lang: VariantLang,
+  value: z.string().max(500),
+  origin: z.enum(["user", "translation"]),
+});
+
+export type Variant = z.infer<typeof Variant>;
 
 export const Lang = z.enum(["en", "fr", "unknown"]);
 export type Lang = z.infer<typeof Lang>;
@@ -116,9 +198,40 @@ export const Field = z.object({
   normalized: NormalizedValue.nullable(),
   note: z.string().max(300).nullable(),
   related: z.array(z.string()).default([]),
+  owner: z.string().max(40).nullable().default(null),
+  role: z.enum(["contact", "signatory"]).nullable().default(null),
+  unit: Unit.nullable().default(null),
+  requiredReason: RequiredReason.nullable().default(null),
+  resolution: Resolution.nullable().default(null),
+  evidence: z.string().max(400).nullable().default(null),
+  variants: z.array(Variant).default([]),
+  issue: Issue.nullable().default(null),
 });
 
 export type Field = z.infer<typeof Field>;
+
+export const fieldDefaults = (): Pick<
+  Field,
+  | "owner"
+  | "role"
+  | "unit"
+  | "requiredReason"
+  | "resolution"
+  | "evidence"
+  | "variants"
+  | "issue"
+> => {
+  return {
+    owner: null,
+    role: null,
+    unit: null,
+    requiredReason: null,
+    resolution: null,
+    evidence: null,
+    variants: [],
+    issue: null,
+  };
+};
 
 export const Condition = z.object({
   fieldId: z.string(),

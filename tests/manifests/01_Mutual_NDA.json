@@ -1,0 +1,379 @@
+{
+  "fixture": "fixtures/lumetryx/01_Mutual_NDA.docx",
+  "sha256": "40f4f8bc51c2ceb938f05aefc3cc4ae79b4949413ba8e8a3b1f8781f9308835c",
+  "documentLanguage": "en",
+  "fields": [
+    {
+      "id": "effective_date",
+      "types": [
+        "date"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#2",
+          "marker": "{{effective_date}}"
+        },
+        {
+          "at": "word/document.xml#28",
+          "marker": "{{effective_date}}"
+        }
+      ]
+    },
+    {
+      "id": "party_a_name",
+      "types": [
+        "party"
+      ],
+      "owner": "party_a",
+      "occurrences": [
+        {
+          "at": "word/document.xml#7",
+          "marker": "{{party_a_name}}"
+        },
+        {
+          "at": "word/document.xml#46",
+          "marker": "{{party_a_name}}"
+        }
+      ]
+    },
+    {
+      "id": "party_a_address",
+      "types": [
+        "address"
+      ],
+      "owner": "party_a",
+      "occurrences": [
+        {
+          "at": "word/document.xml#8",
+          "marker": "{{party_a_address}}"
+        }
+      ]
+    },
+    {
+      "id": "party_b_name",
+      "types": [
+        "party"
+      ],
+      "owner": "party_b",
+      "occurrences": [
+        {
+          "at": "word/document.xml#10",
+          "marker": "[PARTY B LEGAL NAME]"
+        },
+        {
+          "at": "word/document.xml#47",
+          "marker": "[PARTY B LEGAL NAME]"
+        }
+      ]
+    },
+    {
+      "id": "party_b_address",
+      "types": [
+        "address"
+      ],
+      "owner": "party_b",
+      "occurrences": [
+        {
+          "at": "word/document.xml#11",
+          "marker": "{{party_b_address}}"
+        }
+      ]
+    },
+    {
+      "id": "purpose",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#14",
+          "blank": "underline"
+        }
+      ]
+    },
+    {
+      "id": "project_name",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#15",
+          "marker": "{{project_name}}"
+        }
+      ]
+    },
+    {
+      "id": "exchange_period_months",
+      "types": [
+        "number",
+        "duration"
+      ],
+      "unit": "months",
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#28",
+          "marker": "{{exchange_period_months}}"
+        }
+      ]
+    },
+    {
+      "id": "confidentiality_period_years",
+      "types": [
+        "number",
+        "duration"
+      ],
+      "unit": "years",
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#28",
+          "marker": "[CONFIDENTIALITY PERIOD IN YEARS]"
+        }
+      ]
+    },
+    {
+      "id": "return_period_days",
+      "types": [
+        "number",
+        "duration"
+      ],
+      "unit": "days",
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#30",
+          "marker": "________"
+        }
+      ]
+    },
+    {
+      "id": "agreement_reference",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#33",
+          "marker": "{{agreement_reference}}"
+        },
+        {
+          "at": "word/header1.xml#0",
+          "marker": "{{agreement_reference}}"
+        }
+      ]
+    },
+    {
+      "id": "party_a_contact",
+      "types": [
+        "party",
+        "text"
+      ],
+      "owner": "party_a",
+      "role": "contact",
+      "occurrences": [
+        {
+          "at": "word/document.xml#38",
+          "marker": "{{party_a_contact}}"
+        }
+      ]
+    },
+    {
+      "id": "party_b_contact",
+      "types": [
+        "party",
+        "text"
+      ],
+      "owner": "party_b",
+      "role": "contact",
+      "occurrences": [
+        {
+          "at": "word/document.xml#39",
+          "marker": "{{party_b_contact}}"
+        }
+      ]
+    },
+    {
+      "id": "party_a_email",
+      "types": [
+        "email"
+      ],
+      "owner": "party_a",
+      "occurrences": [
+        {
+          "at": "word/document.xml#41",
+          "blank": "cell"
+        }
+      ]
+    },
+    {
+      "id": "party_b_email",
+      "types": [
+        "email"
+      ],
+      "owner": "party_b",
+      "occurrences": [
+        {
+          "at": "word/document.xml#42",
+          "marker": "{{party_b_email}}"
+        }
+      ]
+    },
+    {
+      "id": "party_a_signatory_name",
+      "types": [
+        "party",
+        "text"
+      ],
+      "owner": "party_a",
+      "role": "signatory",
+      "occurrences": [
+        {
+          "at": "word/document.xml#46",
+          "marker": "{{party_a_signatory_name}}"
+        }
+      ]
+    },
+    {
+      "id": "party_a_signatory_title",
+      "types": [
+        "text"
+      ],
+      "owner": "party_a",
+      "role": "signatory",
+      "occurrences": [
+        {
+          "at": "word/document.xml#46",
+          "marker": "[PARTY A SIGNATORY TITLE]"
+        }
+      ]
+    },
+    {
+      "id": "party_b_signatory_name",
+      "types": [
+        "party",
+        "text"
+      ],
+      "owner": "party_b",
+      "role": "signatory",
+      "occurrences": [
+        {
+          "at": "word/document.xml#47",
+          "marker": "{{party_b_signatory_name}}"
+        }
+      ]
+    },
+    {
+      "id": "party_b_signatory_title",
+      "types": [
+        "text"
+      ],
+      "owner": "party_b",
+      "role": "signatory",
+      "occurrences": [
+        {
+          "at": "word/document.xml#47",
+          "marker": "[PARTY B SIGNATORY TITLE]"
+        }
+      ]
+    }
+  ],
+  "distinct": [
+    [
+      "party_a_name",
+      "party_b_name"
+    ],
+    [
+      "party_a_address",
+      "party_b_address"
+    ],
+    [
+      "party_a_contact",
+      "party_a_signatory_name"
+    ],
+    [
+      "party_b_contact",
+      "party_b_signatory_name"
+    ],
+    [
+      "party_a_signatory_name",
+      "party_a_signatory_title"
+    ],
+    [
+      "party_b_signatory_name",
+      "party_b_signatory_title"
+    ],
+    [
+      "party_a_email",
+      "party_b_email"
+    ],
+    [
+      "project_name",
+      "purpose"
+    ],
+    [
+      "return_period_days",
+      "exchange_period_months"
+    ],
+    [
+      "party_a_name",
+      "party_a_contact"
+    ],
+    [
+      "party_a_name",
+      "party_a_signatory_name"
+    ],
+    [
+      "party_b_name",
+      "party_b_contact"
+    ],
+    [
+      "party_b_name",
+      "party_b_signatory_name"
+    ],
+    [
+      "party_a_contact",
+      "party_b_contact"
+    ],
+    [
+      "party_a_signatory_name",
+      "party_b_signatory_name"
+    ],
+    [
+      "party_a_signatory_title",
+      "party_b_signatory_title"
+    ],
+    [
+      "confidentiality_period_years",
+      "exchange_period_months"
+    ]
+  ],
+  "bilingual": [],
+  "nonFields": [
+    {
+      "at": "word/document.xml#12",
+      "why": "spacer paragraph after the parties table"
+    },
+    {
+      "at": "word/document.xml#43",
+      "why": "spacer paragraph after the notices table"
+    },
+    {
+      "at": "word/footer1.xml#0",
+      "why": "page number fields"
+    },
+    {
+      "at": "word/document.xml#48",
+      "why": "signature note without a signature line"
+    },
+    {
+      "at": "word/document.xml#44",
+      "why": "refers to the contacts listed above, no blank"
+    }
+  ]
+}

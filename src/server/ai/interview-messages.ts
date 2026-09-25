@@ -12,6 +12,7 @@ const GROUP_NAMES: Record<ChatLanguage, Record<Field["group"], string>> = {
     dates: "the dates",
     money: "the amounts",
     other: "the remaining details",
+    contacts: "the contacts and signatories",
   },
   fr: {
     parties: "les parties",
@@ -19,6 +20,7 @@ const GROUP_NAMES: Record<ChatLanguage, Record<Field["group"], string>> = {
     dates: "les dates",
     money: "les montants",
     other: "les autres éléments",
+    contacts: "les contacts et signataires",
   },
 };
 

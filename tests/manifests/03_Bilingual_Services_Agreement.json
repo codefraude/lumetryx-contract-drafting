@@ -1,0 +1,425 @@
+{
+  "fixture": "fixtures/lumetryx/03_Bilingual_Services_Agreement.docx",
+  "sha256": "fb562afd0ce4e7f25849686a76ff894ccfcb567576ce63913cb7799670a41f95",
+  "documentLanguage": "mixed",
+  "fields": [
+    {
+      "id": "provider_name",
+      "types": [
+        "party"
+      ],
+      "owner": "provider",
+      "occurrences": [
+        {
+          "at": "word/document.xml#8",
+          "marker": "{{provider_name}}"
+        },
+        {
+          "at": "word/document.xml#53",
+          "marker": "{{provider_name}}"
+        }
+      ]
+    },
+    {
+      "id": "provider_address",
+      "types": [
+        "address"
+      ],
+      "owner": "provider",
+      "occurrences": [
+        {
+          "at": "word/document.xml#9",
+          "marker": "[ADRESSE DU PRESTATAIRE]"
+        }
+      ]
+    },
+    {
+      "id": "client_name",
+      "types": [
+        "party"
+      ],
+      "owner": "client",
+      "occurrences": [
+        {
+          "at": "word/document.xml#11",
+          "marker": "[CLIENT NAME]"
+        },
+        {
+          "at": "word/document.xml#53",
+          "marker": "[CLIENT NAME]"
+        }
+      ]
+    },
+    {
+      "id": "client_address",
+      "types": [
+        "address"
+      ],
+      "owner": "client",
+      "occurrences": [
+        {
+          "at": "word/document.xml#12",
+          "marker": "{{client_address}}"
+        }
+      ]
+    },
+    {
+      "id": "project_title",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "splitRuns": true,
+      "occurrences": [
+        {
+          "at": "word/document.xml#15",
+          "marker": "{{project_title}}"
+        }
+      ]
+    },
+    {
+      "id": "project_reference",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#16",
+          "marker": "{{project_reference}}"
+        },
+        {
+          "at": "word/document.xml#43",
+          "marker": "{{project_reference}}"
+        },
+        {
+          "at": "word/document.xml#44",
+          "marker": "{{project_reference}}"
+        },
+        {
+          "at": "word/header1.xml#0",
+          "marker": "{{project_reference}}"
+        }
+      ]
+    },
+    {
+      "id": "start_date",
+      "types": [
+        "date"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#16",
+          "marker": "[DATE DE DÉBUT]"
+        }
+      ]
+    },
+    {
+      "id": "services_description",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#17",
+          "blank": "underline",
+          "lang": "en"
+        },
+        {
+          "at": "word/document.xml#18",
+          "blank": "underline",
+          "lang": "fr"
+        }
+      ]
+    },
+    {
+      "id": "deliverable_1",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#22",
+          "marker": "{{deliverable_1}}"
+        }
+      ]
+    },
+    {
+      "id": "delivery_date_1",
+      "types": [
+        "date"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#23",
+          "marker": "[DELIVERY DATE 1]"
+        }
+      ]
+    },
+    {
+      "id": "deliverable_2",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#24",
+          "marker": "[LIVRABLE 2]"
+        }
+      ]
+    },
+    {
+      "id": "delivery_date_2",
+      "types": [
+        "date"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#25",
+          "marker": "{{delivery_date_2}}"
+        }
+      ]
+    },
+    {
+      "id": "review_days",
+      "types": [
+        "number",
+        "duration"
+      ],
+      "unit": "business_days",
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#27",
+          "marker": "________"
+        }
+      ]
+    },
+    {
+      "id": "provider_contact",
+      "types": [
+        "party",
+        "text"
+      ],
+      "owner": "provider",
+      "role": "contact",
+      "occurrences": [
+        {
+          "at": "word/document.xml#30",
+          "marker": "{{provider_contact}}"
+        }
+      ]
+    },
+    {
+      "id": "client_contact",
+      "types": [
+        "party",
+        "text"
+      ],
+      "owner": "client",
+      "role": "contact",
+      "occurrences": [
+        {
+          "at": "word/document.xml#30",
+          "marker": "[CONTACT CLIENT]"
+        }
+      ]
+    },
+    {
+      "id": "total_fee",
+      "types": [
+        "money"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#35",
+          "marker": "{{total_fee}}"
+        }
+      ]
+    },
+    {
+      "id": "currency",
+      "types": [
+        "currency",
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#37",
+          "marker": "[DEVISE]"
+        }
+      ]
+    },
+    {
+      "id": "advance_payment",
+      "types": [
+        "money"
+      ],
+      "owner": null,
+      "labelIncludes": "advance",
+      "occurrences": [
+        {
+          "at": "word/document.xml#39",
+          "marker": "________"
+        }
+      ]
+    },
+    {
+      "id": "payment_deadline_days",
+      "types": [
+        "number",
+        "duration"
+      ],
+      "unit": "days",
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#41",
+          "blank": "cell"
+        }
+      ]
+    },
+    {
+      "id": "billing_email",
+      "types": [
+        "email"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#43",
+          "marker": "{{billing_email}}"
+        },
+        {
+          "at": "word/document.xml#44",
+          "marker": "{{billing_email}}"
+        }
+      ],
+      "ownerNote": "Invoices go to the client, but the template never says whose mailbox this is; the independent review accepted either reading, so ownership is not asserted."
+    },
+    {
+      "id": "working_materials",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#49",
+          "marker": "[WORKING MATERIALS TO HAND OVER]"
+        }
+      ]
+    },
+    {
+      "id": "completion_date",
+      "types": [
+        "date"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#52",
+          "marker": "{{completion_date}}"
+        }
+      ]
+    }
+  ],
+  "distinct": [
+    [
+      "provider_name",
+      "client_name"
+    ],
+    [
+      "provider_address",
+      "client_address"
+    ],
+    [
+      "deliverable_1",
+      "deliverable_2"
+    ],
+    [
+      "delivery_date_1",
+      "delivery_date_2"
+    ],
+    [
+      "review_days",
+      "payment_deadline_days"
+    ],
+    [
+      "provider_contact",
+      "client_contact"
+    ],
+    [
+      "total_fee",
+      "advance_payment"
+    ],
+    [
+      "project_title",
+      "project_reference"
+    ],
+    [
+      "start_date",
+      "completion_date"
+    ],
+    [
+      "delivery_date_1",
+      "completion_date"
+    ],
+    [
+      "delivery_date_2",
+      "completion_date"
+    ],
+    [
+      "provider_name",
+      "provider_contact"
+    ],
+    [
+      "client_name",
+      "client_contact"
+    ]
+  ],
+  "bilingual": [
+    {
+      "field": "services_description",
+      "why": "the English and French sentences describe the same services; one question, a French rendering in the French paragraph"
+    }
+  ],
+  "nonFields": [
+    {
+      "at": "word/document.xml#13",
+      "why": "spacer paragraph after the parties table"
+    },
+    {
+      "at": "word/document.xml#26",
+      "why": "spacer paragraph after the deliverables table"
+    },
+    {
+      "at": "word/document.xml#28",
+      "why": "French review clause refers to the same period without a blank"
+    },
+    {
+      "at": "word/document.xml#42",
+      "why": "spacer paragraph after the fees table"
+    },
+    {
+      "at": "word/footer1.xml#0",
+      "why": "page number fields"
+    },
+    {
+      "at": "word/document.xml#50",
+      "why": "refers to the working materials listed above, no blank"
+    },
+    {
+      "at": "word/document.xml#54",
+      "why": "signature note without a signature line"
+    }
+  ]
+}

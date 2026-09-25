@@ -1,0 +1,447 @@
+{
+  "fixture": "fixtures/lumetryx/02_Residential_Lease_Mixed_Placeholders.docx",
+  "sha256": "765d1b045e9247111e97072b11c0f5f19b89f7f56d366750f7294da42ba94da0",
+  "documentLanguage": "en",
+  "fields": [
+    {
+      "id": "agreement_date",
+      "types": [
+        "date"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#2",
+          "marker": "[AGREEMENT DATE]"
+        }
+      ]
+    },
+    {
+      "id": "landlord_name",
+      "types": [
+        "party"
+      ],
+      "owner": "landlord",
+      "occurrences": [
+        {
+          "at": "word/document.xml#2",
+          "marker": "{{landlord_name}}"
+        },
+        {
+          "at": "word/document.xml#50",
+          "marker": "{{landlord_name}}"
+        }
+      ]
+    },
+    {
+      "id": "landlord_address",
+      "types": [
+        "address"
+      ],
+      "owner": "landlord",
+      "occurrences": [
+        {
+          "at": "word/document.xml#2",
+          "marker": "{{landlord_address}}"
+        }
+      ]
+    },
+    {
+      "id": "tenant_name",
+      "types": [
+        "party"
+      ],
+      "owner": "tenant",
+      "occurrences": [
+        {
+          "at": "word/document.xml#2",
+          "marker": "[TENANT NAME]"
+        },
+        {
+          "at": "word/document.xml#50",
+          "marker": "[TENANT NAME]"
+        }
+      ]
+    },
+    {
+      "id": "tenant_address",
+      "types": [
+        "address"
+      ],
+      "owner": "tenant",
+      "labelIncludes": "tenant",
+      "occurrences": [
+        {
+          "at": "word/document.xml#2",
+          "marker": "[address]"
+        }
+      ]
+    },
+    {
+      "id": "property_address",
+      "types": [
+        "address"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#4",
+          "marker": "{{property_address}}"
+        },
+        {
+          "at": "word/document.xml#51",
+          "marker": "{{property_address}}"
+        }
+      ]
+    },
+    {
+      "id": "property_reference",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#4",
+          "marker": "{{property_reference}}"
+        },
+        {
+          "at": "word/header1.xml#0",
+          "marker": "{{property_reference}}"
+        }
+      ]
+    },
+    {
+      "id": "occupant_count",
+      "types": [
+        "number"
+      ],
+      "unit": "persons",
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#5",
+          "blank": "underline"
+        }
+      ]
+    },
+    {
+      "id": "additional_occupants",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "acceptsNone": true,
+      "occurrences": [
+        {
+          "at": "word/document.xml#6",
+          "marker": "________"
+        }
+      ]
+    },
+    {
+      "id": "lease_start_date",
+      "types": [
+        "date"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#11",
+          "marker": "{{lease_start_date}}"
+        },
+        {
+          "at": "word/document.xml#51",
+          "marker": "{{lease_start_date}}"
+        }
+      ]
+    },
+    {
+      "id": "lease_end_date",
+      "types": [
+        "date"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#13",
+          "marker": "[LEASE END DATE]"
+        }
+      ]
+    },
+    {
+      "id": "monthly_rent",
+      "types": [
+        "money"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#15",
+          "marker": "{{monthly_rent}}"
+        }
+      ]
+    },
+    {
+      "id": "currency",
+      "types": [
+        "currency",
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#17",
+          "marker": "[CURRENCY]"
+        }
+      ]
+    },
+    {
+      "id": "deposit",
+      "types": [
+        "money"
+      ],
+      "owner": null,
+      "labelIncludes": "deposit",
+      "occurrences": [
+        {
+          "at": "word/document.xml#19",
+          "marker": "________"
+        }
+      ]
+    },
+    {
+      "id": "rent_due_day",
+      "types": [
+        "number"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#21",
+          "blank": "cell"
+        }
+      ]
+    },
+    {
+      "id": "payment_method",
+      "types": [
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#23",
+          "marker": "[PAYMENT METHOD]"
+        }
+      ]
+    },
+    {
+      "id": "key_count",
+      "types": [
+        "number"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#29",
+          "marker": "{{key_count}}"
+        }
+      ]
+    },
+    {
+      "id": "electricity_meter_reading",
+      "types": [
+        "number",
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#30",
+          "marker": "[ELECTRICITY METER READING]"
+        }
+      ]
+    },
+    {
+      "id": "electricity_payer",
+      "types": [
+        "party",
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#37",
+          "marker": "{{electricity_payer}}"
+        }
+      ]
+    },
+    {
+      "id": "water_payer",
+      "types": [
+        "party",
+        "text"
+      ],
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#39",
+          "marker": "[WATER CHARGES PAID BY]"
+        }
+      ]
+    },
+    {
+      "id": "internet_payer",
+      "types": [
+        "party",
+        "text"
+      ],
+      "owner": null,
+      "labelIncludes": "internet",
+      "occurrences": [
+        {
+          "at": "word/document.xml#41",
+          "marker": "________"
+        }
+      ]
+    },
+    {
+      "id": "access_notice_hours",
+      "types": [
+        "number",
+        "duration"
+      ],
+      "unit": "hours",
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#44",
+          "marker": "________"
+        }
+      ]
+    },
+    {
+      "id": "tenant_email",
+      "types": [
+        "email"
+      ],
+      "owner": "tenant",
+      "occurrences": [
+        {
+          "at": "word/document.xml#45",
+          "marker": "{{tenant_email}}"
+        }
+      ]
+    },
+    {
+      "id": "landlord_email",
+      "types": [
+        "email"
+      ],
+      "owner": "landlord",
+      "occurrences": [
+        {
+          "at": "word/document.xml#45",
+          "marker": "[LANDLORD EMAIL]"
+        }
+      ]
+    },
+    {
+      "id": "termination_notice_days",
+      "types": [
+        "number",
+        "duration"
+      ],
+      "unit": "days",
+      "owner": null,
+      "occurrences": [
+        {
+          "at": "word/document.xml#47",
+          "blank": "underline"
+        }
+      ]
+    }
+  ],
+  "distinct": [
+    [
+      "landlord_name",
+      "tenant_name"
+    ],
+    [
+      "tenant_address",
+      "landlord_address"
+    ],
+    [
+      "tenant_address",
+      "property_address"
+    ],
+    [
+      "landlord_address",
+      "property_address"
+    ],
+    [
+      "access_notice_hours",
+      "termination_notice_days"
+    ],
+    [
+      "monthly_rent",
+      "deposit"
+    ],
+    [
+      "occupant_count",
+      "additional_occupants"
+    ],
+    [
+      "tenant_email",
+      "landlord_email"
+    ],
+    [
+      "agreement_date",
+      "lease_start_date"
+    ],
+    [
+      "lease_start_date",
+      "lease_end_date"
+    ],
+    [
+      "electricity_payer",
+      "water_payer"
+    ],
+    [
+      "electricity_payer",
+      "internet_payer"
+    ],
+    [
+      "water_payer",
+      "internet_payer"
+    ],
+    [
+      "occupant_count",
+      "key_count"
+    ]
+  ],
+  "bilingual": [],
+  "nonFields": [
+    {
+      "at": "word/document.xml#24",
+      "why": "spacer paragraph after the payments table"
+    },
+    {
+      "at": "word/document.xml#42",
+      "why": "spacer paragraph after the charges table"
+    },
+    {
+      "at": "word/footer1.xml#0",
+      "why": "page number fields"
+    },
+    {
+      "at": "word/document.xml#52",
+      "why": "signature note without a signature line"
+    },
+    {
+      "at": "word/document.xml#27",
+      "why": "refers to the commencement date, no blank"
+    }
+  ]
+}

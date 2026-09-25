@@ -17,7 +17,7 @@ import {
   untrusted,
 } from "@/server/ai/model";
 
-export const PARSER_VERSION = "x5";
+export const PARSER_VERSION = "x6";
 const ANALYSIS_TTL_SECONDS = 60 * 60 * 24;
 
 export const analysisCacheKey = (
