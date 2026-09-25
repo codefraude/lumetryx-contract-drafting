@@ -1,10 +1,6 @@
 import { z } from "zod";
 
-/**
- * The field model shared by the server and the browser: what a blank in the template is, where it
- * sits, and what the lawyer answered. Server-only persisted state (clause rules, draft anchors)
- * lives in `@/server/fields/state`.
- */
+/** Shared with the server; server-only state (clause rules, draft anchors) is in `@/server/fields/state`. */
 
 export const ValueType = z.enum(["text", "party", "address", "date", "money", "number", "duration", "percentage", "jurisdiction", "boolean"]);
 export type ValueType = z.infer<typeof ValueType>;
@@ -33,7 +29,7 @@ export const Occurrence = z.object({
   blockId: z.string(),
   start: z.number().int().nonnegative(),
   end: z.number().int().nonnegative(),
-  /** Exact template text at [start,end) — the marker or placeholder, or "" for an insertion point. */
+  /** Exact template text at [start,end): the marker or placeholder, or "" for an insertion point. */
   expected: z.string(),
   mode: z.enum(["replace", "insert"]),
   marker: z.enum(["brace", "bracket", "underscore", "control", "implicit"]),

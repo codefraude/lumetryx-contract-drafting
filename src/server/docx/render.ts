@@ -72,10 +72,8 @@ export interface AppliedEdit {
 export type FillEvent = { type: "block"; block: RenderedBlock } | { type: "done"; applied: AppliedEdit[] };
 
 /**
- * Walks every paragraph of body, headers and footers in document order, applies that paragraph's
- * edits through the XML DOM (escaping is handled by the serializer), and yields the rendered result.
- * Within a paragraph edits run from the end backwards so earlier offsets stay valid. All edits are
- * validated against their expected text first; a single conflict aborts before anything is yielded.
+ * Applies edits through the XML DOM, which escapes values, and yields rendered blocks in document order.
+ * One bad anchor aborts before any output; a paragraph's edits run from its end so offsets stay valid.
  */
 export async function* fillAndRender(pkg: DocxPackage, edits: TextEdit[], omit: ReadonlySet<string> = new Set()): AsyncGenerator<FillEvent> {
   const ctx = await loadContext(pkg);
@@ -131,7 +129,7 @@ export async function* fillAndRender(pkg: DocxPackage, edits: TextEdit[], omit: 
   yield { type: "done", applied };
 }
 
-/** Non-streaming convenience wrapper. */
+/** `fillAndRender` without the streamed blocks. */
 export async function applyTextEdits(pkg: DocxPackage, edits: TextEdit[]): Promise<AppliedEdit[]> {
   let applied: AppliedEdit[] = [];
   for await (const ev of fillAndRender(pkg, edits)) if (ev.type === "done") applied = ev.applied;

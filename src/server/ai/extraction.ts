@@ -5,10 +5,7 @@ import type { Block } from "@/server/docx/blocks";
 import { chronologyIssues, normalizeValue } from "@/server/fields/normalize";
 import { AiError, SAFETY_RULES, providerOptions, untrusted } from "./model";
 
-/**
- * Stage 1 of a chat turn: the model proposes field values from the user's latest message, and only
- * values backed by the user's own words that pass deterministic validation are committed.
- */
+/** Stage 1 of a chat turn: the model proposes field values from the user's latest message. */
 
 export const Extraction = z.object({
   // Gemini rejects maxItems on arrays of objects (HTTP 400); the 40 cap is applied in applyExtraction.
@@ -53,8 +50,8 @@ export interface ApplyResult {
 }
 
 /**
- * Commits only updates that (1) name a real field, (2) are backed by text the user actually
- * wrote, and (3) pass deterministic validation. Nothing is parsed out of prose.
+ * Commits an update only if it names a real field, quotes text the user actually wrote and passes
+ * validation. Nothing is parsed out of prose.
  */
 export function applyExtraction(
   fields: Field[],
@@ -140,7 +137,7 @@ const today = () => {
 };
 
 export async function extract(input: TurnInput) {
-  // Without today's date the model answered "take today's date" with a date of its own invention.
+  // Without today's date the model invents one when the user says "today".
   const prompt = `TODAY: ${today()}\n\nFIELDS (id | label | type | status | context):\n${input.fields.map(fieldLine).join("\n")}\n\n${untrusted("template", `CLAUSE OUTLINE (id | start of text):\n${outline(input.blocks)}`)}\n\nRECENT CONVERSATION:\n${input.history
     .slice(-6)
     .map((m) => `${m.role}: ${m.content.slice(0, 600)}`)

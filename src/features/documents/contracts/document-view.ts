@@ -1,10 +1,7 @@
 import { z } from "zod";
 import { ChatLanguage, Condition, DocLanguage, Field, StructureIssue } from "./fields";
 
-/**
- * What the server sends the browser about one draft (`GET /api/documents/:id` and every write
- * that returns it). The server builds it from the persisted state; the browser validates it.
- */
+/** A draft as `GET /api/documents/:id` and every write return it, built from persisted state. */
 
 /** How a conditional clause stands. "unresolved" (an answer is missing) is never treated as "no". */
 export const ClauseState = z.enum(["included", "excluded", "unresolved", "proposed", "dismissed"]);

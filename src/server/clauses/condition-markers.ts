@@ -4,8 +4,8 @@ import { normalizeKey } from "@/server/docx/detect";
 import type { Rule } from "@/server/fields/state";
 
 /**
- * Conditional clauses. The supported template syntax is deliberately tiny and is parsed, never
- * executed. Each marker must be alone in its own body paragraph (not in a table, header or footer):
+ * Conditional clause markers, parsed and never executed. Each one sits alone in a body paragraph,
+ * not in a table, header or footer:
  *
  *   [[IF name]]            clause included when the yes/no answer `name` is yes
  *   [[IF NOT name]]        included when it is no
@@ -13,9 +13,8 @@ import type { Rule } from "@/server/fields/state";
  *   [[IF name IN a, b]]    included when it equals one of the listed values
  *   [[END IF]]             closes the clause
  *
- * French spellings are accepted: [[SI name]], [[SI NON name]], [[FIN SI]]. Nesting is rejected.
- * Everything between the two markers (paragraphs and whole tables) is the clause; the marker
- * paragraphs themselves never appear in a draft.
+ * French spellings work too: [[SI name]], [[SI NON name]], [[FIN SI]]. Nesting is rejected. The clause
+ * is everything between the markers, whole tables included; marker paragraphs never reach a draft.
  */
 
 const START = /^\[\[\s*(?:IF|SI)\s+(NOT\s+|NON\s+)?([\p{L}][\p{L}\p{N}_ ]{0,60}?)\s*(?:(=|\bIN\b|\bDANS\b)\s*(.+?))?\s*\]\]$/iu;

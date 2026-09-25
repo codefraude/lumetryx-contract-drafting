@@ -38,7 +38,7 @@ function Paragraph({ block }: { block: DraftBlock }) {
   );
 }
 
-/** The document canvas: a desk around a centred page that scrolls on its own, never the whole app. */
+/** The desk around the page; it scrolls on its own, never the whole app. */
 export function Canvas({ children, busy }: { children: React.ReactNode; busy?: boolean }) {
   return (
     <div aria-busy={busy} className="h-full overflow-auto overscroll-contain bg-canvas px-3 py-6 sm:px-8 sm:py-8">
@@ -65,9 +65,8 @@ export function PaperSkeleton({ label = "Opening the document…" }: { label?: s
 }
 
 /**
- * A read-only rendering of blocks as the server fills them. It is derived from the very
- * same filled document that the editor opens once generation completes; it is not a
- * separate paraphrase. Exact layout comes from the editor view afterwards.
+ * Built from the same filled document the editor opens afterwards, not a paraphrase.
+ * Exact layout only comes with the editor.
  */
 export function DraftPreview({ blocks, generating }: { blocks: DraftBlock[]; generating: boolean }) {
   const body = blocks.filter((b) => b.partKind === "body");

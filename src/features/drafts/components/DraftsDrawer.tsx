@@ -19,7 +19,7 @@ interface Props {
   onDeleted(id: string): void;
 }
 
-/** Saved drafts of this browser: open, rename, delete. A native modal dialog traps focus, closes on Escape and restores focus. */
+/** A native modal dialog, so focus trapping, Escape and focus restore come built in. */
 export function DraftsDrawer({ open, currentId, onClose, onOpen, onDeleted }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const list = useDraftList(open);

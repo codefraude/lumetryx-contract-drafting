@@ -171,8 +171,8 @@ export const SuperDocEditor = memo(
       const warn = (e: BeforeUnloadEvent) => {
         if (saver.current?.hasPendingChanges()) e.preventDefault();
       };
-      // Best effort only: a save started when the tab is hidden usually completes, but nothing
-      // guarantees it if the browser is closed abruptly. Earlier acknowledged saves are durable.
+      // Best effort: a save started on hide usually completes, but an abrupt close can lose it.
+      // Saves the server already acknowledged are durable.
       const hidden = () => {
         if (document.visibilityState === "hidden") saver.current?.saveSoon();
       };
@@ -189,7 +189,7 @@ export const SuperDocEditor = memo(
       <div className="flex h-full min-h-0 flex-col">
         <div ref={toolbar} className={editable ? "shrink-0 overflow-x-auto border-b border-line bg-surface" : "hidden"} aria-label="Formatting toolbar" />
         <div className="relative min-h-0 flex-1">
-          {/* The desk around the page. It scrolls on its own; on narrow screens the page is scaled to its width. */}
+          {/* Scrolls on its own; on narrow screens the page is scaled to its width. */}
           <div className="lx-doc h-full overflow-auto overscroll-contain bg-canvas px-2 py-5 sm:px-6 sm:py-8">
             {/* Shrink-to-fit once pages exist, so the page is centred on the desk. Full width while opening (the host is
               still empty and SuperDoc's loading card takes its width from it) and when fitting (the fit measures it). */}

@@ -4,7 +4,7 @@ import { currentSession } from "@/server/session";
 
 export const runtime = "nodejs";
 
-/** Saved drafts of this browser (anonymous cookie identity). An unknown browser simply has none. */
+/** Saved drafts of this browser (anonymous cookie identity); an unknown browser has none. */
 export async function GET() {
   try {
     const session = await currentSession();

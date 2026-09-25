@@ -3,8 +3,6 @@ import type { DocumentView } from "@/features/documents/contracts/document-view"
 import type { SaveStatus } from "@/features/documents/editor/save-coordinator";
 import { detailProgress, detailsLeft, outstandingFields } from "@/features/documents/progress";
 
-/** What the workspace shows about the open draft, derived from its view and the editor's save state. */
-
 export type StatusTone = "busy" | "ok" | "neutral" | "warn" | "danger";
 
 export interface StatusLine {

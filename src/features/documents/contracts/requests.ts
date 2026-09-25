@@ -2,10 +2,7 @@ import { z } from "zod";
 import { ChatLanguage } from "./fields";
 import { RuleAction } from "./document-view";
 
-/**
- * Request bodies of the document API, validated by the route handlers and built by the browser.
- * Every write carries the `fieldsVersion` it was based on, so a stale write is refused, never merged.
- */
+/** Every write carries the `fieldsVersion` it was based on, so a stale write is refused, never merged. */
 
 /** A correction from the Details panel: a value, the required flag or the label. */
 export const FieldCorrection = z.object({

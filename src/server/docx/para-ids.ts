@@ -4,10 +4,8 @@ import { paraIdOf } from "./paragraph-text";
 import { contentParts, MC_NS, paragraphsOf, parseXml, serializeXml, W14_NS } from "./xml";
 
 /**
- * Gives every paragraph without a w14:paraId a deterministic one derived from its part and
- * ordinal, so the same template always yields the same ids and the server can find a paragraph
- * again after the browser editor re-exports the document. Existing ids are kept. Returns
- * blockId → paraId for every paragraph.
+ * Gives each paragraph lacking a w14:paraId a deterministic one from its part and ordinal, so the server
+ * finds it again after the editor re-exports. Existing ids are kept. Returns blockId → paraId.
  */
 export async function ensureParaIds(pkg: DocxPackage): Promise<Map<string, string>> {
   const map = new Map<string, string>();

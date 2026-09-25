@@ -43,11 +43,8 @@ function patchNotices(e: Extract<StreamEvent, { type: "draft_patch" }>): string[
 }
 
 /**
- * The conversation of one open draft. The list starts from the persisted conversation and is owned
- * here afterwards (the streamed reply, notices). Validated changes go into the draft's cached view
- * as they arrive, and the view is re-read once the turn ends. A reply still streaming when the draft
- * is closed finishes on the server as usual; its events reach only this draft's cache entry and this
- * (discarded) state, never the draft opened meanwhile.
+ * Messages start from the persisted conversation and are owned here afterwards.
+ * A reply still streaming after the draft closes only reaches this draft's cache, not the one opened next.
  */
 export function useChatTurn(documentId: string, initial: DocumentMessage[], { beforeSend, onDraftReplaced, announce }: Options) {
   const queryClient = useQueryClient();

@@ -48,10 +48,8 @@ export interface DraftUpdate {
 }
 
 /**
- * Brings an existing (possibly hand-edited) working draft in line with the current answers and
- * clause decisions, without regenerating it. Only whole clauses are moved and only untouched
- * values are rewritten; a clause the user edited is removed only after explicit confirmation,
- * and its edited version is kept so that re-including it restores those edits.
+ * Brings a hand-edited working draft in line with the current answers and clauses, without regenerating it.
+ * Only untouched values are rewritten; an edited clause goes only once confirmed, and returns with its edits.
  */
 export async function updateWorkingDraft(input: {
   working: Uint8Array;

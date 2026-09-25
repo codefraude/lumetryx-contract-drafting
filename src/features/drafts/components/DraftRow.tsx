@@ -33,7 +33,6 @@ interface Props {
   current: boolean;
   /** Some action on the list is running; rows can't be opened meanwhile. */
   busy: boolean;
-  /** This row's action is running. */
   rowBusy: boolean;
   onOpen(): void;
   /** Resolves once the new name is saved. */
@@ -41,7 +40,6 @@ interface Props {
   onDelete(): void;
 }
 
-/** One saved draft: open it, rename it in place, or delete it. */
 export function DraftRow({ d, current, busy, rowBusy, onOpen, onRename, onDelete }: Props) {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(d.title);

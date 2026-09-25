@@ -34,10 +34,7 @@ interface Props {
   version: string;
 }
 
-/**
- * Read-only comparison of the uploaded template with the current draft. It is a content and
- * structure comparison, not a layout comparison, and nothing it shows enters the document.
- */
+/** Compares content and structure, not layout; nothing shown here enters the document. */
 export function ComparePanel({ documentId, snapshot, version }: Props) {
   const comparison = useComparison(documentId, version, snapshot);
   // Previous/Next position within one result; a new result starts again at the first change.

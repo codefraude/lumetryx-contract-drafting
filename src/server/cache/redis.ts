@@ -133,7 +133,7 @@ export class RateLimitedError extends Error {
 }
 
 export async function rateLimit(kind: LimitKind, identifier: string): Promise<void> {
-  if (override !== undefined) return; // unit tests
+  if (override !== undefined) return; // a test store skips rate limits
   getStore();
   if (!redisClient) {
     if (strict()) throw new ProtectionUnavailableError("Abuse protection is unavailable (Redis not configured); refusing costly requests.");

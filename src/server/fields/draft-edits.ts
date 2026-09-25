@@ -6,10 +6,8 @@ import { renderAt } from "./normalize";
 import type { DraftAnchor, FieldState } from "./state";
 
 /**
- * Edits that turn the template into a draft. Confirmed values are written, rendered for each
- * occurrence's language. Occurrences still unanswered get an identity edit so that their marker
- * position is anchored and a later answer can be written into the draft. Omitted blocks (excluded
- * clauses, condition markers) are skipped: they are removed from the draft.
+ * Edits that turn the template into a draft, each value rendered in its occurrence's language. An
+ * unanswered occurrence gets an identity edit so a later answer has an anchor; omitted blocks are skipped.
  */
 export function draftEdits(fields: Field[], docLang: DocLanguage, omit: ReadonlySet<string> = new Set()): TextEdit[] {
   const edits: TextEdit[] = [];
@@ -40,10 +38,8 @@ export type AnchoredEdit = TextEdit & { fieldId: string; anchor: number };
 export type AnchoredUpdate = { edits: AnchoredEdit[]; conflicts: string[] };
 
 /**
- * After a draft exists, a changed answer is applied only where the previous value (or the still
- * unfilled marker) is exactly where we put it. Anything the user edited is reported as a conflict,
- * not overwritten. Anchors whose paragraph is absent (their clause is currently excluded) are
- * skipped; they are brought up to date if the clause is restored.
+ * Rewrites a changed answer only where its previous value or marker still sits untouched; a user edit
+ * there is reported as a conflict. Anchors inside an excluded clause wait until it is restored.
  */
 export function anchoredUpdates(state: FieldState, changed: Field[], currentBlocks: Block[]): AnchoredUpdate {
   const byPara = new Map<string, Block>();

@@ -13,7 +13,6 @@ interface Props {
   onSubmitted(): void;
 }
 
-/** The message box: Enter sends, Shift+Enter adds a line, and it grows with its text. */
 export function Composer({ busy, disabledReason, onSend, onStop, onSubmitted }: Props) {
   const [text, setText] = useState("");
   const area = useRef<HTMLTextAreaElement>(null);
@@ -65,7 +64,7 @@ export function Composer({ busy, disabledReason, onSend, onStop, onSubmitted }: 
           aria-describedby="composer-hint"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            // Enter sends; Shift+Enter adds a line; never while an input method is composing text.
+            // Enter sends and Shift+Enter adds a line, but not while an IME is composing.
             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && e.keyCode !== 229) {
               e.preventDefault();
               void submit();

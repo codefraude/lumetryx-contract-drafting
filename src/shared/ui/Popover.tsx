@@ -4,8 +4,8 @@ import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 /**
- * A button that opens a small panel in the top layer (never clipped by scroll containers). Light
- * dismiss and Escape are native; the panel is placed next to its button and closes on scroll or resize.
+ * The panel sits in the top layer, so scroll containers never clip it.
+ * Light dismiss and Escape are native; scroll or resize closes it.
  */
 export function Popover({
   label,

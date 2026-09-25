@@ -37,10 +37,8 @@ export async function hashes(pkg: DocxPackage, rules: Rule[]): Promise<Map<strin
 }
 
 /**
- * Fills the immutable original template with confirmed values, yielding each block as soon as
- * it has been processed. Excluded clauses and `[[IF]]` marker paragraphs are left out; clause
- * references are brought in line with the resulting numbering. The final bytes are the exact
- * document that becomes editable/exported.
+ * Fills the template with confirmed values and yields each block as it is done. Excluded clauses and
+ * `[[IF]]` marker paragraphs are dropped, and clause references follow the new numbering.
  */
 export async function* buildDraft(original: Uint8Array, state: FieldState): AsyncGenerator<DraftStep> {
   const pkg = await loadDocxPackage(original);

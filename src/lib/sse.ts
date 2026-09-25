@@ -1,10 +1,7 @@
 import type { z } from "zod";
 import { apiError } from "./http";
 
-/**
- * Incremental SSE decoder: tolerates frames and multi-byte UTF-8 characters split across network
- * chunks, and hands on only events that match the protocol schema (a malformed frame is dropped).
- */
+/** Handles frames and multi-byte characters split across chunks; invalid frames are dropped. */
 export class SseDecoder<T> {
   private decoder = new TextDecoder("utf-8");
   private buffer = "";
@@ -37,9 +34,8 @@ export class SseDecoder<T> {
 }
 
 /**
- * POSTs `body` (with a fresh request id) and hands each event of the SSE response to `onEvent` as it
- * arrives, in order. Events of another request and repeated sequence numbers are dropped, so a
- * replayed or duplicated frame is never applied twice. Resolves when the stream ends.
+ * Adds a fresh request id. Events from another request or with an already seen `seq` are dropped,
+ * so a replayed frame never applies twice.
  */
 export async function postEventStream<T extends { requestId: string; seq: number }>(
   url: string,

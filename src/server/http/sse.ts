@@ -6,9 +6,8 @@ import { errorBody, PRIVATE_HEADERS } from "./responses";
 export const encodeEvent = (e: EventPayload & Pick<StreamEvent, "requestId" | "seq">) => `event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`;
 
 /**
- * Streams typed events as SSE, numbered in order and tagged with the request id. The request's
- * abort signal (client disconnect or Stop) is passed to the producer so upstream AI calls and
- * document work are cancelled; a failure becomes a final `error` event.
+ * Streams typed events as numbered SSE frames tagged with the request id. The abort signal (disconnect or
+ * Stop) reaches the producer so AI and document work stop; a failure ends the stream with an `error` event.
  */
 export function sseResponse(req: Request, requestId: string, produce: (emit: (e: EventPayload) => void, signal: AbortSignal) => Promise<void>): Response {
   let seq = 0;

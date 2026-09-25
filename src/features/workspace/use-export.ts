@@ -14,12 +14,11 @@ interface Options {
   confirm(warnings: string[], action: ExportAction): Promise<boolean>;
   onNotSaved(message: string): void;
   announce(text: string): void;
-  /** The app's own confirmation dialog. */
   ask(options: ConfirmOptions): Promise<boolean>;
 }
 
-// The browser's own "open this app?" message cannot be replaced by a page, only allowed for good: the first
-// time, the app's dialog says so. The flag is a UI preference only; nothing about the draft is stored.
+// Pages can't replace the browser's "open this app?" prompt, so our dialog explains it the first time.
+// The flag is only a UI preference; nothing about the draft is stored.
 const WORD_INTRO = "lx-word-intro";
 const introduced = () => {
   try {

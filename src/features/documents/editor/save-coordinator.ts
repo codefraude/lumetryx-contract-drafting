@@ -16,9 +16,8 @@ export interface SaveCoordinatorOptions {
 }
 
 /**
- * Autosave for one open document. Edits are coalesced; saves run one at a time, each based on the
- * revision the previous save returned, so an older response can never overwrite a newer revision
- * or mark later edits as saved. A failed save keeps the edits marked unsaved.
+ * Saves run one at a time, each on the revision the previous one returned, so a stale response never
+ * overwrites a newer revision or marks later edits saved. A failed save leaves the edits unsaved.
  */
 export function createSaveCoordinator(options: SaveCoordinatorOptions) {
   const { exportDocx, persist, onStatus, onSaved, isConflict, debounceMs = 1500, maxWaitMs = 10_000 } = options;

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 export type Tone = "ok" | "warn" | "danger" | "neutral" | "accent";
 
-/** A tinted box for notices that need attention; its text stays in the regular ink colours. */
+/** Only the box is tinted; text inside keeps the regular ink colours. */
 export const TONE_BOX: Record<Tone, string> = {
   ok: "border-ok-line bg-ok-surface",
   warn: "border-warn-line bg-warn-surface",
@@ -61,7 +61,6 @@ export function Callout({
 
 export const Skeleton = ({ className = "" }: { className?: string }) => <div aria-hidden className={`lx-skeleton rounded ${className}`} />;
 
-/** A count next to a tab label. */
 export function Count({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "warn" }) {
   return <span className={`text-meta tabular-nums ${tone === "warn" ? "font-semibold text-warn" : "font-normal text-ink-3"}`}>{children}</span>;
 }

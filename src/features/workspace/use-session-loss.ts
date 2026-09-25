@@ -3,8 +3,8 @@ import { useEffect, useRef } from "react";
 import { ApiError } from "@/lib/http";
 
 /**
- * Calls `onLost` when the server says this browser's anonymous session is gone (expired, or its
- * cookie cleared): any read or write answered 401. The caller then drops the cached private data.
+ * Any 401 means this browser's anonymous session is gone (expired, or its cookie cleared).
+ * The caller then drops the cached private data.
  */
 export function useSessionLoss(onLost: (message: string) => void) {
   const queryClient = useQueryClient();

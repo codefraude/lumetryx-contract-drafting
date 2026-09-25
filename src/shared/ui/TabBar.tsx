@@ -12,8 +12,8 @@ export interface TabItem<T extends string> {
 }
 
 /**
- * Tabs underlined when active (automatic activation, arrow keys, Home/End). They sit on the bottom
- * border of their bar. Panels are rendered by the caller with ids `${idBase}-panel-${id}`.
+ * Automatic activation with arrow keys and Home/End.
+ * The caller renders the panels, with ids `${idBase}-panel-${id}`.
  */
 export function TabBar<T extends string>({
   items,

@@ -10,7 +10,7 @@ export interface NormalizeResult {
 
 const isValidYmd = (y: number, m: number, d: number): boolean => {
   if (m < 1 || m > 12 || d < 1 || y < 1900 || y > 2200) return false;
-  // Calendar arithmetic in UTC only — never shifts a date-only value.
+  // UTC only, so a date-only value never shifts.
   const dt = new Date(Date.UTC(y, m - 1, d));
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
 };
@@ -95,9 +95,8 @@ const AMBIGUOUS: Record<string, { display: string; candidates: string[] }> = {
 const DISPLAY: Record<string, string> = { MUR: "Rs", INR: "Rs", PKR: "Rs", LKR: "Rs", NPR: "Rs" };
 
 /**
- * Parses money as an exact decimal string (never a float). A bare number, or an ambiguous
- * symbol such as “Rs” or “$”, needs a currency established by the template or the user.
- * `lang` is the language context of the answer and settles "25,000" (English) vs "25,500" style decimals.
+ * Parses money as an exact decimal string, never a float. A bare number or an ambiguous symbol (“Rs”, “$”)
+ * needs a currency from the template or the user; `lang` settles whether "25,000" is thousands or a decimal.
  */
 export function parseMoney(input: string, currencyHint?: string | null, lang: Lang = "unknown"): NormalizeResult {
   const s = input

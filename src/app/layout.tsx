@@ -28,7 +28,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // suppressHydrationWarning applies to <html>'s own attributes only: the head script sets data-theme and color-scheme before React hydrates.
+    // The head script sets the theme before hydration; this only silences <html>'s own attributes.
     <html lang="en" className={`${ui.variable} ${display.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />

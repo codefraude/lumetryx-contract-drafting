@@ -1,12 +1,8 @@
 import { GROUP_ORDER, type Field } from "./contracts/fields";
 
 /**
- * What is still needed before a draft can be generated. One definition, used by the assistant's
- * questions, draft generation and the saved-drafts list on the server, and by the workspace status and
- * the Details panel in the browser.
- *
- * `inactive` holds fields that only appear inside excluded or undecided clauses, and condition
- * answers no active clause depends on: they are not needed right now.
+ * What's still needed before generating; the server and the browser both count from here.
+ * `inactive`: fields used only in excluded or undecided clauses, and conditions no active clause needs.
  */
 
 /** Required, unconfirmed fields in questioning order. */
@@ -15,10 +11,7 @@ export const outstandingFields = (fields: Field[], inactive: ReadonlySet<string>
     .filter((f) => f.required && f.status !== "confirmed" && !inactive.has(f.id))
     .sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group));
 
-/**
- * Details the lawyer still has to give. A yes/no answer that decides a clause is counted as a
- * clause decision instead, so it is never counted twice.
- */
+/** A yes/no answer that decides a clause counts as a decision instead, never twice. */
 export const detailsLeft = (fields: Field[], inactive: ReadonlySet<string>): number =>
   outstandingFields(fields, inactive).filter((f) => f.source !== "condition").length;
 

@@ -13,7 +13,7 @@ import { BrandMark } from "@/shared/ui/BrandMark";
 import { useSessionLoss } from "../use-session-loss";
 import { DocumentWorkspace, type DocumentWorkspaceHandle } from "./DocumentWorkspace";
 
-/** The draft on screen. A new `generation` shows it afresh (reopened or reloaded), resetting its workspace. */
+/** Bumping `generation` remounts the workspace, e.g. when a draft is reopened or reloaded. */
 interface OpenDraft {
   id: string;
   generation: number;

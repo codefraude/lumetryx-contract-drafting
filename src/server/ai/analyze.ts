@@ -73,7 +73,7 @@ export async function analyzeTemplate(opts: {
     result = await run();
   } catch (err) {
     if (!NoObjectGeneratedError.isInstance(err) || err.finishReason === "length") throw mapNoObject(err);
-    // One bounded repair attempt; never an open-ended loop.
+    // A single repair attempt, not a retry loop.
     try {
       result = await run("\n\nYour previous reply did not match the required JSON schema. Reply again with valid JSON only.");
     } catch (err2) {

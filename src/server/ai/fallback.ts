@@ -16,7 +16,7 @@ export class BothFailedError extends Error {
   }
 }
 
-/** When the first model last failed, per model: while it is overloaded, each attempt costs seconds before its error. */
+/** Cooldown end per model: an overloaded model takes seconds to return each error, so it is skipped meanwhile. */
 const downUntil = new Map<string, number>();
 const COOLDOWN_MS = 60_000;
 
@@ -28,10 +28,8 @@ export function shouldFallBack(err: unknown): boolean {
 }
 
 /**
- * The first model, with one attempt on the fallback when it fails before answering (overloaded, out of
- * quota, bad key, network); after such a failure the fallback answers alone for a minute. A stream that
- * already started is not switched. `fallbackOptions` replace the first model's Google options, since
- * thinking settings differ between Gemini generations.
+ * Falls back once when the first model fails before answering, then uses the fallback alone for a minute.
+ * A started stream is not switched. `fallbackOptions` replace the Google ones: thinking differs by generation.
  */
 export function withFallback(primary: Model, fallback: Model, fallbackOptions: ProviderOptions, onFallback: (err: unknown) => void): Model {
   const switched = (params: CallOptions): CallOptions => ({

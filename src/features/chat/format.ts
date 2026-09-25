@@ -1,7 +1,4 @@
-/**
- * Light formatting for assistant replies: paragraphs, bullet and numbered lists, **bold**.
- * Text is never interpreted as HTML; this only groups lines.
- */
+/** Groups reply lines into paragraphs, lists and **bold** spans; the text is never treated as HTML. */
 export type MessageBlock = { kind: "p"; lines: string[] } | { kind: "ul" | "ol"; items: string[] };
 
 const BULLET = /^\s*[-•*]\s+(.*)$/;

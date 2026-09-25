@@ -1,6 +1,6 @@
 /**
- * Light / dark / system theme. The preference lives in localStorage (never any document content);
- * the resolved theme lives on <html data-theme> and is the single source for all styling.
+ * The preference lives in localStorage (never document content).
+ * The resolved theme lives on <html data-theme>, which all styling reads.
  */
 export type ThemePreference = "light" | "dark" | "system";
 export type Theme = "light" | "dark";

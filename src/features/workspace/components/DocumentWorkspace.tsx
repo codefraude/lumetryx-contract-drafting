@@ -35,10 +35,7 @@ interface Props {
   announce(text: string): void;
 }
 
-/**
- * One open draft. It is mounted per draft (and per reload of it), so the conversation, the editor and
- * the views start from that draft's saved state, and a stream still running for it stops when it is left.
- */
+/** Mounted per draft and per reload, so the conversation, editor and views start from its saved state. */
 export const DocumentWorkspace = forwardRef<DocumentWorkspaceHandle, Props>(function DocumentWorkspace(
   { doc, onShowDrafts, onClose, onOpenDocument, announce },
   ref,

@@ -12,10 +12,7 @@ const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
 
 const noop = () => undefined;
 
-/**
- * Mounted once in the root layout. Follows OS changes while "System" is chosen and changes from
- * other tabs, and re-applies the theme after React's development remount clears <html> attributes.
- */
+/** Follows OS and other-tab changes, and re-applies the theme after React's dev remount clears <html>. */
 export function ThemeSync() {
   useLayoutEffect(() => {
     applyTheme();

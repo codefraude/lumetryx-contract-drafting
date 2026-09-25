@@ -18,9 +18,8 @@ import { mustGet, mustGetBytes, templateBlocks } from "./access";
 import { documentView } from "./views";
 
 /**
- * Everything that changes the answers or clause decisions of a draft: corrections from the Details
- * panel, chat turns, the conversation language and clause actions. When a draft exists, the change
- * is written into it (only where the user has not edited the text) in the same statement.
+ * Changes to a draft's answers or clause decisions: panel corrections, chat turns, language, clause actions.
+ * An existing draft gets the change in the same statement, except where the user edited the text.
  */
 
 const docLangAsLang = (d: FieldState["language"]["document"]): Lang => (d === "en" || d === "fr" ? d : "unknown");
@@ -98,7 +97,7 @@ export async function chatTurn(
   const typed = messageLanguage(input.message);
   const lang = replyLanguage(state.conversationLanguage, input.message, state.language.document);
 
-  // Stage 1: validated structured extraction. Nothing is committed unless it fully validates.
+  // Only extracted values that fully validate are committed.
   const { extraction, usage } = await extract({ model: m, fields: state.fields, blocks, history, userMessage: input.message, abortSignal: signal });
   await trackUsage(session.id, usage);
   const numberContext: Lang = typed !== "unknown" ? typed : docLangAsLang(state.language.document);
@@ -125,7 +124,7 @@ export async function chatTurn(
     }
   }
 
-  // Stage 2: stream the user-facing reply. Earlier answers stay saved if this fails.
+  // Answers saved above stay saved if the reply fails.
   const clauseText = clauseContext(blocks, extraction.clauseBlockIds);
   const inactive = inactiveFields({ rules: state.rules, fields });
   const reply = streamReply(m, replyPrompt(fields, applied.changed, clauseText, input.message, history, lang, inactive), signal);
@@ -151,8 +150,6 @@ export async function chatTurn(
   emit({ type: "assistant_done", text });
 }
 
-// ---------- conversation language ----------
-
 export async function setConversationLanguage(sessionId: string, documentId: string, input: { fieldsVersion: number; language: ChatLanguage | null }) {
   const doc = await mustGet(sessionId, documentId);
   const state = { ...doc.fieldState, conversationLanguage: input.language };
@@ -161,8 +158,6 @@ export async function setConversationLanguage(sessionId: string, documentId: str
   if (input.language) await repo.addMessage(documentId, "assistant", languageSwitchMessage(state.fields, input.language, inactiveFields(state)));
   return documentView(sessionId, saved);
 }
-
-// ---------- conditional clauses ----------
 
 /**
  * Confirms/dismisses a proposed rule, sets or clears an explicit override, or (`apply`) confirms

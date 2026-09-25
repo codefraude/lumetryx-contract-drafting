@@ -5,10 +5,8 @@ import type { DocxPackage } from "./package";
 import { firstChild, paragraphsOf, parseXml, serializeXml, W_NS } from "./xml";
 
 /**
- * Structural changes for conditional clauses. A clause is a contiguous run of top-level body
- * elements (paragraphs, tables, block content controls), found by the w14:paraIds of its
- * paragraphs. Only whole elements are moved, so numbering definitions, styles and the rest of
- * the document are untouched; list numbers are computed by Word from what remains.
+ * A conditional clause is a run of whole top-level body elements, found by its paragraphs' w14:paraIds.
+ * Only whole elements move, so styles and numbering stay intact and Word renumbers what remains.
  */
 
 const BODY_PART = "word/document.xml";

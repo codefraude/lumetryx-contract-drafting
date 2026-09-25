@@ -8,6 +8,6 @@ import { postEventStream } from "@/lib/sse";
 export const streamChatTurn = (documentId: string, message: string, fieldsVersion: number, onEvent: (e: StreamEvent) => void, signal: AbortSignal) =>
   postEventStream(`/api/documents/${documentId}/chat`, { message, fieldsVersion }, StreamEvent, onEvent, signal);
 
-/** The conversation language (null follows the language the user writes in). */
+/** `null` follows whatever language the user writes in. */
 export const setConversationLanguage = (documentId: string, fieldsVersion: number, language: ChatLanguage | null) =>
   requestJson(`/api/documents/${documentId}`, DocumentView, jsonBody("PATCH", { fieldsVersion, language }));

@@ -90,8 +90,6 @@ export function replyLanguage(explicit: ChatLanguage | null, message: string | n
 /** How a value is rendered at an occurrence whose own language is unknown. */
 export const renderLang = (occurrence: Lang, doc: DocLanguage): "en" | "fr" => (occurrence !== "unknown" ? occurrence : doc === "fr" ? "fr" : "en");
 
-// ---------- dates ----------
-
 export const MONTHS_EN = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 export const MONTHS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 const FR_ABBR = ["janv", "févr", "mars", "avr", "mai", "juin", "juil", "août", "sept", "oct", "nov", "déc"];
@@ -115,8 +113,6 @@ export function formatDate(iso: string, lang: "en" | "fr"): string {
   return `${d} ${month.charAt(0).toUpperCase()}${month.slice(1)} ${y}`;
 }
 
-// ---------- money ----------
-
 const NBSP = " ";
 
 /** Renders an exact decimal string; no floating point is involved. */
@@ -134,9 +130,8 @@ export const formatMoney = (amount: string, symbol: string, lang: "en" | "fr") =
 export type AmountParse = { ok: true; amount: string } | { ok: false; ambiguous: boolean; note: string };
 
 /**
- * Reads "1 250,50", "1,250.50", "25,000" or "1.250" as an exact decimal string. A single
- * separator followed by exactly three digits means thousands in English and a decimal in
- * French, so it is accepted only when the language context settles it; otherwise we ask.
+ * Reads "1 250,50", "1,250.50", "25,000" or "1.250" as an exact decimal. One separator before exactly
+ * three digits is thousands in English but a decimal in French, so the language must settle it, or we ask.
  */
 export function parseAmount(raw: string, lang: Lang): AmountParse {
   const s = raw.trim().replace(/[   ']/g, " ");

@@ -22,7 +22,7 @@ const BRACE = /\{\{\s*(\p{L}[\p{L}\p{N}_ .'’-]{0,60}?)\s*\}\}/gu;
 // Letters, spaces and a few separators; excludes citations like [1], [sic], [emphasis added].
 const BRACKET = /\[(\p{L}[\p{L}\p{N} _/'’.,&-]{0,60})\]/gu;
 const UNDERSCORE = /_{4,}/g;
-/** `[[IF …]]` control markers belong to conditional clauses (rules.ts), not to fields. */
+/** `[[IF …]]` control markers belong to conditional clauses (clauses/condition-markers.ts), not to fields. */
 const CONTROL = /\[\[[^\]]*\]\]/g;
 const NON_FIELD_BRACKETS = new Set([
   "sic",
@@ -78,9 +78,8 @@ const GENERIC_PROMPT =
   /click or tap|click here|enter (any )?(text|a date)|choose an item|cliquez|appuyez ici|entrer (du texte|une date)|choisissez un élément/i;
 
 /**
- * Finds explicitly marked fields: {{…}}, […], lines of underscores and Word content controls that
- * still show their placeholder text. Contextual/implicit fields (no marker) are left to the
- * bounded AI analysis, which must cite a verbatim quote that is validated against these blocks.
+ * Finds marked fields: {{…}}, […], underscore lines and Word content controls still showing their placeholder.
+ * Unmarked fields are left to the AI analysis, whose verbatim quotes are checked against these blocks.
  */
 export function detectMarkers(blocks: Block[]): MarkerOccurrence[] {
   const out: MarkerOccurrence[] = [];

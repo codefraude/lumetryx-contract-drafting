@@ -2,10 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { compareWithTemplate } from "./api";
 
 /**
- * The comparison for one version of a draft. `revisionKey` changes whenever the server changes the
- * draft or its answers. The editor's current content is read when the comparison runs, so an edit
- * made just before opening Compare is included; nothing is kept once the panel closes, and focus
- * never re-runs it (that is what Refresh is for).
+ * Reads the editor's content when it runs, so an edit made just before opening Compare is included.
+ * Nothing is kept once the panel closes, and focus never re-runs it (Refresh does).
  */
 export const useComparison = (documentId: string, revisionKey: string, snapshot: () => Promise<Blob | null>) =>
   useQuery({

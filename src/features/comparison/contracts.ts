@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-/**
- * Result of the read-only comparison of the template with the current draft
- * (`POST /api/documents/:id/compare`), produced by the server's diff engine.
- */
+/** Response of `POST /api/documents/:id/compare`, produced by the server's diff engine. */
 
 export const DIFF_SCHEMA_VERSION = 1;
 

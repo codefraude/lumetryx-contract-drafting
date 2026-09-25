@@ -164,9 +164,8 @@ export async function abandonDraft(sessionId: string, documentId: string) {
 }
 
 /**
- * Saves the working DOCX (and, when the server changed the draft, the field state in the same
- * statement, so document and state never diverge). Guarded by the working revision; with
- * `expectedFieldsVersion`, also by the answers' version.
+ * Saves the working DOCX, plus the field state in the same statement when the server changed the draft.
+ * Guarded by the working revision, and by `expectedFieldsVersion` when given.
  */
 export async function saveWorkingDocx(
   sessionId: string,
@@ -218,7 +217,7 @@ export async function deleteDocument(sessionId: string, documentId: string) {
 export async function addMessage(documentId: string, role: "user" | "assistant", content: string) {
   const db = getDb();
   await db.insert(messages).values({ documentId, role, content });
-  // A finalized conversation turn is part of the saved draft.
+  // A new message counts as a save and extends the draft's retention.
   await db
     .update(documents)
     .set({ savedAt: sql`now()`, expiresAt: retention() })
@@ -260,9 +259,8 @@ export async function copyMessages(fromDocumentId: string, toDocumentId: string)
 }
 
 /**
- * Bounded cleanup: removes up to `batch` expired drafts (messages cascade), then sessions that have
- * expired and own no remaining drafts. Returns what was deleted, including template hashes so the
- * caller can drop cached analyses.
+ * Removes up to `batch` expired drafts (messages cascade), then expired sessions left with no drafts.
+ * Returns the template hashes too, so the caller can drop cached analyses.
  */
 export async function deleteExpired(batch = 500) {
   const db = getDb();

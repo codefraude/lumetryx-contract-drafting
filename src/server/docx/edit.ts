@@ -24,9 +24,8 @@ export class AnchorConflictError extends Error {
 }
 
 /**
- * Word's own behaviour when someone types into a placeholder: the control stops showing its
- * placeholder and the text loses the placeholder formatting. The data binding is dropped as well,
- * otherwise Word would put the (empty) bound value back when the document is opened.
+ * Does what Word does when someone types into a placeholder: drops the placeholder flag and style, and
+ * the data binding too, or Word would put the empty bound value back on open.
  */
 function commitControl(sdt: XmlElement, placeholderStyles: ReadonlySet<string>): void {
   const pr = firstChild(sdt, "sdtPr");
@@ -39,8 +38,6 @@ function commitControl(sdt: XmlElement, placeholderStyles: ReadonlySet<string>):
   if (!content) return;
   for (const s of Array.from(content.getElementsByTagNameNS(W_NS, "rStyle"))) if (placeholderStyles.has(wAttr(s, "val") ?? "")) s.parentNode?.removeChild(s);
 }
-
-// ---------- editing ----------
 
 export function applyToParagraph(map: ParagraphMap, edit: TextEdit, placeholderStyles: ReadonlySet<string>): void {
   const actual = map.text.slice(edit.start, edit.end);

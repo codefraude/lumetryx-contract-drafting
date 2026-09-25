@@ -5,10 +5,7 @@ import { assertSameOrigin, requireSession } from "@/server/session";
 
 export const runtime = "nodejs";
 
-/**
- * Read-only comparison of the template with the current draft. The body may carry the editor's
- * current DOCX so unsaved edits are compared without being saved. Nothing is written.
- */
+/** Read-only: the body may carry the editor's DOCX, so unsaved edits are compared without saving them. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     assertSameOrigin(req);

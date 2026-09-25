@@ -8,13 +8,8 @@ import { formattingNotes, location, structureNotes } from "./change-notes";
 import { diffTokens } from "./token-diff";
 
 /**
- * Read-only comparison of the uploaded template with a snapshot of the current draft.
- *
- * Coverage (deliberately explicit): paragraph/heading/table-cell text at word level; bold,
- * italic and underline; paragraph style, heading level and list level. Not compared: fonts,
- * sizes, colours, spacing, alignment, borders, images, page layout. Blocks are aligned by Word's
- * paragraph ids (kept by the editor), then by text for anything left over, so serialization
- * differences (namespace order, run splitting, generated ids) never show up as changes.
+ * Read-only comparison of the template with a draft snapshot: word-level text, bold, italic, underline,
+ * paragraph style, heading and list level. Fonts, sizes, colours, spacing, images and layout are ignored.
  */
 
 export interface CompareContext {
@@ -153,7 +148,7 @@ export function compareBlocks(original: RenderedBlock[], current: RenderedBlock[
     emit(deletedAt.get(j));
   });
 
-  // Conditional clauses that are in the draft, with the reason, for completeness.
+  // Also list the conditional clauses the draft includes, with the reason.
   for (const r of ctx.rules) {
     if (r.applied !== "included" || !r.confirmed || r.dismissed) continue;
     const ev = evaluateRule(r, ctx.fields);

@@ -41,7 +41,6 @@ interface Props {
   onRuleAction(ruleId: string, action: RuleAction): Promise<unknown>;
 }
 
-/** The assistant side: the conversation, the details and the conditional clauses. */
 export function AssistantPane({ doc, inactive, progress, tabs, view, onView, hidden, hasDraft, chat, nextStep, onRuleAction }: Props) {
   return (
     <aside

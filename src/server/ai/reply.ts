@@ -53,8 +53,8 @@ export function replyPrompt(
   const nextGroup = GROUP_ORDER.find((g) => outstanding.some((f) => f.group === g && f.status === "missing"));
   const clarify = outstanding.filter((f) => f.status === "needs_clarification");
   const next = outstanding.filter((f) => f.status === "missing" && f.group === nextGroup).slice(0, 3);
-  // Named, not counted: given only a number, the model made up questions to fill it and took the
-  // list for done when two fields had similar names.
+  // Listed by name, not counted: given a count, the model invents questions to reach it and stops
+  // early when two fields have similar names.
   const later = outstanding.filter((f) => !clarify.includes(f) && !next.includes(f));
   return [
     `JUST RECORDED: ${

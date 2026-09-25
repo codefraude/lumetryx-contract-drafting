@@ -15,13 +15,13 @@ const slug = (s: string) =>
     .replace(/^(\d)/, "f_$1")
     .slice(0, 60) || "field";
 
-/**
- * Deterministic fallback typing for markers the model did not describe (English and French
- * wording). Whole words only: “employer” must not match the French “loyer” (rent).
- */
 /** The model sometimes copies the marker as the label (“{{tenant_name}}”, “LANDLORD NAME”); the lawyer sees a readable name. */
 const readableLabel = (label: string) => (/^\s*(\{\{.*\}\}|\[.*\])\s*$|_|^[^a-z]*$/.test(label) ? humanize(label.replace(/[{}[\]]/g, "")) : label);
 
+/**
+ * Types a marker the model did not describe, from English or French wording. Words match from
+ * their start, so “employer” never matches “loyer”.
+ */
 export function guessType(label: string): { valueType: ValueType; group: FieldGroup } {
   const l = stripAccents(label.toLowerCase());
   const has = (words: string) => new RegExp(`\\b(${words})`).test(l);
@@ -53,10 +53,8 @@ export interface BuildResult {
 }
 
 /**
- * Combines deterministic markers with an optional model analysis. Every model-proposed
- * location is verified against the real block text; unverifiable claims are dropped.
- * Conditional clauses come from `[[IF …]]` markers (deterministic) and, optionally, from model
- * proposals that stay unconfirmed until the user accepts them.
+ * Merges detected markers with the optional model analysis. A location the model claims is dropped
+ * unless the block text bears it out; clauses the model proposes stay unconfirmed until accepted.
  */
 export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analysis: TemplateAnalysis | null): BuildResult {
   const byKey = new Map<string, MarkerOccurrence[]>();
@@ -119,7 +117,7 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
         continue;
       }
       const [start, end] = imp.replace ? [at, at + imp.quote.length] : [at + imp.quote.length, at + imp.quote.length];
-      // Don't write where a marker already sits (or right before one) — that marker is the field.
+      // Don't write where a marker already sits (or right before one): that marker is the field.
       if (markers.some((m) => m.blockId === block.id && m.start <= end + 1 && m.end >= start)) continue;
       if (taken.some((t) => t.blockId === block.id && start < t.end && t.start < end)) {
         rejected.push(`overlapping place in ${imp.blockId}: ${imp.quote}`);
@@ -161,8 +159,8 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
     });
   }
 
-  // The model may call a marker ordinary text (a citation, a cross-reference), but a {{variable}} or an
-  // ALL-CAPS [PLACEHOLDER] never is: a weaker model once dismissed one, and it went unfilled into the draft.
+  // The model may call a marker ordinary text (a citation, a cross-reference), but never a {{variable}}
+  // or an ALL-CAPS [PLACEHOLDER]: a dismissed one would go unfilled into the draft.
   const dismissible = (m: MarkerOccurrence) => m.marker !== "brace" && !(m.marker === "bracket" && /\p{L}/u.test(m.text) && m.text === m.text.toUpperCase());
 
   // Markers the model didn't account for still become fields (never silently lost).
@@ -189,7 +187,6 @@ export function buildFields(blocks: Block[], markers: MarkerOccurrence[], analys
     });
   }
 
-  // Conditional clauses.
   const parsed = parseConditionMarkers(blocks);
   const rules: Rule[] = [...parsed.rules];
   const questions = new Map((analysis?.conditions ?? []).map((c) => [slug(c.name), c]));

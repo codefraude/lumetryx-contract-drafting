@@ -4,8 +4,6 @@ import { CurrentDocumentResponse, DocumentView, SavedRevision, WordLink } from "
 import type { FieldCorrection, RuleActionRequest } from "./contracts/requests";
 import { StreamEvent } from "./contracts/stream-events";
 
-/** Browser functions for a draft's endpoints. Every response is validated against its contract. */
-
 export const fetchCurrentDocument = (signal?: AbortSignal) =>
   requestJson("/api/documents/current", CurrentDocumentResponse, { signal }).then((r) => r.document);
 
@@ -45,6 +43,5 @@ export async function downloadDocx(id: string) {
 /** A short-lived link to the saved draft for Word on this device (the link is the credential, not the cookie). */
 export const requestWordLink = (id: string) => requestJson(`/api/documents/${id}/word-link`, WordLink, { method: "POST" });
 
-/** Streams the draft as the server fills the template. */
 export const streamDraftGeneration = (id: string, fieldsVersion: number, onEvent: (e: StreamEvent) => void, signal: AbortSignal) =>
   postEventStream(`/api/documents/${id}/draft`, { fieldsVersion }, StreamEvent, onEvent, signal);

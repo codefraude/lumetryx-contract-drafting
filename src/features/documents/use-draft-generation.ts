@@ -14,9 +14,8 @@ interface Options {
 }
 
 /**
- * Draft generation for one open draft: the server fills the template and streams each block, so the
- * preview grows as it works. A stopped or failed generation never replaces the previous draft. When
- * the draft is closed mid-way, the server still finishes it; the events update only this draft's entry.
+ * A stopped or failed generation never replaces the previous draft.
+ * If the draft is closed mid-way the server still finishes it, and its events only update this draft's entry.
  */
 export function useDraftGeneration(documentId: string, { onCompleted, onFailed, announce }: Options) {
   const queryClient = useQueryClient();

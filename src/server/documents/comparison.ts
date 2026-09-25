@@ -8,9 +8,8 @@ import { renderDraft } from "@/server/draft/generate";
 import { mustGet, mustGetBytes } from "./access";
 
 /**
- * Compares the immutable template with the latest draft snapshot: the editor's current export when
- * the browser sends it (so unsaved edits are included without saving them), else the saved working
- * draft, else a preview of the draft the current answers would produce. No model call is made.
+ * Compares the template with the newest draft snapshot: the editor's unsaved export when sent, else
+ * the saved working draft, else a preview built from the current answers. No model call is made.
  */
 export async function compare(sessionId: string, documentId: string, snapshot: Uint8Array | null): Promise<CompareResponse> {
   const doc = await mustGet(sessionId, documentId);

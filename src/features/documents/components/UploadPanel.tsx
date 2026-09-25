@@ -47,7 +47,7 @@ export function UploadPanel({ onFile, busy, error, onShowDrafts, maxMb }: Props)
     onFile(f);
   };
 
-  /** One click: fetch the bundled example and upload it like a file you chose. */
+  /** Uploads a bundled example exactly like a file the person picked. */
   const tryExample = async (ex: (typeof EXAMPLES)[number]) => {
     setLocal(null);
     setFetching(ex.file);

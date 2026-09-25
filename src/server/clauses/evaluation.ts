@@ -13,7 +13,7 @@ export interface Evaluation {
 
 const same = (a: string, b: string) => normalizeKey(a) === normalizeKey(b);
 
-/** Deterministic evaluation of one rule. An unanswered or unclear condition is unresolved, never false. */
+/** An unanswered or unclear condition leaves the rule unresolved, never false. */
 export function evaluateRule(rule: Rule, fields: Field[]): Evaluation {
   if (rule.dismissed) return { state: "dismissed", reason: "You dismissed this suggested condition; the clause stays as written." };
   if (!rule.confirmed) return { state: "proposed", reason: "Suggested from the template wording. Confirm it to make the clause conditional." };

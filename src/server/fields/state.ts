@@ -23,7 +23,7 @@ export const Rule = z.object({
   evidence: z.string().max(300).nullable().default(null),
   /** Explicit, persisted user decision that wins over the condition. */
   override: z.enum(["include", "exclude"]).nullable().default(null),
-  // ---- state of the working draft (null until a draft exists) ----
+  // State of the working draft, null until a draft exists.
   /** What the working draft currently contains. */
   applied: z.enum(["included", "excluded"]).nullable().default(null),
   /** w14:paraIds of the clause's paragraphs in the working draft. */

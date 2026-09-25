@@ -24,7 +24,6 @@ interface Props {
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** The conversation: it follows new content only while the reader is at the bottom. */
 export function ChatPanel({ messages, busy, error, disabledReason, onSend, onStop, onRetry, header, footer }: Props) {
   const list = useRef<HTMLDivElement>(null);
   /** Follow new content only while the reader is at the bottom. */

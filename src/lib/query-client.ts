@@ -1,11 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { isTransient } from "./http";
 
-/**
- * TanStack Query holds the browser's copy of server data (the open draft's view, the saved-drafts
- * list, comparisons); Neon stays the source of truth. Queries retry only transient failures, twice;
- * mutations never retry by themselves, so a write happens again only when the person asks.
- */
+/** Mutations never retry on their own, so a write happens again only when the person asks. */
 function makeQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {

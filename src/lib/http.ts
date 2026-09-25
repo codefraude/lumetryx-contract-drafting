@@ -1,11 +1,5 @@
 import { z } from "zod";
 
-/**
- * The browser's HTTP layer for this app's own API: every response is checked, error bodies become
- * an ApiError carrying the server's code and message, and JSON is validated against a schema before
- * any of it reaches the UI.
- */
-
 export class ApiError extends Error {
   override name = "ApiError";
   constructor(
@@ -19,7 +13,6 @@ export class ApiError extends Error {
   }
 }
 
-/** A readable message for anything that was thrown. */
 export const errorMessage = (error: unknown, fallback = "Something went wrong."): string =>
   error instanceof Error && error.message ? error.message : fallback;
 
@@ -28,14 +21,13 @@ export const isTransient = (error: unknown): boolean => (error instanceof ApiErr
 
 const ErrorBody = z.object({ code: z.string().optional(), message: z.string().optional(), retryable: z.boolean().optional() });
 
-/** Turns a failed response into an ApiError, using the server's error body when it sent one. */
+/** Uses the server's error body when there is one; without it, any 5xx counts as retryable. */
 export async function apiError(res: Response): Promise<ApiError> {
   const parsed = ErrorBody.safeParse(await res.json().catch(() => null));
   const body = parsed.success ? parsed.data : {};
   return new ApiError(body.code ?? `http_${res.status}`, body.message ?? `Request failed (${res.status}).`, res.status, body.retryable ?? res.status >= 500);
 }
 
-/** Fetches JSON and returns it only if it matches `schema`. */
 export async function requestJson<S extends z.ZodType>(url: string, schema: S, init: RequestInit = {}): Promise<z.output<S>> {
   const res = await fetch(url, { cache: "no-store", ...init });
   if (!res.ok) throw await apiError(res);
@@ -45,7 +37,6 @@ export async function requestJson<S extends z.ZodType>(url: string, schema: S, i
   return parsed.data;
 }
 
-/** Fetches a file; a failure is reported like any other API error. */
 export async function requestBlob(url: string, init: RequestInit = {}): Promise<{ blob: Blob; headers: Headers }> {
   const res = await fetch(url, { cache: "no-store", ...init });
   if (!res.ok) throw await apiError(res);
@@ -58,7 +49,6 @@ export const jsonBody = (method: "POST" | "PATCH" | "PUT", body: unknown): Reque
   body: JSON.stringify(body),
 });
 
-/** A failure as the UI shows it: what went wrong, and whether retrying can help. */
 export interface ActionFailure {
   message: string;
   retryable: boolean;

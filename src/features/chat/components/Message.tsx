@@ -22,7 +22,6 @@ function Inline({ text }: { text: string }) {
   );
 }
 
-/** Paragraphs and lists. */
 function Rich({ text }: { text: string }) {
   return (
     <>

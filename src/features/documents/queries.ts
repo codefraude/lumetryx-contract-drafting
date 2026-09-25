@@ -10,22 +10,17 @@ export const documentKeys = {
 };
 
 /**
- * The persisted view of one draft. It changes at defined boundaries only: a write's response, or
- * the end of a stream (which marks it stale). Never on focus or by polling: this tab is the writer,
- * and revision checks on the server catch other tabs. The editor keeps its own working copy.
+ * Updated only by write responses and stream ends, never on focus or by polling:
+ * this tab is the writer, and server revision checks catch other tabs.
  */
 export const documentQuery = (id: string) =>
   queryOptions({ queryKey: documentKeys.detail(id), queryFn: ({ signal }) => fetchDocument(id, signal), staleTime: Infinity, refetchOnWindowFocus: false });
 
 export const useDocument = (id: string) => useQuery(documentQuery(id));
 
-/** Keeps the server's answer as the cached view of that draft. */
 export const storeDocument = (queryClient: QueryClient, view: DocumentView) => queryClient.setQueryData(documentKeys.detail(view.id), view);
 
-/**
- * The id of the browser's latest draft, reopened when the page loads. Its view is stored as that
- * draft's own entry, so one cache entry per draft holds its data.
- */
+/** Resolves to the latest draft's id; its view goes under that draft's own key, one cache entry per draft. */
 export const currentDocumentQuery = (queryClient: QueryClient) =>
   queryOptions({
     queryKey: documentKeys.current(),
@@ -60,8 +55,8 @@ export function useCorrectField(documentId: string) {
 }
 
 /**
- * A clause decision. The server may change the saved draft, so pending editor edits are saved first
- * (`beforeAction`), and the editor reloads only when the draft's revision actually changed.
+ * The server may rewrite the draft, so pending editor edits are saved first.
+ * The editor reloads only if the revision actually changed.
  */
 export function useRuleAction(
   documentId: string,

@@ -83,9 +83,8 @@ const showsPlaceholder = (sdt: XmlElement): boolean => {
 };
 
 /**
- * Content controls of this paragraph that still show their placeholder text. A control around the
- * whole paragraph counts when it holds only this paragraph; when controls are nested, the innermost
- * one is the blank.
+ * Content controls of this paragraph still showing their placeholder. A control around the whole
+ * paragraph counts only if it holds nothing else; among nested controls, the innermost is the blank.
  */
 export function placeholderSpans(map: ParagraphMap): PlaceholderSpan[] {
   const found = map.controls.filter((c) => showsPlaceholder(c.el));

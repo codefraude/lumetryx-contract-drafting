@@ -5,7 +5,7 @@ import type { DraftListItem } from "./contracts";
 
 export const draftKeys = { list: ["drafts", "list"] as const };
 
-/** The saved-drafts list is re-read whenever the drawer opens (it changes with every save), showing the last copy meanwhile. */
+/** Re-read whenever the drawer opens, since every save changes it; the last copy shows meanwhile. */
 export const draftListQuery = () => queryOptions({ queryKey: draftKeys.list, queryFn: ({ signal }) => fetchDrafts(signal), staleTime: 0 });
 
 export const useDraftList = (enabled: boolean) => useQuery({ ...draftListQuery(), enabled });
@@ -28,7 +28,6 @@ export function useRenameDraft() {
   });
 }
 
-/** Deletes a draft for good; its cached view is dropped with it. */
 export function useDeleteDraft() {
   const queryClient = useQueryClient();
   return useMutation({

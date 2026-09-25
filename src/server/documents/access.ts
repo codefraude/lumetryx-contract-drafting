@@ -21,7 +21,6 @@ export async function mustGetBytes(sessionId: string, documentId: string) {
   return bytes;
 }
 
-/** Cache key of a template's parsed blocks (per session, template and parser version). */
 export const blocksCacheKey = (sessionId: string, templateHash: string) => `lx:blocks:${sessionId}:${templateHash}:${PARSER_VERSION}`;
 
 /** Parsed template blocks are cached per session + template hash + parser version. */
