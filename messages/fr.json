@@ -229,7 +229,8 @@
     "sendNotSaved": "Votre dernière modification n’a pas pu être enregistrée, le message n’a donc pas été envoyé. Il a été remis dans la zone de saisie ci-dessous ; renvoyez-le une fois l’enregistrement rétabli.",
     "conflictNotice": "Vous avez modifié le texte où {count, plural, one {cette réponse apparaissait} other {ces réponses apparaissaient}} ({answers}) : votre modification a été conservée et le projet n’a pas été modifié à cet endroit. Mettez-le à jour dans l’éditeur, ou régénérez le projet à partir du modèle (ce qui supprime les modifications manuelles).",
     "clauseChanged": "Clause {action, select, exclude {retirée} other {rétablie}} : « {label} » ({reason}).",
-    "clauseNeedsConfirmation": "La clause « {label} » devrait maintenant être {action, select, exclude {retirée} other {incluse}}, mais vous l’avez modifiée. Confirmez votre choix dans l’onglet Clauses."
+    "clauseNeedsConfirmation": "La clause « {label} » devrait maintenant être {action, select, exclude {retirée} other {incluse}}, mais vous l’avez modifiée. Confirmez votre choix dans l’onglet Clauses.",
+    "nothingChanged": "Rien n’a été modifié. L’assistant remplit seulement les informations demandées par ce modèle, avec vos propres mots ; il ne rédige ni ne reformule le texte du contrat. {draft, select, yes {Pour ajouter ou modifier une autre formulation, saisissez-la dans le projet. Régénérer reconstruit le projet à partir du modèle et remplace ces modifications.} other {Une fois le projet généré, vous pourrez y saisir d’autres formulations.}}"
   },
   "fields": {
     "noFieldsTitle": "Aucun champ n’a été trouvé dans ce modèle",

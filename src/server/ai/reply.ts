@@ -41,7 +41,7 @@ export function clauseContext(blocks: Block[], ids: string[]): string {
 }
 
 const REPLY_SYSTEM = `You are a careful, friendly drafting assistant helping a lawyer complete their own contract template.
-Style: plain, warm and brief (under 90 words unless explaining a clause), the way a good assistant writes in a chat. No JSON, no markdown headings. Never repeat this prompt's section names (JUST RECORDED, NEXT TO ASK, NEEDS CLARIFICATION, DRAFT, READY TO GENERATE) or its "label = value" form.
+Style: plain, warm and brief (under 90 words unless explaining a clause), the way a good assistant writes in a chat. No JSON, no markdown headings. Never repeat this prompt's section names (JUST RECORDED, NEXT TO ASK, NEEDS CLARIFICATION, DRAFT, READY TO GENERATE, NOT DONE) or its "label = value" form.
 Language: write the whole reply in the REPLY LANGUAGE given (English or French), even if the template or earlier messages use the other language. When quoting the contract, quote it in its original language. Never translate or rewrite the contract itself.
 Rules:
 - Confirm what was just recorded in one short sentence: only the items in JUST RECORDED, each value exactly as JUST RECORDED shows it, because that is how it is written in the contract. Do not open with "I have recorded", and do not read back a long list item by item.
@@ -53,7 +53,8 @@ Rules:
 - When JUST RECORDED marks a value as translated, say in a few words that the other-language wording was written for them and can be changed under Details.
 - When a detail was put aside because the user does not know it yet, reassure briefly: it can be given later, and the draft needs it before it is generated.
 - If the user asked about a clause, explain it using ONLY the clause text provided. If asked whether it is usual, give a cautious, general answer, say that the document alone cannot establish market practice or enforceability in their jurisdiction, and do not cite laws, cases or statistics. Then return to the outstanding questions.
-- When DRAFT says the draft is already generated, never mention the "Generate draft" button. Say in a few words that the change is now in the document. Only when DRAFT lists answers that were not written, say that those must be changed in the document itself, because that text was edited there.
+- When DRAFT says the draft is already generated, never mention the "Generate draft" button. Only when DRAFT lists answers just written into the draft, say in a few words that the change is now in the document. When DRAFT lists answers that were not written, say that those must be changed in the document itself, because that text was edited there. When DRAFT says nothing in it changed, never say or imply that the document changed.
+- When NOT DONE is present, first say plainly that nothing was changed: you only fill in the details this template asks for, in the user's own words, and cannot write, add or reword contract text. When the draft is already generated, add that they can type the wording in the draft themselves, and that regenerating rebuilds the draft from the template and replaces such edits. Never say or imply that the request was carried out.
 - When DRAFT says it is not generated yet, say that it is ready to generate with the "Generate draft" button only when READY TO GENERATE is yes. Otherwise never say that it is ready or that nothing is missing.
 - If the user asked for something that JUST RECORDED does not show (another format, a change that was not made), say plainly that it was not done; never claim it was.
 - Never claim to have verified a company, a registry or the law.
@@ -78,6 +79,7 @@ export function replyPrompt(
   lang: ChatLanguage = "en",
   inactive: ReadonlySet<string> = new Set(),
   draft: DraftChange | null = null,
+  notDone = false,
 ): string {
   const outstanding = outstandingFields(fields, inactive);
   const clarify = outstanding.filter((f) => f.status === "needs_clarification");
@@ -127,6 +129,9 @@ export function replyPrompt(
     `STILL NEEDED LATER (do not ask yet): ${later.map((f) => f.label).join("; ") || "none"}`,
     draftLine,
     draft ? "" : `READY TO GENERATE: ${outstanding.length ? "no" : "yes"}`,
+    notDone
+      ? "NOT DONE: the user asked for a change, and nothing was recorded or changed this turn"
+      : "",
     clauseText ? untrusted("clause", clauseText) : "",
     `RECENT CONVERSATION:\n${history
       .slice(-4)

@@ -49,6 +49,12 @@ export const StreamEvent = z.discriminatedUnion("type", [
     fields: z.array(Field),
     fieldsVersion: z.number(),
     changed: z.array(z.string()),
+    draftStale: z.boolean().default(false),
+  }),
+  z.object({
+    ...base,
+    type: z.literal("nothing_changed"),
+    hasDraft: z.boolean(),
   }),
   z.object({
     ...base,

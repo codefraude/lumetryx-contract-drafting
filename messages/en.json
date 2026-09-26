@@ -229,7 +229,8 @@
     "sendNotSaved": "Your latest edit could not be saved, so the message was not sent. It is back in the box below; send it again once saving works.",
     "conflictNotice": "You edited the text where {count, plural, one {this answer} other {these answers}} appeared ({answers}), so your edit was kept and the draft was not changed there. Update it in the editor, or regenerate the draft from the template (this discards manual edits).",
     "clauseChanged": "Clause {action, select, exclude {removed} other {restored}}: “{label}” ({reason}).",
-    "clauseNeedsConfirmation": "“{label}” should now be {action, select, exclude {removed} other {included}}, but you edited it. Confirm it under Clauses."
+    "clauseNeedsConfirmation": "“{label}” should now be {action, select, exclude {removed} other {included}}, but you edited it. Confirm it under Clauses.",
+    "nothingChanged": "Nothing was changed. The assistant only fills in the details this template asks for, in your own words; it does not write or reword contract text. {draft, select, yes {To add or change other wording, type it in the draft. Regenerating rebuilds the draft from the template and replaces such edits.} other {Once the draft is generated, you can type other wording in it.}}"
   },
   "fields": {
     "noFieldsTitle": "No fields were found in this template",

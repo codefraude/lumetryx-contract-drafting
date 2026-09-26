@@ -412,6 +412,93 @@ describe("lease answers", () => {
     );
   });
 
+  it("adds to or removes from an earlier answer when the message names the change", () => {
+    const first = apply(
+      lease.fields,
+      "Mary Smith is an additional occupant, and the landlord is Paul Martin.",
+      [
+        up(lease.id("additional_occupants"), "Mary Smith", "Mary Smith"),
+        up(lease.id("landlord_name"), "Paul Martin", "Paul Martin"),
+      ],
+    );
+    const added = apply(
+      first.fields,
+      "Also add Paul Smith as an additional occupant, and add Ltd at the end of the landlord's name.",
+      [
+        up(
+          lease.id("additional_occupants"),
+          "Mary Smith and Paul Smith",
+          "add Paul Smith as an additional occupant",
+        ),
+        up(
+          lease.id("landlord_name"),
+          "Paul Martin Ltd",
+          "add Ltd at the end of the landlord's name",
+        ),
+      ],
+    );
+
+    expect(added.rejected).toEqual([]);
+
+    expect(
+      byId(added.fields, lease.id("additional_occupants")).displayValue,
+    ).toBe("Mary Smith and Paul Smith");
+
+    expect(byId(added.fields, lease.id("landlord_name")).displayValue).toBe(
+      "Paul Martin Ltd",
+    );
+
+    const removed = apply(added.fields, "Remove Mary from the occupants.", [
+      up(lease.id("additional_occupants"), "Paul Smith", "Remove Mary"),
+    ]);
+
+    expect(
+      byId(removed.fields, lease.id("additional_occupants")).displayValue,
+    ).toBe("Paul Smith");
+  });
+
+  it("refuses an edit of an earlier answer that brings in words the user never wrote", () => {
+    const first = apply(lease.fields, "Mary Smith is an additional occupant.", [
+      up(lease.id("additional_occupants"), "Mary Smith", "Mary Smith"),
+    ]);
+    const r = apply(
+      first.fields,
+      "Also add Paul Smith as an additional occupant.",
+      [
+        up(
+          lease.id("additional_occupants"),
+          "Mary Smith and Peter Smith",
+          "add Paul Smith as an additional occupant",
+        ),
+      ],
+    );
+
+    expect(r.changed).toEqual([]);
+    expect(r.rejected.join()).toMatch(/not in the message/);
+  });
+
+  it("tells the reply when a requested change was not made", () => {
+    const done = replyPrompt(lease.fields, [], "", "", [], "en");
+    const notDone = replyPrompt(
+      lease.fields,
+      [],
+      "",
+      "Add a clause about pets",
+      [],
+      "en",
+      new Set(),
+      {
+        applied: [],
+        conflicts: [],
+      },
+      true,
+    );
+
+    expect(done).not.toMatch(/NOT DONE/);
+    expect(notDone).toMatch(/NOT DONE: [^\n]*nothing was recorded or changed/);
+    expect(notDone).toMatch(/DRAFT: already generated\. Nothing in it changed/);
+  });
+
   it("asks about ambiguous dates and currencies instead of guessing", () => {
     const r = apply(lease.fields, "Start 03/04/2026, rent $5,000", [
       up(lease.id("lease_start_date"), "03/04/2026", "03/04/2026"),

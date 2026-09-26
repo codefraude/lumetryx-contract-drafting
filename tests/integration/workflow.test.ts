@@ -130,6 +130,7 @@ const LEASE_ANALYSIS: TemplateAnalysis = {
 type Turn = {
   updates: Extraction["updates"];
   clauseBlockIds?: string[];
+  editRequest?: boolean;
 };
 
 let nextTurn: Turn = { updates: [] };
@@ -220,6 +221,14 @@ async function say(
 
 const field = async (sid: string, docId: string, id: string) => {
   return (await getView(sid, docId)).fields.find((f) => f.id === id)!;
+};
+
+const draftText = async (sid: string, docId: string) => {
+  const { bytes } = await readDocx(sid, docId, "working");
+
+  return (await indexBlocks(await loadDocxPackage(new Uint8Array(bytes))))
+    .map((b) => b.text)
+    .join("\n");
 };
 
 beforeAll(async () => {
@@ -618,6 +627,99 @@ describe("progressive drafting, editing and export", () => {
       .join("\n");
 
     expect(text).toContain("R. Ramdin (edited)");
+  });
+
+  it("writes an addition to an earlier answer into the draft and keeps it when regenerating", async () => {
+    const s = await newSession();
+    const d = await createFromUpload(s, "lease.docx", lease);
+    const ready = await completeLease(s, d.id);
+
+    await collect((e, sig) =>
+      generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig),
+    );
+
+    const ev = await say(s, d.id, "Add Ltd at the end of the landlord's name", {
+      updates: [
+        u(
+          "landlord_name",
+          "Ravi Ramdin Ltd",
+          "Add Ltd at the end of the landlord's name",
+        ),
+      ],
+    });
+
+    expect(ev.find((e) => e.type === "draft_patch")).toMatchObject({
+      applied: ["landlord_name"],
+      conflicts: [],
+    });
+
+    expect(ev.find((e) => e.type === "fields_updated")).toMatchObject({
+      draftStale: false,
+    });
+
+    expect(await draftText(s.id, d.id)).toContain("Ravi Ramdin Ltd");
+
+    const answered = await getView(s.id, d.id);
+
+    expect(answered.draftStale).toBe(false);
+
+    await collect((e, sig) =>
+      generateDraft(
+        s.id,
+        d.id,
+        { fieldsVersion: answered.fieldsVersion },
+        e,
+        sig,
+      ),
+    );
+
+    expect(await draftText(s.id, d.id)).toContain("Ravi Ramdin Ltd");
+  });
+
+  it("says a change was not made, instead of claiming it, when it is not a detail of the template", async () => {
+    const s = await newSession();
+    const d = await createFromUpload(s, "lease.docx", lease);
+    const ready = await completeLease(s, d.id);
+
+    await collect((e, sig) =>
+      generateDraft(s.id, d.id, { fieldsVersion: ready.fieldsVersion }, e, sig),
+    );
+
+    const before = await getView(s.id, d.id);
+    const ev = await say(
+      s,
+      d.id,
+      "Add a clause saying the tenant may keep a cat",
+      {
+        updates: [],
+        editRequest: true,
+      },
+    );
+
+    expect(ev.find((e) => e.type === "nothing_changed")).toEqual({
+      type: "nothing_changed",
+      hasDraft: true,
+    });
+
+    expect(
+      ev.some((e) => e.type === "draft_patch" || e.type === "fields_updated"),
+    ).toBe(false);
+
+    expect(lastReplyPrompt).toMatch(/NOT DONE: /);
+
+    expect(lastReplyPrompt).toMatch(
+      /DRAFT: already generated\. Nothing in it changed/,
+    );
+
+    expect((await getView(s.id, d.id)).workingRevision).toBe(
+      before.workingRevision,
+    );
+
+    await say(s, d.id, "What does the deposit clause mean?", {
+      updates: [],
+    });
+
+    expect(lastReplyPrompt).not.toMatch(/NOT DONE: /);
   });
 
   it("cancelling mid-stream never marks a partial draft complete", async () => {

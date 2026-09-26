@@ -33,7 +33,7 @@ import { withLock } from "@/server/cache/redis";
 import type { FieldState } from "@/server/fields/state";
 import { NotFound } from "@/server/http/responses";
 import { mustGet, mustGetBytes, templateBlocks } from "./access";
-import { documentView } from "./views";
+import { documentView, isDraftStale } from "./views";
 
 const docLangAsLang = (d: FieldState["language"]["document"]): Lang => {
   return d === "en" || d === "fr" ? d : "unknown";
@@ -304,6 +304,7 @@ async function runTurn(
         fields,
         fieldsVersion: saved.fieldsVersion,
         changed: applied.changed,
+        draftStale: isDraftStale(saved),
       });
     } else {
       const saved = await repo.updateFieldState(
@@ -318,8 +319,18 @@ async function runTurn(
         fields,
         fieldsVersion: saved.fieldsVersion,
         changed: applied.changed,
+        draftStale: isDraftStale(saved),
       });
     }
+  }
+
+  const notDone = extraction.editRequest === true && !applied.changed.length;
+
+  if (notDone) {
+    emit({
+      type: "nothing_changed",
+      hasDraft: doc.draftStatus === "ready",
+    });
   }
 
   const clauseText = clauseContext(blocks, extraction.clauseBlockIds);
@@ -338,6 +349,7 @@ async function runTurn(
       lang,
       inactive,
       draft,
+      notDone,
     ),
     signal,
   );

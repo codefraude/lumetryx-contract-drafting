@@ -75,6 +75,12 @@ export const Extraction = z.object({
     .array(z.string())
     .max(6)
     .describe("Block ids of clauses the user is asking about, if any"),
+  editRequest: z
+    .boolean()
+    .optional()
+    .describe(
+      "true when the user asks to add, remove, change or reword something in the contract, whether or not it is one of the FIELDS; false for a plain answer or a question",
+    ),
 });
 
 export type Extraction = z.infer<typeof Extraction>;
@@ -166,6 +172,34 @@ const tokensIn = (value: string, message: string) => {
   return found.length / tokens.length >= 0.8;
 };
 
+const JOINERS = new Set(["and", "et"]);
+
+const words = (s: string) => {
+  return plain(s)
+    .split(" ")
+    .filter((t) => t.length >= 2);
+};
+
+export function editsRecordedValue(
+  f: Field,
+  value: string,
+  message: string,
+): boolean {
+  if (f.rawValue === null) {
+    return false;
+  }
+
+  const said = new Set(words(message));
+  const before = words(f.rawValue);
+  const after = words(value);
+  const edited = [
+    ...after.filter((t) => !before.includes(t)),
+    ...before.filter((t) => !after.includes(t)),
+  ].filter((t) => !JOINERS.has(t));
+
+  return edited.length > 0 && edited.every((t) => said.has(t));
+}
+
 export function grounded(f: Field, u: Update, message: string): boolean {
   const value = u.value.trim();
 
@@ -195,7 +229,7 @@ export function grounded(f: Field, u: Update, message: string): boolean {
         tokensIn(value, message)
       );
     default:
-      return tokensIn(value, message);
+      return tokensIn(value, message) || editsRecordedValue(f, value, message);
   }
 }
 
@@ -437,6 +471,8 @@ export function applyExtraction(
 const EXTRACT_SYSTEM = `You extract contract field values from a lawyer's chat message. Messages may be in English, French or a mix; fields may have been asked in another language than the answer.
 - Only extract values the user actually stated in their LATEST message. Never guess, infer or invent names, addresses, dates, amounts, numbers, currencies, authority to sign or contract terms.
 - One message can answer several fields, in any order, including fields that were not asked yet. Extract every clearly supported answer, not only the answer to the last question. A correction ("actually the tenant is …", "change the rent to …") updates the field again.
+- When the user adds to or removes part of a recorded value ("also add Paul Smith as an occupant", "add Ltd to the landlord's name"), put the whole new value in value: the recorded value with only that change made.
+- editRequest: true when the user asks to add, remove, change or reword anything in the contract, including text that is not one of the FIELDS ("add a clause about pets"); false for a plain answer or a question.
 - A question from the user ("Is a 500 EUR deposit usual?", "What does clause 3 mean?") is not an answer: return no update for it.
 - Never copy a value into another field unless the user says so. A contact person is not the signatory, and a signatory's name is not their job title, unless the user says so.
 - resolution: "none" when the user says there is none ("no additional occupants", "aucun"); "not_applicable" when they say it does not apply; "unknown" when they say they do not know yet; "left_blank" when they ask to leave it blank. Zero is a value ("0"), not none.

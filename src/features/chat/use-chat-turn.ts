@@ -145,7 +145,7 @@ export function useChatTurn(
                   ...d,
                   fields: e.fields,
                   fieldsVersion: e.fieldsVersion,
-                  draftStale: d.draftStatus === "ready",
+                  draftStale: e.draftStale,
                 },
           );
 
@@ -200,6 +200,19 @@ export function useChatTurn(
 
           break;
         }
+        case "nothing_changed":
+          setMessages((all) => [
+            ...all,
+            {
+              id: `n-${Date.now()}`,
+              role: "notice",
+              content: t("nothingChanged", {
+                draft: e.hasDraft ? "yes" : "no",
+              }),
+            },
+          ]);
+
+          break;
         case "error":
           setFailure({
             message: errorText(

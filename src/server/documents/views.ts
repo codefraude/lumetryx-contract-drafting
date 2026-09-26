@@ -17,6 +17,17 @@ import { mustGet } from "./access";
 
 const INTERRUPTED_AFTER_MS = 90_000;
 
+export function isDraftStale(
+  doc: Pick<
+    repo.DocumentSummary,
+    "draftStatus" | "draftFieldsVersion" | "fieldsVersion"
+  >,
+): boolean {
+  return (
+    doc.draftStatus === "ready" && doc.draftFieldsVersion !== doc.fieldsVersion
+  );
+}
+
 export function phaseOf(doc: {
   draftStatus: repo.DocumentSummary["draftStatus"];
   updatedAt: Date;
@@ -77,9 +88,7 @@ export async function documentView(
     fieldsVersion: doc.fieldsVersion,
     workingRevision: doc.workingRevision,
     draftStatus: doc.draftStatus,
-    draftStale:
-      doc.draftStatus === "ready" &&
-      doc.draftFieldsVersion !== doc.fieldsVersion,
+    draftStale: isDraftStale(doc),
     phase: phaseOf(doc),
     analysis: doc.analysis,
     savedAt: doc.savedAt.toISOString(),

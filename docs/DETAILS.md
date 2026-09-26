@@ -231,8 +231,13 @@ Neither defect showed up with the mocked model. The SDK's `RetryError` is also u
 - **A date marker in the wrong field.** The model put `{{completion_date}}` into a number field it called "payment deadline", so the answer 10 would have been written as the completion date. A marker whose name says "date" can no longer join a field of another type; it becomes its own date field.
 - **The currency asked twice.** The template had its own "Currency / Devise" field, answered MUR, but an advance of "150,00" still asked for a currency. A confirmed currency field now settles later amounts.
 
+**Three more, found by changing a generated lease through the chat and regenerating it, and fixed:**
+- **An addition to an answer dropped.** "Also add Paul Smith as an additional occupant" and "Add Ltd at the end of the landlord's name" recorded nothing. The new value repeats words of the earlier answer that the message does not contain, so the evidence check rejected it. A value may now also be the recorded answer edited, when every word added or removed is in the message.
+- **A change claimed but not made.** "Add a clause saying the tenant may keep one cat" is not a detail of the template, so nothing changed, yet the reply said "I have added the clause… to the draft". It had been told to say the change was in the document whenever a draft existed. It now says so only when an answer was written. When a requested change changes nothing, the reply is told so, and the chat shows a notice: the assistant fills in details only, and other wording can be typed in the draft, which Regenerate replaces. Regenerating then showed the clause missing, but it had never been added.
+- **A needless "Regenerate" prompt.** After an answer was written into the draft, the page said the answers had changed since the draft was made until the reply ended. The chat now takes that from the server.
+
 **Each chat turn = exactly two model calls.**
-1. **Extraction.** Structured output: `updates[{fieldId, value, currency, evidence}]` plus `clauseBlockIds`. Every update must quote **verbatim evidence from the user's latest message**, or it is rejected; this is the anti-fabrication guard, and a mutation test proves the test suite catches its removal. Values then go through deterministic validation:
+1. **Extraction.** Structured output: `updates[{fieldId, value, currency, evidence}]` plus `clauseBlockIds` and `editRequest` (the user asked for a change). Every update must quote **verbatim evidence from the user's latest message**, or it is rejected; this is the anti-fabrication guard, and a mutation test proves the test suite catches its removal. A value must itself be in the message, or be the recorded answer with only words from the message added or removed ("also add Paul Smith"). Values then go through deterministic validation:
    - numeric dates like `03/04/2026` are flagged when both day-month orders are valid;
    - "Rs" and "$" require a currency named by the user or the template;
    - money is an exact decimal string;
@@ -387,7 +392,7 @@ The comparison shows:
 ## Streaming
 
 A typed SSE protocol (`src/features/documents/contracts/stream-events.ts`, encoded by `src/server/http/sse.ts`, decoded by `src/lib/sse.ts`):
-- **Event types:** `fields_updated`, `assistant_delta`, `assistant_done`, `draft_patch`, `draft_started`, `draft_block_ready`, `draft_complete`, `error`.
+- **Event types:** `fields_updated`, `nothing_changed`, `assistant_delta`, `assistant_done`, `draft_patch`, `draft_started`, `draft_block_ready`, `draft_complete`, `error`.
 - **Delivery guarantees:** every event carries a request id and sequence number. The decoder handles frames and multi-byte UTF-8 split across chunks (unit-tested). The client ignores events from any other request.
 - **Draft generation:** fills and yields **paragraph by paragraph** in document order (`fillAndRender`), yielding to the event loop between blocks. Over HTTP, against the production build, the lease produced 19 separate network chunks, the first block at ~19 ms and completion at ~76 ms. Filling is deterministic and fast, and it is deliberately not slowed down.
 - **Preview vs editor:** the preview is rendered from those same filled OOXML blocks. When `draft_complete` arrives, SuperDoc opens the persisted bytes of exactly that revision, and editing is enabled only then.
